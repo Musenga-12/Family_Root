@@ -1,0 +1,168 @@
+@import "tailwindcss";
+
+/* Easy-to-Read mode: `easy:` utilities apply when <html class="easy"> is set. */
+@custom-variant easy (&:where(.easy, .easy *));
+/* Dark theme: `dark:` utilities apply when <html class="dark"> is set (by the Settings / top-bar theme switch). */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ==========================================================
+   FamilyRoots – design tokens (from the Google Stitch screens)
+   ========================================================== */
+@theme {
+  --color-pine-950: #0f3127;
+  --color-pine-900: #143d30;
+  --color-pine-800: #1d4d3c;
+  --color-pine-700: #2a6450;
+  --color-pine-600: #3c7a63;
+  --color-mint: #9fe6c6;
+  --color-mint-hover: #8ddcb9;
+  --color-mint-200: #c8f1dd;
+  --color-mint-100: #e3f6ec;
+  --color-bg: #f2f7f4;
+  --color-surface: #ffffff;
+  --color-surface-2: #eef4f0;
+  --color-surface-3: #e5eee9;
+  --color-line: #dde8e2;
+  --color-ink: #17241f;
+  --color-muted: #5d6d66;
+  --color-faint: #8a9993;
+  --color-on-dark: #b7d2c7;
+  --color-gold: #b9862b;
+  --color-gold-100: #fbefd6;
+  --color-gold-ink: #7d5715;
+  --color-rose: #b4473f;
+  --color-rose-100: #fbe1de;
+  --color-rec: #d63c33;
+  --color-focus: #1f8a63;
+
+  --font-serif: "Playfair Display", Georgia, "Times New Roman", serif;
+  --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+
+  --text-small: 0.82rem;
+  --text-xsmall: 0.72rem;
+  --text-tag: 0.68rem;
+
+  --radius-card: 22px;
+  --shadow-card: 0 1px 2px rgba(16, 48, 38, 0.05), 0 4px 18px rgba(16, 48, 38, 0.06);
+  --shadow-pop: 0 10px 40px rgba(16, 48, 38, 0.18);
+
+  /* Breakpoints match the original demo: 700 / 980 / 1200px */
+  --breakpoint-sm: 700px;
+  --breakpoint-md: 980px;
+  --breakpoint-lg: 1200px;
+
+  --animate-pop: pop 0.18s;
+  --animate-fade: fade 0.15s;
+  --animate-blink: blink 1s infinite;
+  --animate-rec-pulse: rec-pulse 1.4s infinite;
+
+  @keyframes fade { from { opacity: 0; } }
+  @keyframes pop { from { opacity: 0; transform: translateY(10px) scale(0.98); } }
+  @keyframes blink { 50% { opacity: 0.2; } }
+  @keyframes rec-pulse {
+    0% { box-shadow: 0 0 0 0 rgba(214, 60, 51, 0.35); }
+    70% { box-shadow: 0 0 0 16px rgba(214, 60, 51, 0); }
+  }
+}
+
+/* Text size preference (Settings). Easy-to-Read below always wins. */
+html { font-size: 15px; }
+html[data-text="sm"] { font-size: 14px; }
+html[data-text="lg"] { font-size: 16.5px; }
+
+/* Accent colour preference: re-tints the pine/mint scale used for buttons, highlights and focus rings. */
+html[data-accent="ocean"] {
+  --color-pine-950: #0f2a3d; --color-pine-900: #143a52; --color-pine-800: #1d4c6a; --color-pine-700: #2a6283; --color-pine-600: #3c7899;
+  --color-mint: #9fd4f0; --color-mint-hover: #8bc7e8; --color-mint-200: #c9e7f7; --color-mint-100: #e3f2fb; --color-focus: #1f74a8;
+}
+html[data-accent="plum"] {
+  --color-pine-950: #2e1636; --color-pine-900: #3d1f48; --color-pine-800: #4f2b5d; --color-pine-700: #673c78; --color-pine-600: #7d5290;
+  --color-mint: #e2bdf0; --color-mint-hover: #d8aeea; --color-mint-200: #efd9f6; --color-mint-100: #f7ecfb; --color-focus: #8a3fa8;
+}
+html[data-accent="clay"] {
+  --color-pine-950: #3a1c12; --color-pine-900: #4c2617; --color-pine-800: #613221; --color-pine-700: #7d4430; --color-pine-600: #985a44;
+  --color-mint: #f6c7a6; --color-mint-hover: #f0b893; --color-mint-200: #fbe0cd; --color-mint-100: #fdf0e6; --color-focus: #b4562f;
+}
+
+/* Dark theme tokens. Tints derive from the active accent, so every accent works in both themes. */
+html.dark {
+  color-scheme: dark;
+  --color-bg: #0c1512;
+  --color-surface: #131e1a;
+  --color-surface-2: #192722;
+  --color-surface-3: #20312a;
+  --color-line: #2b3d36;
+  --color-ink: #e4eee9;
+  --color-muted: #a2b4ac;
+  --color-faint: #7b8d86;
+  --color-gold-100: #3a2e16;
+  --color-gold-ink: #f1d08f;
+  --color-rose: #e8746a;
+  --color-rose-100: #3e1f1c;
+  --color-mint-100: color-mix(in oklab, var(--color-mint) 14%, #131e1a);
+  --color-mint-200: color-mix(in oklab, var(--color-mint) 28%, #131e1a);
+  --color-focus: var(--color-mint);
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3), 0 4px 18px rgba(0, 0, 0, 0.25);
+  --shadow-pop: 0 10px 40px rgba(0, 0, 0, 0.5);
+}
+/* Pine text is tuned for light surfaces; on dark surfaces use the light accent instead (but not on bright mint/white chips). */
+html.dark :is(.text-pine-600, .text-pine-700, .text-pine-800, .text-pine-900):not(.bg-mint, .bg-mint-hover, [class*="bg-white"]) {
+  color: var(--color-mint);
+}
+
+/* Easy-to-Read: ≈18pt base text, stronger contrast. Everything is rem-based, so it all scales. */
+html.easy {
+  font-size: 18px;
+  --color-muted: #34443d;
+  --color-faint: #4f5f58;
+  --color-line: #b9cbc1;
+}
+html.dark.easy {
+  --color-muted: #c6d5ce;
+  --color-faint: #a9bab3;
+  --color-line: #405750;
+}
+
+@layer base {
+  body {
+    @apply bg-bg font-sans text-ink antialiased leading-normal;
+  }
+  html.easy body { line-height: 1.65; }
+  h1, h2, h3, h4 { @apply m-0 font-serif font-semibold leading-tight wrap-anywhere; }
+  h1 { font-size: clamp(1.75rem, 3vw, 2.6rem); }
+  h2 { font-size: 1.45rem; }
+  h3 { font-size: 1.12rem; }
+  a { @apply text-pine-700; }
+  html.dark a { color: var(--color-mint); }
+  :focus-visible { @apply rounded-md outline-3 outline-offset-2 outline-focus; }
+  input[type="checkbox"], input[type="radio"], input[type="range"] { accent-color: var(--color-pine-800); }
+  html.dark :is(input[type="checkbox"], input[type="radio"], input[type="range"]) { accent-color: var(--color-mint); }
+  html { scroll-behavior: smooth; }
+  body { transition: background-color 0.25s, color 0.25s; }
+}
+
+/* Material Symbols icon font (in a layer so utilities like text-[40px] can override it) */
+@layer components {
+  .ms {
+    font-family: "Material Symbols Rounded";
+    font-weight: normal; font-style: normal; font-size: 22px; line-height: 1;
+    letter-spacing: normal; text-transform: none; display: inline-block; white-space: nowrap;
+    font-feature-settings: "liga"; -webkit-font-smoothing: antialiased; vertical-align: middle;
+    user-select: none; flex-shrink: 0;
+  }
+  .ms.sm { font-size: 18px; }
+  .ms.xs { font-size: 15px; }
+  .ms.lg { font-size: 28px; }
+  .ms.fill { font-variation-settings: "FILL" 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+/* Same, as an explicit choice in Settings. */
+html.reduce-motion { scroll-behavior: auto; }
+html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after { animation: none !important; transition: none !important; }
+
+@media print {
+  [data-no-print] { display: none !important; }
+}
