@@ -162,8 +162,8 @@ html.dark { --rainbow: linear-gradient(90deg, #86d993, #7cc8ef, #f6b65c, #7c9cff
 [data-sec="messages"]  { --sec: #2563eb; }
 [data-sec="calendar"]  { --sec: #c2410c; }
 [data-sec="admin"]     { --sec: #3b5275; }
-[data-sec="privacy"]   { --sec: #4338ca; }
-[data-sec="settings"]  { --sec: #a21caf; }
+[data-sec="privacy"]   { --sec: #1d4ed8; }
+[data-sec="settings"]  { --sec: #1d4ed8; }
 [data-sec="auth"]      { --sec: #be185d; }
 /* The Easy-to-Read switch is always blue, whatever page it sits on. */
 [data-sec="easy"]      { --sec: #1d4ed8; }
@@ -188,8 +188,8 @@ html.dark [data-sec="legacy"]    { --sec: #e0b583; }
 html.dark [data-sec="messages"]  { --sec: #93b6ff; }
 html.dark [data-sec="calendar"]  { --sec: #ffa37a; }
 html.dark [data-sec="admin"]     { --sec: #a9bfe3; }
-html.dark [data-sec="privacy"]   { --sec: #aab0ff; }
-html.dark [data-sec="settings"]  { --sec: #f0a6f5; }
+html.dark [data-sec="privacy"]   { --sec: #93b6ff; }
+html.dark [data-sec="settings"]  { --sec: #93b6ff; }
 html.dark [data-sec="auth"]      { --sec: #f59ac6; }
 html.dark [data-sec="easy"]      { --sec: #93b6ff; }
 
