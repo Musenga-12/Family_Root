@@ -1,5 +1,6 @@
 /* Interface translations. Keys missing in a language fall back to English. Values may be strings or arrays. */
 import { useCallback } from "react";
+import { UI } from "./i18n-ui";
 import { useStore } from "./store";
 
 export const LANGS = [
@@ -1283,11 +1284,16 @@ const sw = {
   "land.footer": "Mradi wa usanifu unaomlenga binadamu · Umetengenezwa kwa uangalifu kwa kila kizazi.",
 };
 
-const DICTS = { en, fr, rw, sw };
+const DICTS = {
+  en: { ...en, ...UI.en },
+  fr: { ...fr, ...UI.fr },
+  rw: { ...rw, ...UI.rw },
+  sw: { ...sw, ...UI.sw },
+};
 
 /** Look up `key` in `lang`, falling back to English, and fill {placeholders} from `vars`. */
 export function translate(lang, key, vars) {
-  const v = DICTS[lang]?.[key] ?? en[key] ?? key;
+  const v = DICTS[lang]?.[key] ?? DICTS.en[key] ?? key;
   if (typeof v !== "string" || !vars) return v;
   return v.replace(/\{(\w+)\}/g, (_, k) => (vars[k] ?? `{${k}}`));
 }
