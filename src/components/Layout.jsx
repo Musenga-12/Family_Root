@@ -507,6 +507,22 @@ function QuickActions() {
     document.addEventListener("keydown", onKey);
     return () => { document.removeEventListener("mousedown", onDown); document.removeEventListener("keydown", onKey); };
   }, [expanded]);
+  // Tucked away while scrolling down so it never covers what you are reading (e.g. switches at the right edge);
+  // back as soon as you scroll up, reach the end of the page, or tab to it.
+  const [tucked, setTucked] = useState(false);
+  useEffect(() => {
+    let last = window.scrollY;
+    const onScroll = () => {
+      const y = window.scrollY;
+      const atEnd = y + window.innerHeight >= document.documentElement.scrollHeight - 120;
+      if (atEnd || y < 200 || y < last - 4) setTucked(false);
+      else if (y > last + 4) setTucked(true);
+      last = y;
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+  const hidden = tucked && !expanded;
   const items = [
     ["add_photo_alternate", "fab.memory", () => open(<AddMemoryDialog />), "memories"],
     ["mic", "fab.story", () => navigate("/stories?record=1"), "stories"],
@@ -514,7 +530,9 @@ function QuickActions() {
     ["group_add", "fab.person", () => open(<AddPersonDialog />), "tree"],
   ];
   return (
-    <div ref={ref} data-no-print className="fixed right-5 bottom-5 z-40 flex flex-col items-end gap-2.5">
+    <div ref={ref} data-no-print
+      className={cx("fixed right-5 bottom-5 z-40 flex flex-col items-end gap-2.5 transition-[transform,opacity] duration-300",
+        hidden && "pointer-events-none translate-y-[calc(100%+2rem)] opacity-0 focus-within:pointer-events-auto focus-within:translate-y-0 focus-within:opacity-100")}>
       {expanded && (
         <ul id="quickActions" className="m-0 grid list-none justify-items-end gap-2 p-0">
           {items.map(([icon, label, run, sec], i) => (
