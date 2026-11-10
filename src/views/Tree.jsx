@@ -43,16 +43,16 @@ function households(people, person, gen) {
 function PNode({ p, selected, dim, onSelect }) {
   const { relationToMe } = useStore();
   const life = lifeLine(p);
-  const tag = p.id === ME ? <Tag tone="mint" icon="check_circle">You • Matriarch</Tag>
+  const tag = p.id === ME ? <Tag tone="sec" icon="check_circle">You • Matriarch</Tag>
     : p.died ? <Tag tone="gold" icon="local_florist">In Loving Memory</Tag>
     : selected ? <Tag tone="dark">Selected</Tag> : null;
   return (
     <button type="button" data-node={p.id} data-dim={dim || undefined} aria-pressed={selected} onClick={() => onSelect(p.id)}
       aria-label={`${fullName(p)}, ${relationToMe(p)}, ${life}`}
       className={cx(
-        "relative flex w-full min-w-45 cursor-pointer items-center gap-2.5 rounded-[14px] border-2 px-3 py-2.5 text-left hover:border-pine-600",
+        "lift relative flex w-full min-w-45 cursor-pointer items-center gap-2.5 rounded-[14px] border-2 px-3 py-2.5 text-left",
         p.died ? "border-[#ead49f] bg-[#fffcf5] dark:border-gold/50 dark:bg-gold-100" : "border-[#b7e4cf] bg-surface dark:border-mint-200",
-        selected && "border-pine-800! shadow-[0_0_0_3px_var(--color-mint)]",
+        selected && "border-sec! shadow-[0_0_0_3px_var(--sec-line)]",
         dim && "opacity-30",
       )}>
       {tag && <span className="absolute -top-2.5 left-3">{tag}</span>}
@@ -76,7 +76,7 @@ function Canvas({ genFilter, selected, onSelect, isDim }) {
       {gens.filter((g) => genFilter === "all" || +genFilter === g).map((g) => (
         <div key={g}>
           <div className="my-5.5 mb-3.5 flex items-center gap-3 before:h-px before:flex-1 before:bg-line after:h-px after:flex-1 after:bg-line">
-            <span className="rounded-full bg-mint-100 px-3 py-1 text-tag font-bold tracking-[.12em] text-pine-700 uppercase">
+            <span className="rounded-full bg-sec-soft px-3 py-1 text-tag font-bold tracking-[.12em] text-sec-ink uppercase ring-1 ring-sec-line ring-inset">
               Generation {ROMAN[g]} • {GEN_LABEL[g] || ""}
             </span>
           </div>
@@ -99,7 +99,7 @@ function Canvas({ genFilter, selected, onSelect, isDim }) {
               const hl = h.some((m) => m.id === selected);
               const kids = children(a.id).length;
               return (
-                <div key={a.id} className={cx("relative grid min-w-47.5 content-start gap-2.5 rounded-2xl p-3", hl ? "bg-mint-100 outline-2 outline-mint" : "bg-surface-2")}>
+                <div key={a.id} className={cx("relative grid min-w-47.5 content-start gap-2.5 rounded-2xl p-3", hl ? "bg-sec-soft outline-2 outline-sec" : "bg-surface-2")}>
                   <span className="text-[.64rem] font-bold tracking-widest text-muted uppercase">
                     {a.parents.length ? `${a.first}'s household` : a.role}{a.pending && " • unconfirmed"}
                   </span>
@@ -111,8 +111,8 @@ function Canvas({ genFilter, selected, onSelect, isDim }) {
                     </>
                   )}
                   {g < 4 && a.parents.length > 0 && !kids && <Tag tone="outline" className="justify-self-center">No children listed yet</Tag>}
-                  {kids > 0 && <div className="mx-auto my-1.5 h-6.5 w-0.5 bg-pine-700" />}
-                  {a.pending && <div className="mx-auto my-1.5 h-6.5 w-0.5 bg-[repeating-linear-gradient(var(--color-pine-700)_0_4px,transparent_4px_8px)]" />}
+                  {kids > 0 && <div className="mx-auto my-1.5 h-6.5 w-0.5 bg-sec" />}
+                  {a.pending && <div className="mx-auto my-1.5 h-6.5 w-0.5 bg-[repeating-linear-gradient(var(--sec)_0_4px,transparent_4px_8px)]" />}
                 </div>
               );
             })}
@@ -132,7 +132,7 @@ function Pedigree({ onSelect, isDim }) {
     return (
       <li key={p.id}>
         <button type="button" data-node={p.id} data-dim={isDim(p) || undefined} onClick={() => onSelect(p.id)}
-          className={cx("flex w-full cursor-pointer items-center gap-2.5 rounded-[10px] border border-line bg-surface px-3 py-2.5 text-left hover:border-pine-600", isDim(p) && "opacity-30")}>
+          className={cx("lift flex w-full cursor-pointer items-center gap-2.5 rounded-[10px] border border-line bg-surface px-3 py-2.5 text-left", isDim(p) && "opacity-30")}>
           <Avatar p={p} />
           <span className="min-w-0 flex-1">
             <strong>{fullName(p)}</strong>{" "}
@@ -225,13 +225,13 @@ function Profile({ id, onClose }) {
       <div className="flex items-center justify-between"><Eyebrow icon="badge">Lineage Profile</Eyebrow><IconButton icon="close" label="Close profile" onClick={onClose} /></div>
       <div className="mt-4 grid justify-items-center gap-1.5 text-center">
         <Avatar p={p} size="xl" />
-        <Tag tone="mint">Generation {ROMAN[p.gen]}</Tag>
+        <Tag tone="sec">Generation {ROMAN[p.gen]}</Tag>
         <h2>{fullName(p)}</h2>
         <p className="text-small text-muted">{p.occupation} • {p.died ? `${fmtDate(p.born, p.bornApprox)} – ${fmtDate(p.died)}` : `Born ${fmtDate(p.born, p.bornApprox)}`}</p>
         {p.verified ? <Tag icon="verified">Birth Record Verified</Tag>
           : (p.pending || p.bornApprox) && <Tag tone="rose" icon="help">Approximate date — awaiting proof</Tag>}
       </div>
-      <div className="mt-4 rounded-[14px] bg-mint-100 p-3.5 text-[.84rem]">
+      <div className="mt-4 rounded-[14px] bg-sec-soft p-3.5 text-[.84rem]">
         <Eyebrow>Kinship relationship</Eyebrow>
         <p className="mt-2">
           {p.id === ME ? <>This is <strong>you</strong>.</> : <>{p.first} is your <strong>{relationToMe(p).toLowerCase()}</strong>.</>}
@@ -399,7 +399,7 @@ export default function Tree() {
           <label className="sr-only" htmlFor="findRel">Find relative in tree</label>
           <Input id="findRel" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Find relative in tree…" />
         </InputIcon>
-        <Button variant="mint" size="sm" icon="my_location" onClick={centerMe}>Center on Me</Button>
+        <Button variant="tint" size="sm" icon="my_location" onClick={centerMe}>Center on Me</Button>
         <IconButton icon="zoom_in" label="Zoom in" onClick={() => changeZoom(zoom + 0.1)} />
         <IconButton icon="zoom_out" label="Zoom out" onClick={() => changeZoom(zoom - 0.1)} />
         <IconButton icon="fit_screen" label="Reset zoom" onClick={() => changeZoom(1)} />

@@ -65,6 +65,59 @@
   }
 }
 
+/* Section colour: utilities read the nearest [data-sec] ancestor's colour (see "Category colours" below). */
+@theme inline {
+  --color-sec: var(--sec);
+  --color-sec-soft: var(--sec-soft);
+  --color-sec-line: var(--sec-line);
+  --color-sec-ink: var(--sec-ink);
+  --color-sec-on: var(--sec-on);
+}
+
+/* ----------------------------------------------------------
+   Hover & press feedback. Every clickable thing visibly changes colour when the pointer is on it
+   (or keyboard focus reaches it), and changes again while it is being pressed, so everyone can tell
+   what will react: three clearly different states (resting, hover, pressed).
+   ---------------------------------------------------------- */
+
+/* Simple controls (buttons, icon buttons, chips, menu items): fill solid with the section colour,
+   white text and icons (dark text in the dark theme); a deeper shade while pressed. The jump in
+   lightness is visible to colour-blind users too. Badges and avatars inside keep their own colours. */
+@utility hover-fill {
+  &:is(:hover, :focus-visible):not(:disabled, [aria-disabled="true"]) {
+    background-color: var(--sec);
+    background-image: none;
+    border-color: var(--sec);
+    color: var(--sec-on);
+    & :is(.ms, [class*="text-"]):not([class*="bg-"], [role="img"], [role="img"] *) { color: var(--sec-on); }
+  }
+  &:active:not(:disabled, [aria-disabled="true"]) {
+    background-color: var(--sec-press);
+    border-color: var(--sec-press);
+  }
+}
+/* Rows and cards that hold several lines of text: a clearly stronger tint and a section-coloured border,
+   deeper while pressed (text keeps its normal, readable colours). */
+@utility hover-tint {
+  &:is(:hover, :focus-visible):not(:disabled) { background-color: var(--sec-hover); border-color: var(--sec); }
+  &:active:not(:disabled) { background-color: var(--sec-line); }
+}
+/* Clickable cards: tint + lift with a glow in the section colour on hover; sink back and deepen when pressed. */
+@utility lift {
+  transition: transform 0.2s cubic-bezier(0.2, 0.7, 0.3, 1), box-shadow 0.2s, border-color 0.2s, background-color 0.2s;
+  &:is(:hover, :focus-visible) {
+    transform: translateY(-2px);
+    border-color: var(--sec);
+    background-color: var(--sec-hover);
+    box-shadow: 0 0 0 1px var(--sec), 0 12px 26px -12px color-mix(in oklab, var(--sec) 75%, transparent);
+  }
+  &:active { transform: translateY(0) scale(0.99); background-color: var(--sec-line); }
+}
+/* Small press feedback for buttons and chips. */
+@utility pressable {
+  &:active:not(:disabled) { transform: scale(0.97); }
+}
+
 /* Swipeable rows (chips, quick replies) without a visible scrollbar; they still scroll by touch, wheel and keyboard. */
 @utility no-scrollbar {
   scrollbar-width: none;
@@ -74,10 +127,75 @@
 /* Used from inline styles (toast time-left bar), so declared outside @theme where unused keyframes are dropped. */
 @keyframes toast-life { from { width: 100%; } to { width: 0; } }
 
-/* Text size preference (Settings). Easy-to-Read below always wins. */
-html { font-size: 15px; }
-html[data-text="sm"] { font-size: 14px; }
-html[data-text="lg"] { font-size: 16.5px; }
+/* Text size preference (Settings). Easy-to-Read below always wins.
+   The default is 16px so children, adults and older relatives can all read it without zooming. */
+html { font-size: 16px; }
+html[data-text="sm"] { font-size: 15px; }
+html[data-text="lg"] { font-size: 17.5px; }
+
+/* ==========================================================
+   Category colours: every section of the archive has its own colour, so people of every age can tell
+   where they are at a glance (sidebar, page header, cards, buttons). Colour is always paired with an
+   icon and a label, never used alone. Each strong colour has at least 4.5:1 contrast with white text.
+   Set data-sec="tree" (etc.) on any element; bg-sec, text-sec-ink, bg-sec-soft, border-sec-line follow it.
+   ========================================================== */
+:root, [data-sec] {
+  --sec: var(--color-pine-800);
+  --sec-soft: color-mix(in oklab, var(--sec) 11%, var(--color-surface));
+  --sec-line: color-mix(in oklab, var(--sec) 32%, var(--color-surface));
+  --sec-ink: color-mix(in oklab, var(--sec) 78%, #000);
+  --sec-hover: color-mix(in oklab, var(--sec) 20%, var(--color-surface));
+  --sec-press: color-mix(in oklab, var(--sec) 66%, #000);
+  --sec-on: #fff;
+  --stripe: var(--sec);
+}
+[data-sec="overview"]  { --sec: var(--color-pine-800); --sec-soft: var(--color-mint-100); --sec-line: var(--color-mint-200); --stripe: var(--rainbow); }
+/* The family's colours together: the Overview header stripe and the quick-add button, which lead to every section. */
+:root { --rainbow: linear-gradient(90deg, #2e7d32, #0b6e99, #b45309, #7c3aed, #0f766e, #2563eb, #c2410c); }
+html.dark { --rainbow: linear-gradient(90deg, #86d993, #7cc8ef, #f6b65c, #c4a5ff, #6fd6c8, #93b6ff, #ffa37a); }
+[data-sec="tree"]      { --sec: #2e7d32; }
+[data-sec="directory"] { --sec: #0b6e99; }
+[data-sec="memories"]  { --sec: #b45309; }
+[data-sec="stories"]   { --sec: #7c3aed; }
+[data-sec="timeline"]  { --sec: #0f766e; }
+[data-sec="legacy"]    { --sec: #8a5a2b; }
+[data-sec="messages"]  { --sec: #2563eb; }
+[data-sec="calendar"]  { --sec: #c2410c; }
+[data-sec="admin"]     { --sec: #3b5275; }
+[data-sec="privacy"]   { --sec: #4338ca; }
+[data-sec="settings"]  { --sec: #a21caf; }
+[data-sec="auth"]      { --sec: #be185d; }
+
+/* Dark theme: lighter versions of the same hues, with dark text on top. */
+html.dark :is(:root, [data-sec]) {
+  --sec: var(--color-mint);
+  --sec-soft: color-mix(in oklab, var(--sec) 14%, var(--color-surface));
+  --sec-line: color-mix(in oklab, var(--sec) 34%, var(--color-surface));
+  --sec-ink: color-mix(in oklab, var(--sec) 82%, #fff);
+  --sec-hover: color-mix(in oklab, var(--sec) 26%, var(--color-surface));
+  --sec-press: color-mix(in oklab, var(--sec) 55%, #fff);
+  --sec-on: #0c1512;
+}
+html.dark [data-sec="overview"]  { --sec: var(--color-mint); }
+html.dark [data-sec="tree"]      { --sec: #86d993; }
+html.dark [data-sec="directory"] { --sec: #7cc8ef; }
+html.dark [data-sec="memories"]  { --sec: #f6b65c; }
+html.dark [data-sec="stories"]   { --sec: #c4a5ff; }
+html.dark [data-sec="timeline"]  { --sec: #6fd6c8; }
+html.dark [data-sec="legacy"]    { --sec: #e0b583; }
+html.dark [data-sec="messages"]  { --sec: #93b6ff; }
+html.dark [data-sec="calendar"]  { --sec: #ffa37a; }
+html.dark [data-sec="admin"]     { --sec: #a9bfe3; }
+html.dark [data-sec="privacy"]   { --sec: #aab0ff; }
+html.dark [data-sec="settings"]  { --sec: #f0a6f5; }
+html.dark [data-sec="auth"]      { --sec: #f59ac6; }
+
+/* Easy-to-Read: deeper tints and borders, so the colour coding is even easier to see. */
+html.easy :is(:root, [data-sec]) {
+  --sec-soft: color-mix(in oklab, var(--sec) 16%, var(--color-surface));
+  --sec-hover: color-mix(in oklab, var(--sec) 28%, var(--color-surface));
+  --sec-line: color-mix(in oklab, var(--sec) 50%, var(--color-surface));
+}
 
 /* Accent colour preference: re-tints the pine/mint scale used for buttons, highlights and focus rings. */
 html[data-accent="ocean"] {
@@ -92,6 +210,10 @@ html[data-accent="clay"] {
   --color-pine-950: #3a1c12; --color-pine-900: #4c2617; --color-pine-800: #613221; --color-pine-700: #7d4430; --color-pine-600: #985a44;
   --color-mint: #f6c7a6; --color-mint-hover: #f0b893; --color-mint-200: #fbe0cd; --color-mint-100: #fdf0e6; --color-focus: #b4562f;
 }
+
+/* The light theme always uses light form controls, even when the device is in dark mode
+   (otherwise unchecked radio buttons render dark and look already selected). */
+html:not(.dark) { color-scheme: light; }
 
 /* Dark theme tokens. Tints derive from the active accent, so every accent works in both themes. */
 html.dark {
@@ -141,11 +263,31 @@ html.dark.easy {
   h1 { font-size: clamp(1.75rem, 3vw, 2.6rem); }
   h2 { font-size: 1.45rem; }
   h3 { font-size: 1.12rem; }
-  a { @apply text-pine-700; }
-  html.dark a { color: var(--color-mint); }
-  :focus-visible { @apply rounded-md outline-3 outline-offset-2 outline-focus; }
-  input[type="checkbox"], input[type="radio"], input[type="range"] { accent-color: var(--color-pine-800); }
-  html.dark :is(input[type="checkbox"], input[type="radio"], input[type="range"]) { accent-color: var(--color-mint); }
+  /* Links: the section's colour, with an underline that strengthens on hover. */
+  a {
+    color: var(--sec-ink);
+    text-decoration-color: var(--sec-line);
+    text-decoration-thickness: 2px;
+    text-underline-offset: 3px;
+    transition: color 0.15s, text-decoration-color 0.15s;
+  }
+  a:hover { text-decoration-color: var(--sec); background-color: var(--sec-hover); border-radius: 4px; }
+  a:active { background-color: var(--sec-line); }
+  /* Fallback press feedback for anything clickable that has no colour of its own for that state. */
+  :where(button, a, summary, [role="button"], [role="option"], [role="tab"]):not(:disabled):active { filter: brightness(0.93); }
+  /* One focus ring for everything you can click, in the section's colour, so keyboard users always see where they are. */
+  :focus-visible { @apply rounded-md outline-3 outline-offset-2; outline-color: var(--sec); }
+  input[type="checkbox"], input[type="radio"], input[type="range"], progress { accent-color: var(--sec); }
+  /* Everything clickable changes colour smoothly instead of flickering. */
+  :where(button, a, summary, select, label:has(> input), [role="button"], [role="option"], [role="tab"]) {
+    transition-property: color, background-color, border-color, box-shadow, transform, filter, opacity, text-decoration-color;
+    transition-duration: 0.18s;
+    transition-timing-function: cubic-bezier(0.2, 0.7, 0.3, 1);
+    -webkit-tap-highlight-color: transparent;
+  }
+  :where(button, summary, [role="button"], [role="option"], [role="tab"], label:has(> input)):not(:disabled) { cursor: pointer; }
+  ::selection { background: var(--sec-line); color: var(--color-ink); }
+  html { scrollbar-color: color-mix(in oklab, var(--sec) 45%, var(--color-surface)) transparent; }
   html { scroll-behavior: smooth; }
   body { transition: background-color 0.25s, color 0.25s; }
 }

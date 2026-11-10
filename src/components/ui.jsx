@@ -10,24 +10,31 @@ export function Icon({ name, size, fill, className }) {
 
 /* ---------- Buttons ---------- */
 const BTN_VARIANTS = {
-  default: "bg-surface border-line text-ink hover:bg-surface-2",
-  primary: "bg-pine-900 border-pine-900 text-white hover:bg-pine-800",
-  mint: "bg-mint border-mint text-pine-900 hover:bg-mint-hover",
-  soft: "bg-surface-3 border-transparent text-ink hover:bg-surface-2",
-  ghost: "bg-transparent border-transparent text-pine-700 hover:bg-surface-2",
-  danger: "bg-rose border-rose text-white hover:brightness-95",
+  default: "hover-fill bg-surface border-sec-line text-sec-ink hover:shadow-[0_6px_16px_-8px_var(--sec)]",
+  /* Primary buttons take the colour of the section they are in (green on the Tree, amber on Memories…),
+     as a gentle gradient that glows in the same colour on hover. Text contrast stays above 4.5:1 across the gradient. */
+  primary: cx("border-transparent bg-[linear-gradient(135deg,var(--sec),var(--sec-ink))] text-sec-on shadow-[0_4px_12px_-6px_var(--sec)]",
+    /* Hover: a solid, deeper shade and a halo; pressed: deeper still. */
+    "hover:-translate-y-px hover:bg-none hover:bg-sec-ink hover:shadow-[0_10px_22px_-8px_var(--sec)] hover:ring-4 hover:ring-sec-line",
+    "focus-visible:bg-none focus-visible:bg-sec-ink active:bg-none active:bg-(--sec-press) active:ring-sec"),
+  brand: "bg-pine-900 border-pine-900 text-white hover:bg-pine-700 hover:-translate-y-px hover:ring-4 hover:ring-mint-200 active:bg-pine-950",
+  tint: "hover-fill bg-sec-soft border-sec-line text-sec-ink",
+  mint: "bg-mint border-mint text-pine-900 hover:-translate-y-px hover:border-pine-900 hover:bg-pine-900 hover:text-white active:bg-pine-950",
+  soft: "hover-fill bg-sec-soft border-transparent text-sec-ink",
+  ghost: "hover-fill bg-transparent border-transparent text-sec-ink",
+  danger: "bg-[linear-gradient(135deg,var(--color-rose),#8f2f29)] border-transparent text-white shadow-[0_4px_12px_-6px_var(--color-rose)] hover:-translate-y-px hover:bg-none hover:bg-[#8f2f29] hover:ring-4 hover:ring-rose-100 active:bg-[#6f241f]",
 };
 const BTN_SIZES = {
-  md: "px-4 py-2.5 text-[.86rem] rounded-[10px]",
-  sm: "px-2.5 py-1.5 text-[.78rem] rounded-lg",
-  lg: "px-4 py-3.5 text-[.95rem] rounded-[10px]",
+  md: "min-h-11 px-4 py-2.5 text-[.9rem] rounded-xl",
+  sm: "min-h-9 px-3 py-1.5 text-[.82rem] rounded-[10px]",
+  lg: "min-h-13 px-5 py-3.5 text-base rounded-xl",
 };
 const btnCls = (variant = "default", size = "md", block = false, extra, wrap = false) =>
   cx(
     "inline-flex items-center justify-center gap-2 border font-semibold no-underline cursor-pointer",
-    "transition active:translate-y-px disabled:opacity-50 disabled:cursor-not-allowed easy:min-h-12",
+    "pressable disabled:translate-y-0! disabled:opacity-50 disabled:shadow-none! disabled:cursor-not-allowed easy:min-h-12",
     block || wrap ? "min-w-0 whitespace-normal text-center" : "whitespace-nowrap max-sm:whitespace-normal max-sm:text-center",
-    variant === "ghost" && size === "md" ? "px-2 py-2.5 text-[.86rem] rounded-[10px]" : BTN_SIZES[size],
+    variant === "ghost" && size === "md" ? "min-h-11 px-2.5 py-2.5 text-[.9rem] rounded-xl" : BTN_SIZES[size],
     BTN_VARIANTS[variant], block && "w-full", extra,
   );
 
@@ -37,7 +44,9 @@ export const Spinner = ({ className }) => (
 );
 
 /** `busy` shows a spinner and blocks further clicks until the work finishes (no duplicate submissions). */
-export function Button({ variant, size, block, wrap, icon, iconSize = "sm", to, busy, disabled, className, children, ...rest }) {
+/** `sec` colours the button with another section's colour, e.g. sec="memories" on an "Add a Memory" shortcut. */
+export function Button({ variant, size, block, wrap, icon, iconSize = "sm", to, busy, disabled, sec, className, children, ...rest }) {
+  if (sec) rest["data-sec"] = sec;
   const cls = btnCls(variant, size, block, cx(busy && "cursor-progress!", className), wrap);
   const inner = <>{busy ? <Spinner /> : icon && <Icon name={icon} size={iconSize} />}{children}</>;
   if (to) return <Link to={to} className={cls} {...rest}>{inner}</Link>;
@@ -47,7 +56,7 @@ export function Button({ variant, size, block, wrap, icon, iconSize = "sm", to, 
 export function IconButton({ icon, label, className, iconProps, children, ...rest }) {
   return (
     <button type="button" aria-label={label}
-      className={cx("relative inline-grid size-10 shrink-0 cursor-pointer place-items-center rounded-[10px] border border-line bg-surface text-pine-800 hover:bg-surface-2", className)}
+      className={cx("pressable relative inline-grid size-11 shrink-0 cursor-pointer place-items-center rounded-xl border border-line bg-surface text-sec-ink hover-fill", className)}
       {...rest}>
       <Icon name={icon} {...iconProps} />{children}
     </button>
@@ -55,8 +64,8 @@ export function IconButton({ icon, label, className, iconProps, children, ...res
 }
 
 /** Decorative rounded square holding an icon (used beside headings). */
-export function IconBox({ icon, tone = "mint", className }) {
-  const tones = { mint: "bg-mint text-pine-900", dark: "bg-pine-900 text-mint", gold: "bg-gold-100 text-gold-ink" };
+export function IconBox({ icon, tone = "sec", className }) {
+  const tones = { mint: "bg-mint text-pine-900", dark: "bg-pine-900 text-mint", gold: "bg-gold-100 text-gold-ink", sec: "bg-sec-soft text-sec-ink ring-1 ring-sec-line ring-inset", solid: "bg-sec text-sec-on" };
   return <span className={cx("inline-grid size-10 shrink-0 place-items-center rounded-[10px]", tones[tone], className)}><Icon name={icon} /></span>;
 }
 
@@ -69,6 +78,7 @@ const TAG_TONES = {
   dark: "bg-pine-900 text-mint",
   outline: "border border-line bg-transparent text-muted",
   glass: "bg-white/90 text-pine-800",
+  sec: "bg-sec-soft text-sec-ink ring-1 ring-sec-line ring-inset",
 };
 export function Tag({ tone = "default", icon, className, children, ...rest }) {
   return (
@@ -80,8 +90,10 @@ export function Tag({ tone = "default", icon, className, children, ...rest }) {
 
 const chipCls = (pressed) =>
   cx(
-    "group inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[.78rem] font-medium whitespace-nowrap cursor-pointer easy:min-h-12",
-    pressed ? "border-pine-900 bg-pine-900 text-white" : "border-line bg-surface text-ink hover:border-pine-600",
+    "pressable group inline-flex min-h-10 items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-[.84rem] font-medium whitespace-nowrap cursor-pointer easy:min-h-12",
+    pressed
+      ? "border-transparent bg-[linear-gradient(135deg,var(--sec),var(--sec-ink))] font-semibold text-sec-on shadow-[0_4px_12px_-6px_var(--sec)] hover:ring-4 hover:ring-sec-line"
+      : "hover-fill border-sec-line bg-surface text-ink",
   );
 
 export function Chip({ pressed, count, icon, className, children, ...rest }) {
@@ -89,7 +101,7 @@ export function Chip({ pressed, count, icon, className, children, ...rest }) {
     <button type="button" aria-pressed={pressed} className={cx(chipCls(pressed), className)} {...rest}>
       {icon && <Icon name={icon} size="xs" />}{children}
       {count !== undefined && (
-        <span className={cx("rounded-full px-1.75 text-[.7rem]", pressed ? "bg-mint text-pine-900" : "bg-surface-3")}>{count}</span>
+        <span className={cx("rounded-full px-1.75 text-[.7rem]", pressed ? "bg-sec-on/25" : "bg-sec-soft text-sec-ink")}>{count}</span>
       )}
     </button>
   );
@@ -102,7 +114,7 @@ export function Chips({ scroll, className, children, ...rest }) {
 /** Segmented tab control. items: [[key, label]] */
 export function Tabs({ items, value, onChange, dark, label, role = "tablist", className, itemClassName }) {
   return (
-    <div role={role} aria-label={label} className={cx("inline-flex flex-wrap gap-0.5 rounded-xl border border-line bg-surface-2 p-1", className)}>
+    <div role={role} aria-label={label} className={cx("inline-flex flex-wrap gap-0.5 rounded-xl border border-sec-line bg-sec-soft p-1", className)}>
       {items.map(([key, text, aria]) => {
         const sel = value === key;
         return (
@@ -110,8 +122,8 @@ export function Tabs({ items, value, onChange, dark, label, role = "tablist", cl
             {...(role === "tablist" ? { role: "tab", "aria-selected": sel } : { "aria-pressed": sel })}
             onClick={() => onChange(key)}
             className={cx(
-              "inline-flex items-center justify-center gap-1 rounded-[9px] border-0 px-3.5 py-2 text-[.84rem] cursor-pointer easy:min-h-12",
-              sel ? (dark ? "bg-pine-900 font-semibold text-white" : "bg-surface font-semibold text-ink shadow-card") : "bg-transparent font-medium text-muted",
+              "inline-flex min-h-10 items-center justify-center gap-1 rounded-[9px] border-0 px-3.5 py-2 text-[.88rem] cursor-pointer easy:min-h-12",
+              sel ? (dark ? "bg-sec font-semibold text-sec-on" : "bg-surface font-semibold text-sec-ink shadow-card ring-1 ring-sec-line") : "hover-fill bg-transparent font-medium text-muted",
               itemClassName,
             )}>
             {text}
@@ -128,13 +140,19 @@ const CARD_TONES = {
   soft: "bg-surface-2 border-line",
   dark: "bg-pine-900 border-pine-900 text-[#e8f3ee] [&_h3]:text-white",
 };
-export function Card({ tone = "default", as: As = "section", className, children, ...rest }) {
-  return <As className={cx("rounded-card border p-5.5 max-sm:p-4.5", CARD_TONES[tone], className)} {...rest}>{children}</As>;
+/** `sec` marks the card with a section's colour: a coloured top edge, and its heading icon and buttons in that colour. */
+export function Card({ tone = "default", sec, as: As = "section", className, children, ...rest }) {
+  return (
+    <As data-sec={sec} className={cx("rounded-card border p-5.5 max-sm:p-4.5", CARD_TONES[tone], sec && tone !== "dark" && "border-t-4 border-t-sec [&_h2_.ms]:text-sec-ink", className)} {...rest}>
+      {children}
+    </As>
+  );
 }
 
 export function Hero({ as: As = "section", className, children, ...rest }) {
   return (
-    <As className={cx("rounded-card border border-line bg-[linear-gradient(135deg,var(--color-mint-100)_0%,var(--color-surface)_60%,var(--color-mint-100)_100%)] p-7 max-sm:p-4.5", className)} {...rest}>
+    <As className={cx("relative overflow-hidden rounded-card border border-sec-line bg-[linear-gradient(135deg,var(--sec-soft)_0%,var(--color-surface)_60%,var(--sec-soft)_100%)] p-7 pt-8 max-sm:p-4.5 max-sm:pt-6",
+      "before:absolute before:inset-x-0 before:top-0 before:h-1.5 before:[background:var(--stripe)]", className)} {...rest}>
       {children}
     </As>
   );
@@ -142,7 +160,7 @@ export function Hero({ as: As = "section", className, children, ...rest }) {
 
 export function Eyebrow({ icon, className, children }) {
   return (
-    <span className={cx("inline-flex items-center gap-1.5 text-tag font-semibold tracking-[.14em] text-pine-700 uppercase", className)}>
+    <span className={cx("inline-flex items-center gap-1.5 text-tag font-semibold tracking-[.14em] text-sec-ink uppercase", className)}>
       {icon && <Icon name={icon} size="sm" />}{children}
     </span>
   );
@@ -154,7 +172,7 @@ export function SectionTitle({ className, children }) {
 
 export function Stat({ value, label }) {
   return (
-    <div className="rounded-[14px] border border-line bg-surface px-4.5 py-3.5">
+    <div className="rounded-[14px] border border-line border-l-4 border-l-sec bg-surface px-4.5 py-3.5">
       <strong className="block font-serif text-2xl">{value}</strong>
       <span className="text-[.66rem] font-semibold tracking-widest text-muted uppercase">{label}</span>
     </div>
@@ -164,7 +182,7 @@ export function Stat({ value, label }) {
 export function Empty({ icon, title, className, children }) {
   return (
     <div className={cx("rounded-[14px] border-2 border-dashed border-line px-5 py-10 text-center text-muted", className)}>
-      <Icon name={icon} className="text-[40px]! text-pine-600" />
+      <Icon name={icon} className="text-[40px]! text-sec" />
       {title && <h3 className="mt-2 mb-1 text-ink">{title}</h3>}
       {children}
     </div>
@@ -174,8 +192,8 @@ export function Empty({ icon, title, className, children }) {
 /** A soft row with a leading icon tile (records, notifications, linked items). */
 export function Record({ icon, as: As = "div", className, children, ...rest }) {
   return (
-    <As className={cx("flex items-center gap-3 rounded-xl bg-surface-2 p-3 text-inherit no-underline", className)} {...rest}>
-      {icon && <span className="grid size-9 shrink-0 place-items-center rounded-[10px] bg-surface text-pine-700"><Icon name={icon} /></span>}
+    <As className={cx("flex items-center gap-3 rounded-xl border border-transparent bg-surface-2 p-3 text-inherit no-underline", As !== "div" && "lift cursor-pointer hover:bg-surface", className)} {...rest}>
+      {icon && <span className="grid size-9 shrink-0 place-items-center rounded-[10px] bg-sec-soft text-sec-ink"><Icon name={icon} /></span>}
       {children}
     </As>
   );
@@ -211,8 +229,8 @@ export function Photo({ p1 = "#6d8d72", p2 = "#2d4a3b", icon = "image", img, alt
   return (
     <As role={As === "div" || As === "span" ? "img" : undefined} aria-label={alt}
       style={{ background: `linear-gradient(135deg, ${p1}, ${p2})` }}
-      className={cx("relative grid place-items-center overflow-hidden text-white/85 no-underline", aspect, flush ? "rounded-none" : "rounded-xl", className)} {...rest}>
-      {img ? <img src={img} alt={alt} className="absolute inset-0 size-full object-cover" /> : <Icon name={icon} className="text-[44px]! opacity-55" />}
+      className={cx("group/photo relative grid place-items-center overflow-hidden text-white/85 no-underline", aspect, flush ? "rounded-none" : "rounded-xl", As !== "div" && As !== "span" && "lift", className)} {...rest}>
+      {img ? <img src={img} alt={alt} className="absolute inset-0 size-full object-cover transition-transform duration-500 group-hover/photo:scale-105" /> : <Icon name={icon} className="text-[44px]! opacity-55" />}
       {children}
     </As>
   );
@@ -229,8 +247,8 @@ export const PhotoCorner = ({ children }) => <span className="absolute top-2.5 l
 
 /* ---------- Forms ---------- */
 const inputCls = cx(
-  "w-full rounded-[10px] border border-line bg-surface-2 px-3 py-2.5 outline-none",
-  "focus:border-pine-600 focus:bg-surface focus:shadow-[0_0_0_3px_rgba(31,138,99,.18)]",
+  "min-h-11 w-full rounded-[10px] border border-line bg-surface-2 px-3 py-2.5 outline-none transition-[border-color,box-shadow,background-color] hover:border-sec-line",
+  "focus:border-sec focus:bg-surface focus:shadow-[0_0_0_3px_var(--sec-line)]",
   "aria-invalid:border-rose aria-invalid:bg-rose-100/50",
 );
 
@@ -243,7 +261,7 @@ export function Field({ id, label, hint, help, error, className, children }) {
   return (
     <div className={cx("grid gap-1.5", className)}>
       {label && (
-        <label htmlFor={id} className="flex justify-between gap-2 text-[.8rem] font-semibold">
+        <label htmlFor={id} className="flex justify-between gap-2 text-[.86rem] font-semibold">
           <span>{label}</span>{hint && <span className="text-xsmall font-medium text-pine-700">{hint}</span>}
         </label>
       )}
@@ -311,8 +329,8 @@ export function Switch({ checked, onChange, label, help, id, className }) {
       <button id={id} type="button" role="switch" aria-checked={checked} onClick={() => onChange(!checked)}
         aria-labelledby={`${id}-label`} aria-describedby={help ? `${id}-help` : undefined}
         className={cx("relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-0 transition-colors",
-          checked ? "bg-pine-800 dark:bg-mint" : "bg-surface-3 ring-1 ring-line ring-inset")}>
-        <span className={cx("inline-block size-5 rounded-full bg-white shadow transition-transform", checked ? "translate-x-6 dark:bg-pine-950" : "translate-x-1")} />
+          checked ? "bg-sec" : "bg-[color-mix(in_oklab,var(--color-faint)_55%,var(--color-surface))] hover:bg-[color-mix(in_oklab,var(--sec)_45%,var(--color-surface))]")}>
+        <span className={cx("inline-block size-5 rounded-full bg-white shadow-[0_1px_3px_rgb(0_0_0/.3)] transition-transform", checked ? "translate-x-6 bg-sec-on!" : "translate-x-1")} />
       </button>
     </label>
   );

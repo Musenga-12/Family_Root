@@ -33,7 +33,7 @@ function PersonCard({ p, selected, list, onOpen }) {
   const navigate = useNavigate();
   const kids = children(p.id);
   const days = !p.died && daysToBirthday(p);
-  const status = p.id === ME ? <Tag tone="mint">YOU (MATRIARCH)</Tag>
+  const status = p.id === ME ? <Tag tone="sec">YOU (MATRIARCH)</Tag>
     : p.died ? <Tag tone="gold" icon="local_florist">IN MEMORIAM</Tag>
     : p.pending ? <Tag tone="rose">PARISH PROOFS PENDING</Tag>
     : days <= 14 ? <Tag tone="gold" icon="cake">{days} DAYS</Tag>
@@ -50,9 +50,9 @@ function PersonCard({ p, selected, list, onOpen }) {
   return (
     <article aria-label={fullName(p)}
       className={cx(
-        "relative grid content-start gap-2.5 overflow-hidden rounded-[18px] border bg-surface p-4.5",
+        "relative grid content-start gap-2.5 overflow-hidden rounded-[18px] border bg-surface p-4.5 transition-[border-color,box-shadow] hover:border-sec-line hover:shadow-card",
         list ? "grid-cols-[auto_minmax(0,1fr)] items-center sm:grid-cols-[auto_minmax(0,1fr)_auto]" : "grid-cols-[minmax(0,1fr)]",
-        selected ? "border-pine-700 shadow-[0_0_0_3px_var(--color-mint-200)]" : "border-line",
+        selected ? "border-sec shadow-[0_0_0_3px_var(--sec-line)]" : "border-line",
       )}>
       <div className={cx("grid justify-items-end gap-1 text-right", list ? "col-start-2 row-start-1 justify-items-start text-left sm:col-start-3 sm:justify-items-end" : "absolute top-4 right-4")}>
         {status}<span className="text-xsmall text-muted">Generation {p.gen}</span>
@@ -68,13 +68,13 @@ function PersonCard({ p, selected, list, onOpen }) {
       {!list && (
         <div className="flex justify-between gap-2 rounded-[10px] bg-surface-2 p-2.5 text-[.74rem]">
           <span>{kids.length ? `${kids.length} Child${kids.length > 1 ? "ren" : ""}: ${kids.map((k) => k.first).join(", ")}` : p.occupation}</span>
-          <span className="text-pine-700">Kinship: {relationToMe(p)}</span>
+          <span className="text-sec-ink">Kinship: {relationToMe(p)}</span>
         </div>
       )}
       <div className={cx("flex gap-2 [&>*:first-child]:flex-1", list ? "col-span-full sm:col-span-1 sm:col-start-3" : "mt-1")}>
         {primary}
         <Button size="sm" icon="person_search" aria-label={`Open kinship dossier for ${p.first}`} onClick={() => onOpen(p.id)}>Details</Button>
-        <IconButton icon="star" iconProps={{ fill: !!p.fav, className: p.fav ? "text-gold!" : "" }} aria-pressed={!!p.fav} className="size-8.5!"
+        <IconButton icon="star" iconProps={{ fill: !!p.fav, className: p.fav ? "text-gold! [button:hover_&]:text-sec-on!" : "" }} aria-pressed={!!p.fav} className="size-8.5!"
           label={t(p.fav ? "fav.remove" : "fav.add", { name: p.first })} title={t(p.fav ? "fav.remove" : "fav.add", { name: p.first })} onClick={toggleFav} />
       </div>
     </article>
@@ -119,13 +119,13 @@ function Dossier({ id, onClose }) {
           <Tag tone="dark">{degree ? `${degree}${degree === 1 ? "st" : degree === 2 ? "nd" : "rd"} Degree` : "Self"}</Tag>
         </div>
         <div className="my-2.5 flex items-center justify-center gap-2">
-          <span className="grid size-9 place-items-center rounded-full bg-pine-900 text-[.7rem] font-bold text-white">You</span>
-          <span className="h-0.5 w-12.5 bg-pine-700" />
-          <span className="grid size-9 place-items-center rounded-full bg-mint text-[.7rem] font-bold text-pine-900">{initials(p)}</span>
+          <span className="grid size-9 place-items-center rounded-full bg-sec text-[.7rem] font-bold text-sec-on">You</span>
+          <span className="h-0.5 w-12.5 bg-sec" />
+          <span className="grid size-9 place-items-center rounded-full bg-sec-soft text-[.7rem] font-bold text-sec-ink ring-2 ring-sec">{initials(p)}</span>
         </div>
         <p className="text-center text-xsmall text-muted">Mary (You) → {p.first} ({relationToMe(p)})</p>
       </Card>
-      <div className="mt-4 rounded-[14px] bg-mint-100 p-3.5 text-small">
+      <div className="mt-4 rounded-[14px] bg-sec-soft p-3.5 text-small">
         <strong><Icon name="shield" size="xs" /> Kinship Boundary: {p.minor ? "Parents & Guardians Only" : "Direct Kin Only"}</strong>
         <p className="mt-2">Personal contact information and private audio are visible solely to verified immediate kin.</p>
         <div className="mt-2 flex items-center justify-between text-xsmall">
@@ -183,9 +183,9 @@ function PeopleTable({ list, selected, sort, onSort, onOpen }) {
               <th key={c[0]} scope="col" aria-sort={ariaSort(c)} className="px-3.5 py-2.5 font-semibold">
                 {c[1] ? (
                   <button type="button" onClick={() => onSort(sort === c[1] && c[2] ? c[2] : c[1])}
-                    className="inline-flex cursor-pointer items-center gap-1 rounded border-0 bg-transparent p-0 font-semibold tracking-wide text-inherit uppercase hover:text-ink">
+                    className="inline-flex cursor-pointer items-center gap-1 rounded border-0 bg-transparent p-0 font-semibold tracking-wide text-inherit uppercase hover-fill">
                     {c[0]}
-                    <Icon size="xs" name={sort === c[1] ? "arrow_upward" : sort === c[2] ? "arrow_downward" : "unfold_more"} className={ariaSort(c) ? "text-pine-700" : "opacity-60"} />
+                    <Icon size="xs" name={sort === c[1] ? "arrow_upward" : sort === c[2] ? "arrow_downward" : "unfold_more"} className={ariaSort(c) ? "text-sec-ink" : "opacity-60"} />
                   </button>
                 ) : c[0]}
               </th>
@@ -197,7 +197,7 @@ function PeopleTable({ list, selected, sort, onSort, onOpen }) {
             const days = !p.died && daysToBirthday(p);
             return (
               <tr key={p.id} onClick={() => onOpen(p.id)}
-                className={cx("cursor-pointer border-t border-line hover:bg-surface-2", p.id === selected && "bg-mint-100 hover:bg-mint-100")}>
+                className={cx("cursor-pointer border-t border-line hover-tint", p.id === selected && "bg-sec-soft shadow-[inset_4px_0_0_var(--sec)]")}>
                 <th scope="row" className="px-3.5 py-2 font-normal">
                   <button type="button" onClick={(e) => { e.stopPropagation(); onOpen(p.id); }} aria-pressed={p.id === selected}
                     className="flex cursor-pointer items-center gap-2.5 rounded-lg border-0 bg-transparent p-0 text-left text-ink">
@@ -276,7 +276,7 @@ export default function Directory() {
     <>
       <div className="flex flex-wrap items-center justify-between gap-2.5">
         <div className="flex items-center gap-2.5">
-          <Tag tone="mint">VERIFIED PEDIGREE {THIS_YEAR}</Tag><span className="text-small text-muted">● All {branches.length} Branches Synchronized</span>
+          <Tag tone="sec">VERIFIED PEDIGREE {THIS_YEAR}</Tag><span className="text-small text-muted">● All {branches.length} Branches Synchronized</span>
         </div>
         <div className="flex flex-wrap items-center gap-2.5">
           <Button icon="download" onClick={exportCsv}>Export roster (CSV)</Button>

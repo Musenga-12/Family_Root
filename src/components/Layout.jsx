@@ -53,18 +53,30 @@ function Sidebar({ open, onClose }) {
               </div>
               <ul className="m-0 grid list-none gap-0.5 p-0">
                 {g.items.map(([id, , icon]) => (
-                  <li key={id}>
+                  <li key={id} data-sec={id}>
+                    {/* Each section keeps its own colour here, on its page header and on its cards.
+                        Tab style: the item runs to the sidebar's left edge with a rounded right end;
+                        a soft tint of the section colour on hover; the open page is filled with a bright gradient of
+                        its colour (white text and filled icon, a glow), so where you are is unmistakable. */}
                     <NavLink to={`/${id}`} onClick={onClose} title={compact ? t(`nav.${id}`) : undefined}
                       className={({ isActive }) => cx(
-                        "group relative flex items-center gap-3 rounded-[10px] px-3 py-2.5 text-[.9rem] no-underline",
-                        compact && "md:justify-center md:px-0",
-                        isActive ? "bg-pine-900 text-white" : "text-ink hover:bg-surface-3",
+                        "group relative -ml-3.5 flex min-h-11 items-center gap-3.5 rounded-r-full py-1.5 pr-3 pl-6 text-[.92rem] no-underline transition-[background-color,box-shadow,color] duration-200",
+                        compact && "md:ml-0 md:justify-center md:rounded-full md:px-0",
+                        isActive
+                          ? cx("font-bold text-sec-on",
+                            // Overview leads to every section, so it shows all the family's colours (like its header stripe).
+                            id === "overview" ? "bg-(image:--rainbow)" : "bg-[linear-gradient(110deg,var(--sec)_0%,var(--sec)_45%,var(--sec-ink)_100%)]",
+                            "shadow-[0_6px_18px_-6px_var(--sec),inset_0_1px_0_rgb(255_255_255/.25)] hover:brightness-110 dark:hover:brightness-105")
+                          : "text-ink hover:bg-[color-mix(in_oklab,var(--sec)_15%,var(--color-surface))] hover:text-sec-ink active:bg-[color-mix(in_oklab,var(--sec)_32%,var(--color-surface))]",
                       )}>
                       {({ isActive }) => <>
-                        <Icon name={icon} className={cx("text-[20px]!", isActive ? "text-mint" : "text-pine-700")} />
+                        <Icon name={icon} fill={isActive}
+                          className={cx("shrink-0 text-[21px]!", isActive ? "text-sec-on" : "text-muted group-hover:text-sec-ink")} />
                         <span className={cx("min-w-0 flex-1", compact && "md:sr-only")}>{t(`nav.${id}`)}</span>
+                        {/* A small dot on the open page, so it is marked by shape as well as colour. */}
+                        {isActive && !compact && <span aria-hidden="true" className="size-2 shrink-0 rounded-full bg-sec-on shadow-[0_0_0_3px_rgb(255_255_255/.25)]" />}
                         {id === "messages" && unread > 0 && (
-                          <span className={cx("grid h-5 min-w-5 place-items-center rounded-full bg-rose px-1 text-[.66rem] font-bold text-white", compact && "md:absolute md:top-1 md:right-1")}>
+                          <span className={cx("grid h-5 min-w-5 place-items-center rounded-full bg-rose px-1 text-[.66rem] font-bold text-white", isActive && "ring-2 ring-white", compact && "md:absolute md:top-1 md:right-1")}>
                             {unread}<span className="sr-only"> unread</span>
                           </span>
                         )}
@@ -77,11 +89,11 @@ function Sidebar({ open, onClose }) {
           ))}
         </nav>
         <div className="mt-auto grid gap-2">
-          <div className={cx("flex items-center gap-1.5 rounded-[10px] bg-surface-3 px-3 py-2.5 text-[.78rem] font-semibold text-pine-800", compact && "md:justify-center md:px-0")}>
+          <div className={cx("flex items-center gap-1.5 rounded-[10px] bg-mint-100 px-3 py-2.5 text-[.78rem] font-semibold text-pine-800 dark:text-mint", compact && "md:justify-center md:px-0")}>
             <Icon name="lock" size="sm" /> <span className={cx(compact && "md:sr-only")}>{t("side.protected")}</span>
           </div>
           <button type="button" onClick={() => setPref("sidebar", compact ? "full" : "compact")}
-            className="hidden cursor-pointer items-center justify-center gap-1.5 rounded-[10px] border border-line bg-surface px-3 py-2 text-[.78rem] text-muted hover:text-ink md:flex">
+            className="pressable hidden cursor-pointer items-center justify-center gap-1.5 rounded-[10px] border border-line bg-surface px-3 py-2 text-[.78rem] text-muted hover-fill md:flex">
             <Icon name={compact ? "left_panel_open" : "left_panel_close"} size="sm" />
             <span className={cx(compact && "sr-only")}>{t(compact ? "side.expand" : "side.collapse")}</span>
           </button>
@@ -130,7 +142,7 @@ function ShortcutsDialog() {
             <h3 className="mb-2 text-small!">{t(g)}</h3>
             <dl className="m-0 grid gap-2">
               {rows.map(([keys, label]) => (
-                <div key={label} className="flex items-center justify-between gap-3 rounded-xl bg-surface-2 px-3 py-2.5">
+                <div key={label} className="flex items-center justify-between gap-3 rounded-xl bg-sec-soft px-3 py-2.5">
                   <dt className="text-small">{t(label)}</dt>
                   <dd className="m-0 flex gap-1">{keys.map((k) => <kbd key={k} className="rounded-md border border-line bg-surface px-2 py-0.5 text-xsmall font-semibold shadow-card">{k}</kbd>)}</dd>
                 </div>
@@ -243,7 +255,7 @@ function VoiceSearch({ onText }) {
     <button type="button" onClick={listening ? stop : start} aria-pressed={listening}
       aria-label={listening ? t("voice.stop") : t("voice.start")} title={listening ? t("voice.stop") : t("voice.start")}
       className={cx("grid size-8 shrink-0 cursor-pointer place-items-center rounded-lg border-0",
-        listening ? "animate-rec-pulse bg-rec text-white" : "bg-transparent text-muted hover:bg-surface-2 hover:text-ink")}>
+        listening ? "animate-rec-pulse bg-rec text-white" : "hover-fill bg-transparent text-muted")}>
       <Icon name={listening ? "graphic_eq" : "mic"} size="sm" />
       <span className="sr-only" aria-live="assertive">{listening ? t("voice.listening") : ""}</span>
     </button>
@@ -300,39 +312,44 @@ function SyncStatus() {
   );
 }
 
-/** "You are here": Home > section > page > item, with back / forward buttons. */
+/** "You are here": the current page (> item), with back / forward buttons. */
 function Breadcrumbs({ route }) {
   const t = useT();
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const { person } = useStore();
-  const group = NAV.find((g) => g.items.some(([id]) => id === route));
   const label = t(`nav.${route}`);
   const p = params.get("person") && person(params.get("person"));
   const q = params.get("q");
   const leaf = p ? fullName(p) : q ? t("crumb.search", { q }) : null;
+  const pageIcon = NAV.flatMap((g) => g.items).find(([id]) => id === route)?.[2];
+  // Only the current page is shown (plus the open person / search, if any).
   const crumbs = [
-    ["/overview", t("crumb.home"), "home"],
-    group && [null, t(group.key), null, true],
     [leaf ? `/${route}` : null, label.startsWith("nav.") ? route : label],
     leaf && [null, leaf],
   ].filter(Boolean);
   return (
     <div data-no-print className="mb-4 flex flex-wrap items-center gap-2">
       <div className="flex gap-1">
-        <IconButton icon="arrow_back" className="size-8!" label={t("crumb.back")} title={`${t("crumb.back")} (Alt+←)`} onClick={() => navigate(-1)} />
-        <IconButton icon="arrow_forward" className="size-8!" label={t("crumb.forward")} title={`${t("crumb.forward")} (Alt+→)`} onClick={() => navigate(1)} />
+        <IconButton icon="arrow_back" className="size-9!" label={t("crumb.back")} title={`${t("crumb.back")} (Alt+←)`} onClick={() => navigate(-1)} />
+        <IconButton icon="arrow_forward" className="size-9!" label={t("crumb.forward")} title={`${t("crumb.forward")} (Alt+→)`} onClick={() => navigate(1)} />
       </div>
       <nav aria-label={t("crumb.label")} className="min-w-0">
         <ol className="m-0 flex list-none flex-wrap items-center gap-1 p-0 text-small text-muted">
           {crumbs.map(([to, text, icon, hideOnPhone], k) => {
             const isLast = k === crumbs.length - 1;
+            const page = k === 0 && pageIcon;
             return (
               <li key={k} className={cx("flex items-center gap-1", hideOnPhone && "max-sm:hidden")}>
                 {k > 0 && <Icon name="chevron_right" size="xs" className="text-faint" />}
                 {to && !isLast
-                  ? <Link to={to} className="inline-flex items-center gap-1 rounded-md px-1 text-pine-700 no-underline hover:underline">{icon && <Icon name={icon} size="xs" />}{text}</Link>
-                  : <span aria-current={isLast ? "page" : undefined} className={cx("px-1", isLast && "font-semibold text-ink")}>{text}</span>}
+                  ? <Link to={to} className={cx("inline-flex items-center gap-1.5 no-underline hover:underline", page
+                    ? "hover-fill rounded-full border border-sec-line bg-sec-soft px-3 py-1 font-semibold text-sec-ink"
+                    : "hover-fill rounded-md px-1 text-sec-ink")}>{(page || icon) && <Icon name={page || icon} size={page ? "sm" : "xs"} />}{text}</Link>
+                  : <span aria-current={isLast ? "page" : undefined}
+                    className={cx(page ? "inline-flex items-center gap-1.5 rounded-full border border-sec-line bg-sec-soft px-3 py-1 font-semibold text-sec-ink" : "px-1", isLast && !page && "font-semibold text-ink")}>
+                    {page && <Icon name={page} size="sm" />}{text}
+                  </span>}
               </li>
             );
           })}
@@ -360,7 +377,7 @@ function Topbar({ menuOpen, onMenu, onPalette, onTour, speech }) {
     <header data-no-print className="sticky top-0 z-30 flex items-center gap-2 border-b border-line bg-bg/90 px-4 py-2.5 backdrop-blur-md sm:gap-2.5 sm:px-7 sm:py-3">
       <IconButton icon="menu" label="Open navigation" aria-expanded={menuOpen} aria-controls="sidebar" onClick={onMenu} className="md:hidden" />
       <button type="button" onClick={() => toast("You belong to one family archive", { sub: "To join another family's archive, ask one of its admins for an invitation.", icon: "info" })}
-        className="hidden cursor-pointer items-center gap-4 rounded-xl border border-line bg-surface px-3 py-1.5 text-left text-ink min-[1500px]:flex">
+        className="pressable hidden cursor-pointer items-center gap-4 rounded-xl border border-line bg-surface px-3 py-1.5 text-left text-ink hover-fill min-[1500px]:flex">
         <span>
           <small className="block text-[.6rem] font-semibold tracking-[.12em] text-muted uppercase">{t("top.activeArchive")}</small>
           <strong className="text-[.92rem] font-semibold">The Mackenzie Family</strong>
@@ -368,7 +385,7 @@ function Topbar({ menuOpen, onMenu, onPalette, onTour, speech }) {
         <Icon name="expand_more" size="sm" />
       </button>
       <form role="search" data-tour="search" onSubmit={(e) => { e.preventDefault(); navigate(`/directory${q.trim() ? "?q=" + encodeURIComponent(q.trim()) : ""}`); }}
-        className="flex min-w-0 flex-1 items-center gap-2 rounded-xl border border-line bg-surface px-3 text-muted focus-within:outline-3 focus-within:outline-offset-1 focus-within:outline-focus sm:max-w-90">
+        className="flex min-w-0 flex-1 items-center gap-2 rounded-xl border border-line bg-surface px-3 text-muted transition-[border-color,box-shadow] hover:border-sec-line focus-within:border-sec focus-within:text-sec-ink focus-within:shadow-[0_0_0_4px_var(--sec-line)] sm:max-w-90">
         <Icon name="search" size="sm" />
         <label className="sr-only" htmlFor="globalSearchInput">{t("top.search")}</label>
         <input id="globalSearchInput" type="search" value={q} onChange={(e) => setQ(e.target.value)} autoComplete="off"
@@ -379,20 +396,21 @@ function Topbar({ menuOpen, onMenu, onPalette, onTour, speech }) {
           navigate(`/directory?q=${encodeURIComponent(said)}`);
         }} />
         <button type="button" onClick={onPalette} title={t("top.palette")}
-          className="hidden shrink-0 cursor-pointer items-center gap-0.5 rounded-md border border-line bg-surface-2 px-1.5 py-0.5 text-xsmall font-semibold text-muted sm:inline-flex">
+          className="hidden shrink-0 cursor-pointer items-center gap-0.5 rounded-md border border-line bg-surface-2 px-1.5 py-0.5 text-xsmall font-semibold text-muted hover-fill sm:inline-flex">
           Ctrl K
         </button>
       </form>
       <UndoControls />
       <button type="button" data-tour="easy" aria-pressed={easy} title={t("top.easyTitle")} onClick={toggleEasy}
-        className={cx("inline-flex cursor-pointer items-center gap-1.5 rounded-[10px] border px-3 py-2 text-small font-medium easy:min-h-12",
-          easy ? "border-pine-900 bg-pine-900 text-white" : "border-line bg-surface-3 text-pine-800")}>
+        className={cx("pressable inline-flex min-h-11 cursor-pointer items-center gap-1.5 rounded-xl border px-3 py-2 text-small font-medium easy:min-h-12",
+          easy ? "border-transparent bg-[linear-gradient(135deg,var(--sec),var(--sec-ink))] text-sec-on shadow-[0_4px_12px_-6px_var(--sec)] hover:ring-4 hover:ring-sec-line"
+            : "hover-fill border-sec-line bg-sec-soft text-sec-ink")}>
         <span className="font-bold">Aa</span> <span className="hidden xl:inline">{t("top.easy")}</span>
       </button>
 
       <Menu label={t("top.language")} className="max-sm:hidden" trigger={(p) => (
         <button type="button" {...p} aria-label={`${t("top.language")}: ${lang.name}`}
-          className="inline-flex h-10 cursor-pointer items-center gap-1 rounded-[10px] border border-line bg-surface px-2.5 text-[.8rem] font-semibold text-pine-800">
+          className="pressable inline-flex h-11 cursor-pointer items-center gap-1 rounded-xl border border-line bg-surface px-2.5 text-[.8rem] font-semibold text-sec-ink hover-fill">
           <Icon name="translate" size="sm" />{lang.short}
         </button>
       )}>
@@ -414,11 +432,11 @@ function Topbar({ menuOpen, onMenu, onPalette, onTour, speech }) {
 
       <Menu label={t("menu.account")} className="ml-auto" trigger={(p) => (
         <button type="button" {...p} aria-label={t("menu.account")}
-          className="flex cursor-pointer items-center gap-2.5 rounded-xl border-0 bg-transparent p-0.5 text-left text-ink">
+          className="flex cursor-pointer items-center gap-2.5 rounded-xl border-0 bg-transparent p-0.5 pr-1.5 text-left text-ink hover-fill">
           <Avatar p={me} />
           <span className="hidden md:block">
             <strong className="block text-[.9rem] font-semibold">{me.first} {me.last}</strong>
-            <small className="text-xsmall text-pine-700">{me.role}</small>
+            <small className="text-xsmall text-sec-ink">{me.role}</small>
           </span>
           <Icon name="expand_more" size="sm" className="hidden text-muted md:inline-block" />
         </button>
@@ -464,9 +482,9 @@ function ScrollHelpers() {
   }, []);
   return (
     <>
-      <div aria-hidden="true" data-no-print className="fixed top-0 left-0 z-95 h-0.75 bg-pine-700 transition-[width] duration-75 dark:bg-mint" style={{ width: `${progress * 100}%` }} />
+      <div aria-hidden="true" data-no-print className="fixed top-0 left-0 z-95 h-1 bg-sec transition-[width] duration-75" style={{ width: `${progress * 100}%` }} />
       <button type="button" data-no-print onClick={() => window.scrollTo({ top: 0 })} aria-label={t("common.backToTop")} title={t("common.backToTop")}
-        className={cx("fixed right-5 bottom-23 z-40 grid size-11 cursor-pointer place-items-center rounded-full border border-line bg-surface text-pine-800 shadow-pop transition",
+        className={cx("fixed right-5 bottom-24 z-40 grid size-12 cursor-pointer place-items-center rounded-full border border-sec-line bg-surface text-sec-ink shadow-pop transition hover:-translate-y-0.5 hover:bg-sec hover:text-sec-on",
           progress > 0.15 ? "opacity-100" : "pointer-events-none translate-y-3 opacity-0")}>
         <Icon name="arrow_upward" />
       </button>
@@ -490,21 +508,21 @@ function QuickActions() {
     return () => { document.removeEventListener("mousedown", onDown); document.removeEventListener("keydown", onKey); };
   }, [expanded]);
   const items = [
-    ["add_photo_alternate", "fab.memory", () => open(<AddMemoryDialog />)],
-    ["mic", "fab.story", () => navigate("/stories?record=1")],
-    ["person_add", "fab.invite", () => open(<InviteDialog />)],
-    ["group_add", "fab.person", () => open(<AddPersonDialog />)],
+    ["add_photo_alternate", "fab.memory", () => open(<AddMemoryDialog />), "memories"],
+    ["mic", "fab.story", () => navigate("/stories?record=1"), "stories"],
+    ["person_add", "fab.invite", () => open(<InviteDialog />), "directory"],
+    ["group_add", "fab.person", () => open(<AddPersonDialog />), "tree"],
   ];
   return (
     <div ref={ref} data-no-print className="fixed right-5 bottom-5 z-40 flex flex-col items-end gap-2.5">
       {expanded && (
         <ul id="quickActions" className="m-0 grid list-none justify-items-end gap-2 p-0">
-          {items.map(([icon, label, run], i) => (
-            <li key={label} className="animate-pop" style={{ animationDelay: `${(items.length - i) * 30}ms` }}>
+          {items.map(([icon, label, run, sec], i) => (
+            <li key={label} data-sec={sec} className="animate-pop" style={{ animationDelay: `${(items.length - i) * 30}ms` }}>
               <button type="button" onClick={() => { setExpanded(false); run(); }}
-                className="flex cursor-pointer items-center gap-2.5 rounded-full border border-line bg-surface py-1.5 pr-1.5 pl-4 text-[.86rem] font-semibold text-ink shadow-pop hover:bg-surface-2">
+                className="group pressable hover-fill flex min-h-12 cursor-pointer items-center gap-2.5 rounded-full border border-sec-line bg-surface py-1.5 pr-1.5 pl-4 text-[.9rem] font-semibold text-ink shadow-pop hover:-translate-x-1">
                 {t(label)}
-                <span className="grid size-9 place-items-center rounded-full bg-mint text-pine-900"><Icon name={icon} size="sm" /></span>
+                <span className="grid size-9 place-items-center rounded-full bg-[linear-gradient(135deg,var(--sec),var(--sec-ink))] text-sec-on group-hover:bg-none group-hover:bg-sec-on/25"><Icon name={icon} size="sm" /></span>
               </button>
             </li>
           ))}
@@ -512,7 +530,9 @@ function QuickActions() {
       )}
       <button type="button" data-tour="fab" aria-expanded={expanded} aria-controls="quickActions" aria-label={t("fab.label")} title={t("fab.label")}
         onClick={() => setExpanded((x) => !x)}
-        className="grid size-14 cursor-pointer place-items-center rounded-full border-0 bg-pine-900 text-mint shadow-pop hover:bg-pine-800">
+        className={cx("grid size-15 cursor-pointer place-items-center rounded-full border-0 text-white shadow-[0_10px_28px_-8px_rgb(124_58_237/.55)]",
+          "bg-[linear-gradient(135deg,#2e7d32,#0b6e99_35%,#7c3aed_70%,#c2410c)] bg-size-[200%_200%] bg-left transition-[background-position,transform,box-shadow] duration-500",
+          "hover:scale-105 hover:bg-right hover:ring-4 hover:ring-[#7c3aed]/35 active:scale-95 active:ring-[#7c3aed]/60", expanded && "bg-right ring-4 ring-[#7c3aed]/35")}>
         <Icon name="add" className={cx("text-[30px]! transition-transform", expanded && "rotate-45")} />
       </button>
     </div>
@@ -606,6 +626,8 @@ export default function Layout({ children }) {
         className="absolute top-2 -left-249.75 z-100 rounded-lg bg-pine-900 px-3.5 py-2 text-white focus:left-2">
         Skip to main content
       </a>
+      {/* data-sec gives the whole page its section colour (header, buttons, chips, progress bar). */}
+      <div data-sec={route} className="contents">
       <ScrollHelpers />
       <div className="flex min-h-screen">
         <Sidebar open={menuOpen} onClose={() => setMenuOpen(false)} />
@@ -620,8 +642,8 @@ export default function Layout({ children }) {
           <footer data-no-print className="flex flex-wrap items-center justify-between gap-3 border-t border-line bg-surface-2 px-4 py-3.5 pr-24 text-[.76rem] text-muted sm:px-7 sm:pr-24">
             <span><Icon name="verified_user" size="sm" className="text-pine-700" /> {t("footer.privacy")} • {t("footer.gens")} • <SyncStatus /></span>
             <span className="flex gap-5.5">
-              <Link to="/privacy" className="text-ink no-underline hover:underline">{t("footer.guidelines")}</Link>
-              <Link to="/privacy" className="text-ink no-underline hover:underline">{t("footer.support")}</Link>
+              <Link to="/privacy" className="font-medium text-ink no-underline hover:text-sec-ink hover:underline">{t("footer.guidelines")}</Link>
+              <Link to="/privacy" className="font-medium text-ink no-underline hover:text-sec-ink hover:underline">{t("footer.support")}</Link>
             </span>
           </footer>
         </div>
@@ -631,6 +653,7 @@ export default function Layout({ children }) {
       {palette && <CommandPalette onClose={() => setPalette(false)} actions={actions} />}
       {/* The tour runs on Overview, where every control it points at is on screen. */}
       {tour && route === "overview" && <Tour onClose={endTour} />}
+      </div>
     </>
   );
 }

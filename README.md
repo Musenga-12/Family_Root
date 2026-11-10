@@ -74,6 +74,7 @@ src/
 
 - Colours, fonts and radii live in `@theme` in `src/index.css`, for example `bg-pine-900`, `text-muted`, `border-line`, `rounded-card`, `text-small`.
 - **Easy-to-Read** adds `class="easy"` to `<html>`. That raises the root font size from 15px to 18px and strengthens the muted colours. Because sizes are in rem, the whole UI scales. Use the `easy:` variant for extra tweaks (buttons use `easy:min-h-12`).
+- **Category colours**: each section has its own colour (Tree green, Directory blue, Memories amber, Stories violet, Timeline teal, Legacy brown, Messages blue, Calendar orange, Admin slate, Privacy indigo, Settings grey). Put `data-sec="memories"` on any element (or `sec="memories"` on `Card` / `Button`) and `bg-sec`, `bg-sec-soft`, `text-sec-ink`, `border-sec-line` and the `primary` button follow it. Every colour passes 4.5:1 contrast and has a lighter dark-theme version. Colour is always paired with an icon and a label.
 - Breakpoints match the original CSS: `sm` = 700px, `md` = 980px, `lg` = 1200px.
 - When you override a component's default class from outside, add the `!` modifier (for example `className="p-0!"`). Two Tailwind classes that set the same property are resolved by stylesheet order, not by their order in `className`.
 
@@ -83,7 +84,7 @@ src/
 | --- | --- | --- |
 | **Undo / Redo** (Ctrl+Z / Ctrl+Y, top-bar buttons). Greyed out when there is nothing to undo; the tooltip names the step | Top bar, quick search | Recoverability, liveness (L4–L5) |
 | **Activity history**: every change this session, newest first, with "Undo N steps" | History button, account menu | Synthesizability, recoverability (L5) |
-| **Breadcrumbs + back / forward** ("Home › Family Heritage › Family Tree › Anna") | Above every screen | Observability, "you are here" (L5) |
+| **Breadcrumbs + back / forward** (only the current page, e.g. "Family Tree › Anna") | Above every screen | Observability, "you are here" (L5) |
 | **Recent items** in quick search (Ctrl+K), clearable | Command palette, Settings | Recognition over recall (L2) |
 | **Alt + letter accelerators**: Alt+M memory, Alt+P person, Alt+R record, Alt+I invite, Alt+A read aloud; grouped shortcut sheet (?) | Everywhere | Efficiency, keyboard accelerators (L3–L4) |
 | **Read aloud** (page, selected text, story, memory caption) with adjustable speed | Speaker button, story reader, card menu | Speech output, dyslexia support (L2–L3) |

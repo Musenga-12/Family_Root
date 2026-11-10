@@ -69,10 +69,10 @@ export default function AddMemoryDialog() {
   };
 
   return (
-    <Dialog wide title="Upload a new memory" sub="Add a photo or scan with a caption, so future generations know the story behind it."
+    <Dialog wide sec="memories" title="Upload a new memory" sub="Add a photo or scan with a caption, so future generations know the story behind it."
       footer={<><DraftNote draft={draft} /><CancelButton /><Button variant="primary" icon="cloud_upload" busy={preparing > 0} onClick={save}>{preparing ? "Preparing photos…" : "Save to vault"}</Button></>}>
       <label tabIndex={0}
-        className={cx("block cursor-pointer rounded-2xl border-2 border-dashed border-pine-600 p-5.5 text-center", over ? "bg-mint-200" : "bg-mint-100")}
+        className={cx("block cursor-pointer rounded-2xl border-2 border-dashed border-sec p-5.5 text-center", over ? "bg-sec-line" : "bg-sec-soft")}
         onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); fileRef.current.click(); } }}
         onDragEnter={(e) => { e.preventDefault(); setOver(true); }} onDragOver={(e) => { e.preventDefault(); setOver(true); }}
         onDragLeave={(e) => { e.preventDefault(); setOver(false); }}
@@ -81,7 +81,7 @@ export default function AddMemoryDialog() {
         <div><strong>Drag photos here, or click to choose</strong><p className="text-xsmall text-muted">JPG or PNG · stays private to the family vault</p></div>
         <input ref={fileRef} type="file" accept="image/*" multiple className="sr-only" onChange={(e) => add(e.target.files)} />
         {preparing > 0 && (
-          <p role="status" className="mt-2 inline-flex items-center gap-2 text-small font-semibold text-pine-800">
+          <p role="status" className="mt-2 inline-flex items-center gap-2 text-small font-semibold text-sec-ink">
             <span className="inline-block size-4 animate-spin rounded-full border-2 border-current border-r-transparent" /> Preparing {preparing} photo{preparing > 1 ? "s" : ""}…
           </p>
         )}

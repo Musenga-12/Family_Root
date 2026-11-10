@@ -17,9 +17,9 @@ function RecButton({ label, caption, big, dark, live, disabled, icon, onClick })
     <figure className="m-0 grid justify-items-center gap-1.5 text-[.74rem] text-muted">
       <button type="button" aria-label={label} disabled={disabled} onClick={onClick}
         className={cx(
-          "grid cursor-pointer place-items-center rounded-full disabled:cursor-not-allowed disabled:opacity-40",
+          "grid cursor-pointer place-items-center rounded-full enabled:hover:scale-105 enabled:active:scale-95 disabled:cursor-not-allowed disabled:opacity-40",
           big ? "size-19 border-6 border-[#f5c7c2] bg-rec text-white" : "size-13 border",
-          dark ? "border-pine-900 bg-pine-900 text-mint" : !big && "border-line bg-surface text-pine-800",
+          dark ? "border-transparent bg-[linear-gradient(135deg,var(--sec),var(--sec-ink))] text-sec-on" : !big && "hover-fill border-sec-line bg-surface text-sec-ink",
           live && "animate-rec-pulse",
         )}>
         <Icon name={icon} size={big ? "lg" : undefined} />
@@ -61,7 +61,7 @@ export default function RecordingStudio({ promptIdx, setPromptIdx, forName }) {
     if (!c) return;
     const g = c.getContext("2d"), w = c.width, h = c.height;
     g.clearRect(0, 0, w, h);
-    g.fillStyle = getComputedStyle(document.documentElement).getPropertyValue("--color-pine-700") || "#2a6450";
+    g.fillStyle = getComputedStyle(c).getPropertyValue("--sec").trim() || "#7c3aed";
     const r = rec.current, live = statusRef.current === "recording";
     let data = null;
     if (r?.analyser) { data = new Uint8Array(r.analyser.frequencyBinCount); r.analyser.getByteFrequencyData(data); }
@@ -249,7 +249,7 @@ export default function RecordingStudio({ promptIdx, setPromptIdx, forName }) {
     <Card id="studio" className="mt-7" aria-labelledby="studioH">
       <div className="flex flex-wrap items-center justify-between gap-2.5">
         <div>
-          <h2 id="studioH" className="flex flex-wrap items-center gap-2.5"><Icon name="radio_button_checked" /> Elder Recording Studio <Tag tone="mint">Tactile Assist Mode</Tag></h2>
+          <h2 id="studioH" className="flex flex-wrap items-center gap-2.5"><Icon name="radio_button_checked" /> Elder Recording Studio <Tag tone="sec">Tactile Assist Mode</Tag></h2>
           <p className="mt-2 text-small text-muted">Large controls, gentle pacing, live transcript, and automatic draft saving.</p>
         </div>
         <Tag tone="outline" icon="cloud_done">Safe Draft Auto-Save: {autosave}</Tag>
@@ -265,7 +265,7 @@ export default function RecordingStudio({ promptIdx, setPromptIdx, forName }) {
             <div className="mt-2 grid gap-2">
               {PROMPTS.map((p, i) => (i === promptIdx && !forName ? null : (
                 <button key={i} type="button" data-alt-prompt onClick={() => setPromptIdx(i)}
-                  className="flex w-full cursor-pointer justify-between gap-2 rounded-[10px] border border-line bg-surface px-3 py-2.5 text-left text-small hover:border-pine-600">
+                  className="lift flex w-full cursor-pointer justify-between gap-2 rounded-[10px] border border-line bg-surface px-3 py-2.5 text-left text-small">
                   <span>“{p}”</span><Icon name="arrow_forward" size="sm" />
                 </button>
               )))}
@@ -322,7 +322,7 @@ export default function RecordingStudio({ promptIdx, setPromptIdx, forName }) {
           </div>
           <Card tone="soft" as="div" className="p-4!">
             <label htmlFor="transcript" className="flex items-center gap-1.5 text-small font-semibold">
-              <Icon name="subtitles" size="sm" /> Live Spoken Transcript <Tag tone="mint">{stt}</Tag>
+              <Icon name="subtitles" size="sm" /> Live Spoken Transcript <Tag tone="sec">{stt}</Tag>
             </label>
             <textarea id="transcript" value={transcript} onChange={(e) => setTranscript(e.target.value)} rows={5}
               placeholder="Your words appear here as you speak (in supported browsers). You can also type or correct the text — a written transcript keeps the story accessible to everyone."

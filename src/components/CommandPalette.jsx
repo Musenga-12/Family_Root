@@ -25,11 +25,11 @@ export default function CommandPalette({ onClose, actions }) {
     // Opening a relative, memory or story also remembers it under "Recent".
     const remember = (x) => ({ ...x, run: () => { addRecent({ id: x.id, label: x.label, sub: x.sub, icon: x.icon, to: x.to }); navigate(x.to); } });
     const pages = NAV.flatMap((g) => g.items)
-      .map(([id, label, icon]) => ({ id: "p-" + id, label: t(`nav.${id}`), sub: label, icon, run: go(`/${id}`) }))
+      .map(([id, label, icon]) => ({ id: "p-" + id, label: t(`nav.${id}`), sub: label, icon, sec: id, run: go(`/${id}`) }))
       .filter((x) => match(x.label, x.sub));
     const acts = actions.map((a) => ({ ...a, id: "a-" + a.key })).filter((x) => match(x.label));
     if (!ql) {
-      const rec = recent.map((r) => ({ ...r, id: "recent-" + r.id, label: r.page ? t(`nav.${r.page}`) : r.label, sub: r.page ? t("palette.page") : r.sub, run: go(r.to) }));
+      const rec = recent.map((r) => ({ ...r, id: "recent-" + r.id, label: r.page ? t(`nav.${r.page}`) : r.label, sec: r.page, sub: r.page ? t("palette.page") : r.sub, run: go(r.to) }));
       return [[t("palette.recent"), rec], [t("palette.pages"), pages], [t("palette.actions"), acts]];
     }
     const people = state.people.filter((p) => match(fullName(p), p.role, p.city))
@@ -80,7 +80,7 @@ export default function CommandPalette({ onClose, actions }) {
                 {g}
                 {g === t("palette.recent") && (
                   <button type="button" onClick={() => { clearRecent(); inputRef.current?.focus(); }}
-                    className="cursor-pointer rounded border-0 bg-transparent px-1 text-[.66rem] font-semibold tracking-normal text-pine-700 normal-case hover:underline">
+                    className="cursor-pointer rounded border-0 bg-transparent px-1 text-[.66rem] font-semibold tracking-normal text-sec-ink normal-case hover-fill">
                     {t("common.clear")}
                   </button>
                 )}
@@ -91,8 +91,8 @@ export default function CommandPalette({ onClose, actions }) {
                 return (
                   <div key={item.id} id={item.id} role="option" aria-selected={i === current} data-index={i}
                     onMouseMove={() => setActive(i)} onClick={() => run(item)}
-                    className={cx("flex cursor-pointer items-center gap-3 rounded-[10px] px-2.5 py-2", i === current && "bg-surface-2")}>
-                    <span className={cx("grid size-8 shrink-0 place-items-center rounded-lg", i === current ? "bg-pine-900 text-mint" : "bg-surface-2 text-pine-700")}>
+                    className={cx("flex cursor-pointer items-center gap-3 rounded-[10px] px-2.5 py-2", i === current && "bg-sec text-sec-on [&_.text-muted]:text-sec-on/85")}>
+                    <span data-sec={item.sec} className={cx("grid size-8 shrink-0 place-items-center rounded-lg", i === current ? "bg-sec text-sec-on ring-2 ring-sec-on" : "bg-sec-soft text-sec-ink")}>
                       <Icon name={item.icon} size="sm" />
                     </span>
                     <span className="min-w-0 flex-1">

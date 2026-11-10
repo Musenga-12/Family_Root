@@ -14,7 +14,7 @@ export function ChatAvatar({ t, size = "md" }) {
   const { person } = useStore();
   if (t.group) {
     return (
-      <span aria-hidden="true" className={cx("grid shrink-0 place-items-center rounded-full bg-pine-900 text-mint", size === "sm" ? "size-9" : "size-11")}>
+      <span aria-hidden="true" className={cx("grid shrink-0 place-items-center rounded-full bg-sec text-sec-on", size === "sm" ? "size-9" : "size-11")}>
         <Icon name="groups" size={size === "sm" ? "sm" : undefined} />
       </span>
     );
@@ -89,7 +89,7 @@ export function ChatInfoDialog({ id, onJump }) {
           <ul className="m-0 grid list-none gap-1.5 p-0">
             {starred.map((m) => (
               <li key={m.id}>
-                <Record as="button" type="button" icon="star" className="w-full cursor-pointer border-0 text-left hover:bg-surface-3" onClick={() => { close(); onJump(m.id); }}>
+                <Record as="button" type="button" icon="star" className="w-full text-left" onClick={() => { close(); onJump(m.id); }}>
                   <span className="min-w-0 flex-1"><strong className="text-small">{m.by === ME ? "You" : person(m.by)?.first}</strong><span className="block truncate text-small">{snippet(m)}</span>
                     <small className="text-xsmall text-muted">{dayLabel(m.at)}, {clock(m.at)}</small></span>
                 </Record>

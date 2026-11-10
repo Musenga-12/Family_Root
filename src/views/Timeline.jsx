@@ -34,7 +34,7 @@ function Item({ t, compact }) {
   const [y, m] = t.date.split("-");
   return (
     <li className="relative mb-4.5">
-      <span className="absolute top-4.5 -left-12 grid size-7.5 place-items-center rounded-full border-2 border-line bg-surface text-pine-700 sm:-left-14.5 sm:size-8.5">
+      <span className="absolute top-4.5 -left-12 grid size-7.5 place-items-center rounded-full border-2 border-sec-line bg-surface text-sec-ink sm:-left-14.5 sm:size-8.5">
         <Icon name={t.icon} className="text-[17px]!" />
       </span>
       <span className="absolute top-14 -left-16.5 hidden w-12.5 text-center text-[.62rem] font-bold tracking-[.06em] text-muted sm:block">
@@ -42,7 +42,7 @@ function Item({ t, compact }) {
       </span>
       <article className={cx("grid min-w-0 gap-2.5 rounded-[18px] border border-line bg-surface p-4.5", t.approx && "border-dashed")}>
         <div className="flex flex-wrap items-center justify-between gap-2.5">
-          <div className="flex flex-wrap items-center gap-1.5"><Tag tone="mint" icon={t.icon}>{t.type}</Tag><Tag tone="outline">{t.place}</Tag></div>
+          <div className="flex flex-wrap items-center gap-1.5"><Tag tone="sec" icon={t.icon}>{t.type}</Tag><Tag tone="outline">{t.place}</Tag></div>
           <time className="text-small" dateTime={t.date}>{fmtDate(t.date, t.approx)}</time>
         </div>
         <div className="flex items-start justify-between gap-2">
@@ -162,7 +162,7 @@ export default function Timeline() {
       <Hero>
         <div className="flex flex-wrap items-start justify-between gap-5">
           <div className="max-w-140">
-            <Tag tone="mint">LIVING CHRONICLE · 1918 — {NOW}</Tag>
+            <Tag tone="sec">LIVING CHRONICLE · 1918 — {NOW}</Tag>
             <h1 className="mt-4">{tr("h1.timeline")}</h1>
             <p className="mt-2 text-muted">Tracing our lineage through {span} years of weddings, births, voyages, achievements, and family gatherings — with confirmed records clearly separated from remembered dates.</p>
           </div>
@@ -218,7 +218,7 @@ export default function Timeline() {
                 return (
                   <div key={e.id}>
                     <section id={e.id} aria-labelledby={`${e.id}-h`} className="relative mt-2 mb-4.5 scroll-mt-24">
-                      <span className="absolute -top-1 -left-13 grid size-10 place-items-center rounded-[14px] bg-pine-900 font-serif text-[.75rem] font-bold text-white sm:-left-17.5 sm:size-14 sm:text-[.95rem]">
+                      <span className="absolute -top-1 -left-13 grid size-10 place-items-center rounded-[14px] bg-sec font-serif text-[.75rem] font-bold text-sec-on sm:-left-17.5 sm:size-14 sm:text-[.95rem]">
                         {e.badge}
                       </span>
                       <Eyebrow>Era chapter</Eyebrow>
@@ -241,7 +241,7 @@ export default function Timeline() {
             <p className="mt-2 text-small text-muted">Covers four generations spanning Scotland, Atlantic crossings, and {span} years of documented history.</p>
             <div className="mt-4 flex items-center gap-2.5">
               <div className="grid size-17.5 shrink-0 place-items-center rounded-full"
-                style={{ background: `conic-gradient(var(--color-pine-700) 0 ${confirmedPct}%, var(--color-surface-3) 0)` }}>
+                style={{ background: `conic-gradient(var(--sec) 0 ${confirmedPct}%, var(--color-surface-3) 0)` }}>
                 <span className="grid size-13 place-items-center rounded-full bg-surface text-[.8rem] font-bold">{confirmedPct}%</span>
               </div>
               <div>

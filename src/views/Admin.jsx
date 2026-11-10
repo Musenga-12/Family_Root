@@ -131,7 +131,7 @@ export default function Admin() {
                       <tr key={m.id} className="border-t border-line">
                         <th scope="row" className="px-3.5 py-2 font-normal">
                           <span className="flex items-center gap-2.5">
-                            {p ? <Avatar p={p} className="size-8! rounded-lg! text-[.7rem]!" /> : <span className="grid size-8 place-items-center rounded-lg bg-surface-3 text-pine-800"><Icon name="person" size="sm" /></span>}
+                            {p ? <Avatar p={p} className="size-8! rounded-lg! text-[.7rem]!" /> : <span className="grid size-8 place-items-center rounded-lg bg-sec-soft text-sec-ink"><Icon name="person" size="sm" /></span>}
                             <span><strong className="block font-semibold">{nameOf(m)}{m.id === ME && " (you)"}</strong><small className="text-xsmall text-muted">{p ? p.role : "New member"}</small></span>
                           </span>
                         </th>
@@ -180,24 +180,24 @@ export default function Admin() {
             {proofs.length + reviews.length ? (
               <ul className="m-0 mt-3 grid list-none gap-2 p-0">
                 {proofs.map((p) => (
-                  <li key={p.id}><Record as={Link} to={`/tree?person=${p.id}`} icon="family_history" className="hover:bg-surface-3">
+                  <li key={p.id}><Record as={Link} to={`/tree?person=${p.id}`} icon="family_history">
                     <div className="min-w-0 flex-1"><strong className="text-small">{fullName(p)}</strong><p className="text-xsmall text-muted">Birth details awaiting family consensus</p></div><Icon name="chevron_right" />
                   </Record></li>
                 ))}
                 {reviews.map((r) => (
-                  <li key={r.id}><Record as={Link} to="/legacy" icon="description" className="hover:bg-surface-3">
+                  <li key={r.id}><Record as={Link} to="/legacy" icon="description">
                     <div className="min-w-0 flex-1"><strong className="text-small">{r.title}</strong><p className="text-xsmall text-muted">Record in the Legacy Archive</p></div><Icon name="chevron_right" />
                   </Record></li>
                 ))}
               </ul>
-            ) : <p className="mt-3 flex items-center gap-2 text-small text-muted"><Icon name="task_alt" className="text-pine-700" /> Everything is verified.</p>}
+            ) : <p className="mt-3 flex items-center gap-2 text-small text-muted"><Icon name="task_alt" className="text-sec-ink" /> Everything is verified.</p>}
           </Card>
           <Card tone="soft" aria-labelledby="roleH">
             <h2 id="roleH" className="text-[1.15rem]!">What each role can do</h2>
             <dl className="m-0 mt-3 grid gap-3">
               {ROLES.map(([r, icon, text]) => (
                 <div key={r} className="text-small">
-                  <dt className="flex items-center gap-2 font-semibold"><Icon name={icon} size="sm" className="text-pine-700" />{r}</dt>
+                  <dt className="flex items-center gap-2 font-semibold"><Icon name={icon} size="sm" className="text-sec-ink" />{r}</dt>
                   <dd className="m-0 mt-0.5 pl-6.5 text-muted">{text}</dd>
                 </div>
               ))}

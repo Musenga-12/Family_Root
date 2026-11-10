@@ -117,7 +117,7 @@ export default function Privacy() {
           <ul className="m-0 mt-2 grid list-none gap-1 p-0 text-small">
             {CATEGORIES.map(([k, , name]) => {
               const yes = cousinSees.some(([c]) => c === k);
-              return <li key={k} className="flex items-center gap-2"><Icon name={yes ? "check" : "visibility_off"} size="xs" className={yes ? "text-pine-700" : "text-faint"} /><span className={yes ? "" : "text-muted line-through"}>{name}</span><span className="sr-only">{yes ? " visible" : " hidden"}</span></li>;
+              return <li key={k} className="flex items-center gap-2"><Icon name={yes ? "check" : "visibility_off"} size="xs" className={yes ? "text-sec-ink" : "text-faint"} /><span className={yes ? "" : "text-muted line-through"}>{name}</span><span className="sr-only">{yes ? " visible" : " hidden"}</span></li>;
             })}
           </ul>
         </Card>
@@ -128,13 +128,13 @@ export default function Privacy() {
           <h2 id="visH" className="flex items-center gap-2.5 text-[1.2rem]!"><IconBox icon="shield_lock" /> Who can see your information</h2>
           {CATEGORIES.map(([k, icon, name, help]) => (
             <div key={k} className="grid gap-2 border-t border-line pt-3.5 first-of-type:border-0 first-of-type:pt-0">
-              <div className="flex items-start gap-2.5"><Icon name={icon} className="text-pine-700" /><div><strong className="block text-[.9rem]">{name}</strong><span className="text-xsmall text-muted">{help}</span></div></div>
+              <div className="flex items-start gap-2.5"><Icon name={icon} className="text-sec-ink" /><div><strong className="block text-[.9rem]">{name}</strong><span className="text-xsmall text-muted">{help}</span></div></div>
               <Tabs role="radiogroup" label={`${name}: who can see it`} value={pv.categories[k]} onChange={(v) => setCategory(k, v)} className="grid! grid-cols-3"
                 items={LEVELS.map(([v, l]) => [v, l])} itemClassName="text-[.78rem]! px-2!" />
             </div>
           ))}
           <p className="text-xsmall text-muted">New uploads start as <strong>{label(prefs.visibility)}</strong>.{" "}
-            <button type="button" className="cursor-pointer border-0 bg-transparent p-0 font-semibold text-pine-700 underline"
+            <button type="button" className="cursor-pointer border-0 bg-transparent p-0 font-semibold text-sec-ink underline"
               onClick={() => { setPref("visibility", pv.categories.memories); toast("Default updated", { sub: `New uploads: ${label(pv.categories.memories)}`, icon: "check_circle", duration: 2500 }); }}>
               Match the Photos setting
             </button>

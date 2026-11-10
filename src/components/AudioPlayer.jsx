@@ -76,8 +76,8 @@ export default function AudioPlayer({ id, duration = 0, label = "recording", dar
     <div className={cx("flex min-w-0 items-center gap-3 rounded-xl border px-3.5 py-2.5",
       dark ? "border-white/10 bg-white/5" : "border-line bg-surface")}>
       <button type="button" onClick={toggle} aria-label={`${playing ? "Pause" : "Play"} ${label}`}
-        className={cx("grid size-9.5 shrink-0 cursor-pointer place-items-center rounded-full border-0",
-          dark ? "bg-mint text-pine-900" : "bg-pine-900 text-white")}>
+        className={cx("pressable grid size-10 shrink-0 cursor-pointer place-items-center rounded-full border-0 hover:scale-110 hover:ring-4 hover:ring-sec-line",
+          dark ? "bg-mint text-pine-900" : "bg-[linear-gradient(135deg,var(--sec),var(--sec-ink))] text-sec-on shadow-[0_4px_12px_-6px_var(--sec)]")}>
         <Icon name={playing ? "pause" : "play_arrow"} fill />
       </button>
       <div role="slider" tabIndex={0} aria-label={`Seek ${label}`} aria-valuemin={0} aria-valuemax={Math.round(dur)} aria-valuenow={Math.round(t)}
@@ -92,7 +92,7 @@ export default function AudioPlayer({ id, duration = 0, label = "recording", dar
         {bars.map((h, i) => (
           <i key={i} style={{ height: `${h}%` }}
             className={cx("block w-0.75 shrink-0 rounded-xs",
-              i / bars.length < frac ? (dark ? "bg-mint" : "bg-pine-700") : (dark ? "bg-white/20" : "bg-surface-3"))} />
+              i / bars.length < frac ? (dark ? "bg-mint" : "bg-sec") : (dark ? "bg-white/20" : "bg-sec-line"))} />
         ))}
       </div>
       <span className={cx("font-mono text-[.74rem] whitespace-nowrap tabular-nums", dark ? "text-on-dark" : "text-muted")}>
@@ -100,7 +100,7 @@ export default function AudioPlayer({ id, duration = 0, label = "recording", dar
       </span>
       <button type="button" onClick={changeRate} aria-label={`Playback speed ${rate}×`} title="Playback speed"
         className={cx("shrink-0 cursor-pointer rounded-md border px-1.5 py-0.5 font-mono text-[.7rem] font-semibold",
-          dark ? "border-white/20 bg-transparent text-on-dark" : "border-line bg-surface-2 text-muted")}>
+          dark ? "border-white/20 bg-transparent text-on-dark hover:bg-white/10" : "hover-fill border-sec-line bg-sec-soft text-sec-ink")}>
         {rate}×
       </button>
     </div>

@@ -29,7 +29,7 @@ export default function NotFound() {
         <h2 className="text-[1.2rem]!">Go to</h2>
         <ul className="m-0 mt-3 grid list-none grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-2 p-0">
           {pages.map(([id, , icon]) => (
-            <li key={id}><Button to={`/${id}`} block className="justify-start!"><Icon name={icon} size="sm" className="text-pine-700" />{t(`nav.${id}`)}</Button></li>
+            <li key={id} data-sec={id}><Button to={`/${id}`} block className="justify-start!"><Icon name={icon} size="sm" className="text-sec-ink" />{t(`nav.${id}`)}</Button></li>
           ))}
         </ul>
       </Card>

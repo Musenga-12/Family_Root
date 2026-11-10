@@ -57,12 +57,12 @@ function Toast({ t, onDismiss }) {
       </div>
       {t.action && (
         <button type="button" onClick={() => { t.onAction?.(); onDismiss(); }}
-          className="cursor-pointer rounded-lg border-0 bg-mint px-2.5 py-1.5 text-[.76rem] font-bold text-pine-900 hover:bg-mint-hover">
+          className="pressable min-h-9 cursor-pointer rounded-lg border-0 bg-mint px-3 py-1.5 text-[.8rem] font-bold text-pine-900 hover:bg-mint-hover">
           {t.action}
         </button>
       )}
       <button type="button" aria-label="Dismiss" onClick={onDismiss}
-        className="cursor-pointer rounded-lg border-0 bg-transparent p-1 text-on-dark hover:text-white">
+        className="grid size-9 cursor-pointer place-items-center rounded-lg border-0 bg-transparent text-on-dark hover:bg-white/10 hover:text-white">
         <Icon name="close" size="sm" />
       </button>
       {/* Time-left bar, so users can see the message will go away (and that hovering holds it). */}

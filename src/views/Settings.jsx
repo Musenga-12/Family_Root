@@ -75,7 +75,7 @@ export default function Settings() {
               {["light", "dark", "system"].map((m) => (
                 <button key={m} type="button" role="radio" aria-checked={prefs.theme === m} onClick={() => setTheme(m)}
                   className={cx("grid cursor-pointer justify-items-center gap-2 rounded-2xl border-2 p-3 text-[.84rem] text-ink",
-                    prefs.theme === m ? "border-pine-700 bg-mint-100" : "border-line bg-surface hover:border-pine-600")}>
+                    prefs.theme === m ? "border-sec bg-sec-soft shadow-[0_6px_18px_-10px_var(--sec)]" : "lift border-line bg-surface")}>
                   {/* Fixed colours on purpose: each swatch previews its theme regardless of the current one. */}
                   <span className="grid h-14 w-full place-items-center overflow-hidden rounded-lg border border-line" style={THEME_SWATCH[m]}>
                     <Icon name={THEME_ICON[m]} />
@@ -92,7 +92,7 @@ export default function Settings() {
               {ACCENTS.map(([k, dark, light]) => (
                 <button key={k} type="button" role="radio" aria-checked={prefs.accent === k} onClick={() => set("accent")(k)}
                   className={cx("flex cursor-pointer items-center gap-2 rounded-full border-2 py-1.5 pr-3.5 pl-1.5 text-[.84rem] text-ink",
-                    prefs.accent === k ? "border-pine-700" : "border-line hover:border-pine-600")}>
+                    prefs.accent === k ? "border-sec bg-sec-soft shadow-[0_6px_18px_-10px_var(--sec)]" : "lift border-line bg-surface")}>
                   <span className="grid size-7 place-items-center rounded-full" style={{ background: `linear-gradient(135deg, ${dark} 50%, ${light} 50%)` }}>
                     {prefs.accent === k && <Icon name="check" size="xs" className="text-white" />}
                   </span>
@@ -122,8 +122,8 @@ export default function Settings() {
               {LANGS.map((l) => (
                 <button key={l.code} type="button" role="radio" aria-checked={prefs.lang === l.code} onClick={() => setLang(l.code)}
                   className={cx("flex cursor-pointer items-center gap-3 rounded-2xl border-2 p-3 text-left text-ink",
-                    prefs.lang === l.code ? "border-pine-700 bg-mint-100" : "border-line bg-surface hover:border-pine-600")}>
-                  <span className="grid size-9 place-items-center rounded-lg bg-pine-900 text-[.78rem] font-bold text-mint">{l.short}</span>
+                    prefs.lang === l.code ? "border-sec bg-sec-soft shadow-[0_6px_18px_-10px_var(--sec)]" : "lift border-line bg-surface")}>
+                  <span className="grid size-9 place-items-center rounded-lg bg-[linear-gradient(135deg,var(--sec),var(--sec-ink))] text-[.78rem] font-bold text-sec-on">{l.short}</span>
                   <strong className="flex-1">{l.name}</strong>
                   {prefs.lang === l.code && <Icon name="check_circle" className="text-pine-700" />}
                 </button>

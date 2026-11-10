@@ -53,7 +53,7 @@ export default function AddPersonDialog() {
   };
 
   return (
-    <Dialog title="Add a family member" sub="Only basic details are needed. You can add more later — and nothing is shared outside the family circle."
+    <Dialog sec="tree" title="Add a family member" sub="Only basic details are needed. You can add more later — and nothing is shared outside the family circle."
       footer={<><DraftNote draft={draft} /><CancelButton /><Button variant="primary" icon="person_add" onClick={save}>Add to tree</Button></>}>
       <div className="grid gap-3 sm:grid-cols-2">
         <Field id="ap-first" label="First name" hint="Required" error={errors.first}>

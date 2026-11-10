@@ -25,7 +25,7 @@ export default function MessageDialog({ person, title, sub, label = "Message", s
   };
 
   return (
-    <Dialog title={title || `Private message to ${person.first}`} sub={sub || "Only you and the recipient can read this message."}
+    <Dialog sec="messages" title={title || `Private message to ${person.first}`} sub={sub || "Only you and the recipient can read this message."}
       footer={<><CancelButton /><Button variant="primary" icon="send" onClick={send}>{sendLabel}</Button></>}>
       <Field id="pm" label={label} error={error}>
         <Textarea id="pm" rows={4} value={text} onChange={(e) => setText(e.target.value)} placeholder={placeholder} invalid={!!error} />

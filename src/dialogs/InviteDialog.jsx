@@ -37,7 +37,7 @@ export default function InviteDialog() {
   };
 
   return (
-    <Dialog title="Invite a relative" sub="We only ask for what's needed to send the invite. A custodian approves every new member."
+    <Dialog sec="directory" title="Invite a relative" sub="We only ask for what's needed to send the invite. A custodian approves every new member."
       footer={<><CancelButton /><Button variant="primary" icon="send" onClick={send}>Send Invitation</Button></>}>
       <Field id="invName" label="Their name" hint="Required" error={errors.name}>
         <Input id="invName" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Fiona Campbell" invalid={!!errors.name} />

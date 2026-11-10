@@ -73,12 +73,12 @@ function RecordDialog({ r }) {
       <div className="flex flex-wrap items-center gap-2"><Status r={r} /><Visibility>{r.visibility}</Visibility></div>
       {sealed ? (
         <div className="grid justify-items-center gap-2 rounded-2xl bg-surface-2 p-6 text-center">
-          <Icon name="lock_clock" className="text-[44px]! text-pine-700" />
+          <Icon name="lock_clock" className="text-[44px]! text-sec" />
           <strong>This time capsule opens on {fmtDate(r.sealedUntil)}</strong>
           <p className="text-small text-muted">That's {opensIn(r.sealedUntil)}. Its contents stay sealed until then, even for custodians.</p>
         </div>
       ) : (
-        <blockquote className="m-0 rounded-2xl border-l-4 border-pine-600 bg-surface-2 p-4.5 font-serif text-[1.08rem] leading-[1.7]">{r.text}</blockquote>
+        <blockquote className="m-0 rounded-2xl border-l-4 border-sec bg-surface-2 p-4.5 font-serif text-[1.08rem] leading-[1.7]">{r.text}</blockquote>
       )}
       <dl className="m-0 grid gap-2 text-small sm:grid-cols-2">
         <div><dt className="text-xsmall font-semibold text-muted uppercase">Source</dt><dd className="m-0">{r.source || "Not recorded"}</dd></div>
@@ -237,11 +237,11 @@ export default function Legacy() {
               const sealed = isSealed(r);
               return (
                 <li key={r.id}>
-                  <article className={cx("flex flex-wrap items-center gap-3.5 rounded-[18px] border bg-surface p-4 transition hover:border-pine-600 hover:shadow-card", r.status === "review" ? "border-gold/50" : "border-line")}>
-                    <IconBox icon={sealed ? "lock_clock" : r.icon || CAT_ICON[r.category]} tone={sealed ? "dark" : r.status === "review" ? "gold" : "mint"} />
+                  <article className={cx("lift flex flex-wrap items-center gap-3.5 rounded-[18px] border bg-surface p-4", r.status === "review" ? "border-gold/50" : "border-line")}>
+                    <IconBox icon={sealed ? "lock_clock" : r.icon || CAT_ICON[r.category]} tone={sealed ? "dark" : r.status === "review" ? "gold" : "sec"} />
                     <div className="min-w-0 flex-1 basis-60">
                       <h2 className="text-[1.05rem]!">
-                        <button type="button" onClick={() => open(<RecordDialog r={r} />)} className="cursor-pointer border-0 bg-transparent p-0 text-left font-serif font-semibold text-ink hover:underline">{r.title}</button>
+                        <button type="button" onClick={() => open(<RecordDialog r={r} />)} className="cursor-pointer border-0 bg-transparent p-0 text-left font-serif font-semibold text-ink decoration-sec decoration-2 underline-offset-4 rounded-md hover-tint hover:text-sec-ink hover:underline">{r.title}</button>
                       </h2>
                       <p className="mt-0.5 text-small text-muted">{r.category} · {fmtDate(r.date, r.approx)} · Kept by {person(r.custodian)?.first}</p>
                       <div className="mt-2 flex flex-wrap items-center gap-2"><Status r={r} /><Visibility>{r.visibility}</Visibility></div>

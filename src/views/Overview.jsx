@@ -12,7 +12,7 @@ import {
 import { ME } from "../data";
 import AddMemoryDialog from "../dialogs/AddMemoryDialog";
 import InviteDialog from "../dialogs/InviteDialog";
-import { MONTHS, THIS_YEAR, fmtDate, fmtDur } from "../lib/format";
+import { MONTHS, THIS_YEAR, cx, fmtDate, fmtDur } from "../lib/format";
 import { useT } from "../lib/i18n";
 import { age, daysToBirthday, fullName, useStore } from "../lib/store";
 
@@ -41,14 +41,14 @@ function FamilyPoll() {
     toast(t("poll.thanks"), { icon: "how_to_vote", duration: 2500 });
   };
   return (
-    <Card aria-labelledby="pollH">
+    <Card sec="overview" aria-labelledby="pollH">
       <Eyebrow icon="how_to_vote">{t("poll.eyebrow")}</Eyebrow>
       <h2 id="pollH" className="mt-1 text-[1.1rem]!">{t("poll.title")}</h2>
       {editing ? (
         <form onSubmit={vote} className="mt-3 grid gap-2">
           {options.map((o, i) => (
             <Check key={o} type="radio" name="poll" checked={choice === i} onChange={() => setChoice(i)}
-              className="rounded-xl border border-line bg-surface-2 p-2.5">{o}</Check>
+              className={cx("rounded-xl border p-3", choice === i ? "border-sec bg-sec-soft font-semibold" : "hover-tint border-line bg-surface-2")}>{o}</Check>
           ))}
           <Button variant="primary" type="submit" icon="how_to_vote">{t("poll.vote")}</Button>
         </form>
@@ -63,7 +63,7 @@ function FamilyPoll() {
                   <span className="text-muted">{pct}%</span>
                 </div>
                 <div className="mt-1 h-2 overflow-hidden rounded-full bg-surface-3">
-                  <div className="h-full rounded-full bg-pine-700 transition-[width] duration-700 dark:bg-mint" style={{ width: `${pct}%` }} />
+                  <div className="h-full rounded-full bg-sec transition-[width] duration-700" style={{ width: `${pct}%` }} />
                 </div>
               </div>
             );
@@ -85,7 +85,7 @@ function MoodCheck() {
   const icons = ["sentiment_very_satisfied", "history_edu", "volunteer_activism", "bedtime", "favorite"];
   const options = t("mood.options");
   return (
-    <Card aria-labelledby="moodH">
+    <Card sec="stories" aria-labelledby="moodH">
       <Eyebrow icon="mood">{t("poll.eyebrow")}</Eyebrow>
       <h2 id="moodH" className="mt-1 text-[1.1rem]!">{t("mood.title")}</h2>
       <Chips className="mt-3" role="radiogroup" aria-label={t("mood.title")}>
@@ -107,7 +107,7 @@ function MemoryShuffle() {
   if (!list.length) return null;
   const m = list[i % list.length];
   return (
-    <Card aria-labelledby="otdH">
+    <Card sec="memories" aria-labelledby="otdH">
       <div className="flex items-center justify-between gap-2">
         <div><Eyebrow icon="auto_awesome">{t("otd.eyebrow")}</Eyebrow><h2 id="otdH" className="mt-1 text-[1.1rem]!">{t("otd.title")}</h2></div>
         <IconButton icon="shuffle" label={t("otd.shuffle")} title={t("otd.shuffle")} onClick={() => setI(i + 1 + Math.floor(Math.random() * (list.length - 1)))} />
@@ -125,7 +125,7 @@ function MiniNode({ p, tag }) {
   const navigate = useNavigate();
   return (
     <button type="button" onClick={() => navigate(`/tree?person=${p.id}`)}
-      className="flex min-w-40 cursor-pointer items-center gap-2.5 rounded-xl border border-line bg-surface px-3 py-2 text-left hover:border-pine-600">
+      className="lift flex min-w-40 cursor-pointer items-center gap-2.5 rounded-xl border border-sec-line bg-surface px-3 py-2 text-left">
       <Avatar p={p} round />
       <span>
         <strong className="block text-[.86rem]">{p.first}{p.id === ME && " (You)"}</strong>
@@ -208,7 +208,7 @@ export default function Overview() {
         <div className="flex flex-wrap items-center gap-5">
           <Avatar p={me} size="xl" round />
           <div className="min-w-0 flex-1 max-sm:basis-full">
-            <div className="flex flex-wrap items-center gap-2.5"><Tag tone="mint">MATRIARCH LINE</Tag><span className="text-small text-muted">● Living Archive Synced</span></div>
+            <div className="flex flex-wrap items-center gap-2.5"><Tag tone="sec">MATRIARCH LINE</Tag><span className="text-small text-muted">● Living Archive Synced</span></div>
             <h1 id="welcome" className="mt-2">{t(greet)}, {me.first}</h1>
             <p className="mt-1 font-serif text-[1.1rem] text-pine-700 italic">{t("h1.overview", { name: me.first })}</p>
             <p className="mt-2 text-muted">
@@ -217,7 +217,7 @@ export default function Overview() {
           </div>
           <div className="grid justify-items-start gap-2 sm:justify-items-end">
             <button type="button" onClick={toggleEasy}
-              className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-line bg-surface px-3 py-1.5 text-[.78rem] font-medium easy:min-h-12">
+              className="pressable inline-flex min-h-10 cursor-pointer items-center gap-1.5 rounded-full border border-sec-line bg-surface px-3.5 py-1.5 text-[.82rem] font-medium hover-fill easy:min-h-12">
               <Icon name="visibility" size="sm" /> {easy ? "Easy-to-Read mode active (18pt)" : "Turn on Easy-to-Read (18pt)"}
             </button>
             <span className="text-small text-muted">Heritage Years: 1918 — {THIS_YEAR}</span>
@@ -225,10 +225,11 @@ export default function Overview() {
         </div>
         <div role="group" aria-label="Primary actions"
           className="mt-5.5 grid grid-cols-2 gap-3 rounded-2xl border border-line bg-surface p-3 sm:grid-cols-4">
-          <Button variant="primary" icon="add_photo_alternate" onClick={() => open(<AddMemoryDialog />)}>Add a Memory</Button>
-          <Button variant="mint" icon="mic" to="/stories?record=1">Record a Story</Button>
-          <Button variant="soft" icon="account_tree" to="/tree">Explore Tree</Button>
-          <Button variant="soft" icon="person_add" onClick={() => open(<InviteDialog />)}>Invite Relative</Button>
+          {/* Each shortcut wears the colour of the section it leads to. */}
+          <Button variant="primary" sec="memories" size="lg" icon="add_photo_alternate" onClick={() => open(<AddMemoryDialog />)}>Add a Memory</Button>
+          <Button variant="primary" sec="stories" size="lg" icon="mic" to="/stories?record=1">Record a Story</Button>
+          <Button variant="primary" sec="tree" size="lg" icon="account_tree" to="/tree">Explore Tree</Button>
+          <Button variant="primary" sec="directory" size="lg" icon="person_add" onClick={() => open(<InviteDialog />)}>Invite Relative</Button>
         </div>
       </Hero>
 
@@ -240,7 +241,7 @@ export default function Overview() {
 
       <div className="mt-5.5 grid grid-cols-[minmax(0,1fr)] gap-5.5 lg:grid-cols-[minmax(0,1fr)_330px]">
         <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] content-start gap-5.5">
-          <Card aria-labelledby="lin">
+          <Card sec="tree" aria-labelledby="lin">
             <SectionTitle>
               <h2 id="lin" className="flex flex-wrap items-center gap-2.5"><Icon name="account_tree" /> Direct Lineage Preview</h2>
               <Tag tone="outline">4 Generations Preserved</Tag>
@@ -269,17 +270,17 @@ export default function Overview() {
             </div>
           </Card>
 
-          <Card aria-labelledby="oral">
+          <Card sec="stories" aria-labelledby="oral">
             <SectionTitle>
               <div>
                 <h2 id="oral" className="flex flex-wrap items-center gap-2.5"><Icon name="record_voice_over" /> Living Oral Archive</h2>
                 <p className="mt-2 text-small text-muted">Preserved spoken words, folk tales, and family memories</p>
               </div>
-              <Button variant="mint" size="sm" icon="mic" to="/stories?record=1">Record or Dictate New Story</Button>
+              <Button variant="primary" size="sm" icon="mic" to="/stories?record=1">Record or Dictate New Story</Button>
             </SectionTitle>
             <Card as="article" tone="soft">
               <div className="flex items-start gap-2.5">
-                <IconBox icon="radio_button_checked" tone="dark" />
+                <IconBox icon="radio_button_checked" tone="solid" />
                 <div className="min-w-0 flex-1">
                   <h3>{story.title}</h3>
                   <Tag tone="gold" className="mt-2">{story.tag}</Tag>
@@ -305,7 +306,7 @@ export default function Overview() {
             )}
           </Card>
 
-          <Card aria-labelledby="prompt">
+          <Card sec="messages" aria-labelledby="prompt">
             <div className="flex items-center justify-between gap-2.5">
               <Eyebrow icon="lightbulb">Prompt of the week</Eyebrow><Tag tone="outline">{st.replies.length} Kin Contributed</Tag>
             </div>
@@ -324,10 +325,10 @@ export default function Overview() {
         </div>
 
         <aside className="grid min-w-0 grid-cols-[minmax(0,1fr)] content-start gap-5.5">
-          <Card aria-labelledby="gath">
+          <Card sec="calendar" aria-labelledby="gath">
             <SectionTitle><h2 id="gath" className="flex items-center gap-2.5 text-[1.2rem]!"><Icon name="event" /> Kin Gatherings &amp; Milestones</h2></SectionTitle>
             <div className="grid gap-3.5">
-              <div className="flex gap-3 rounded-[14px] bg-surface-2 p-3.5">
+              <div className="flex gap-3 rounded-[14px] border border-sec-line bg-sec-soft p-3.5">
                 <DateBadge month={MONTHS[nbDate.getMonth()].toUpperCase()} day={nbDate.getDate()} />
                 <div className="min-w-0 flex-1">
                   <div className="flex items-start justify-between gap-2.5"><strong>{nb.first}'s {age(nb) + 1}th Birthday</strong><Tag tone="rose" className="shrink-0">In {daysToBirthday(nb)} Days</Tag></div>
@@ -338,7 +339,7 @@ export default function Overview() {
                   </div>
                 </div>
               </div>
-              <div className="flex gap-3 rounded-[14px] bg-surface-2 p-3.5">
+              <div className="flex gap-3 rounded-[14px] border border-sec-line bg-sec-soft p-3.5">
                 <DateBadge month="AUG" day="14" mint />
                 <div className="min-w-0 flex-1">
                   <div className="flex items-start justify-between gap-2.5"><strong>Annual Summer Reunion</strong><Tag tone="dark" className="shrink-0">18 Attending</Tag></div>
@@ -355,7 +356,7 @@ export default function Overview() {
             </div>
           </Card>
 
-          <Card aria-labelledby="alb">
+          <Card sec="memories" aria-labelledby="alb">
             <SectionTitle>
               <h2 id="alb" className="flex items-center gap-2.5 text-[1.2rem]!"><Icon name="photo_library" /> Recent Memory Albums</h2>
               <Link className="text-small" to="/memories">View all</Link>
@@ -375,9 +376,9 @@ export default function Overview() {
             </div>
           </Card>
 
-          <Card tone="dark" aria-labelledby="priv">
+          <Card tone="dark" sec="privacy" aria-labelledby="priv">
             <div className="flex items-start gap-2.5">
-              <IconBox icon="shield_lock" />
+              <IconBox icon="shield_lock" tone="mint" />
               <div>
                 <h3 id="priv">Private Family Sanctuary</h3>
                 <p className="mt-2 text-small text-on-dark">This living archive is completely private. No public indexing, no advertising, no data brokers. You decide who sees each story, photo and record.</p>

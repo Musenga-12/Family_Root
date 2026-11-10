@@ -41,17 +41,17 @@ function ChatPreview({ x, anchor }) {
           <small className="block truncate text-xsmall text-muted">{chatSubtitle(x, person)}</small>
         </span>
       </div>
-      {x.unread > 0 && <span className="justify-self-start rounded-full bg-pine-700 px-2 py-0.5 text-[.7rem] font-bold text-white dark:bg-mint dark:text-pine-950">{x.unread} unread</span>}
+      {x.unread > 0 && <span className="justify-self-start rounded-full bg-sec px-2 py-0.5 text-[.7rem] font-bold text-sec-on">{x.unread} unread</span>}
       <ol className="m-0 grid list-none gap-2 p-0">
         {recent.map((m) => {
           const quoted = m.replyTo && x.messages.find((y) => y.id === m.replyTo);
           return (
-            <li key={m.id} className={cx("rounded-xl px-3 py-2 text-small", m.by === ME ? "ml-6 bg-mint-100" : "mr-6 bg-surface-2")}>
+            <li key={m.id} className={cx("rounded-xl px-3 py-2 text-small", m.by === ME ? "ml-6 bg-sec-soft" : "mr-6 bg-surface-2")}>
               <span className="flex items-baseline justify-between gap-2 text-xsmall">
                 <strong>{m.by === ME ? "You" : person(m.by)?.first}</strong>
                 <span className="text-muted tabular-nums">{dayLabel(m.at)}, {clock(m.at)}</span>
               </span>
-              {quoted && <span className="mt-1 block truncate border-l-2 border-pine-600 pl-2 text-xsmall text-muted">↩ {quoted.by === ME ? "You" : person(quoted.by)?.first}: {snippet(quoted)}</span>}
+              {quoted && <span className="mt-1 block truncate border-l-2 border-sec pl-2 text-xsmall text-muted">↩ {quoted.by === ME ? "You" : person(quoted.by)?.first}: {snippet(quoted)}</span>}
               <span className="mt-0.5 block whitespace-pre-wrap [overflow-wrap:anywhere]">{snippet(m)}</span>
               {m.reactions && Object.keys(m.reactions).length > 0 && <span className="mt-1 block text-xsmall">{Object.values(m.reactions).join(" ")}</span>}
             </li>
@@ -93,22 +93,22 @@ function ChatRow({ x, active, onOpen }) {
         aria-describedby={preview ? `preview-${x.id}` : undefined}
         aria-label={`${x.title}${x.unread ? `, ${x.unread} unread` : ""}${x.pinned ? ", pinned" : ""}. ${who ? who + ": " : ""}${snippet(last)}`}
         className={cx("flex w-full cursor-pointer items-center gap-3 border-0 border-b border-line/60 px-3 py-2.5 pr-10 text-left text-ink",
-          active ? "bg-mint-100" : "bg-transparent hover:bg-surface-2")}>
+          active ? "bg-sec-soft shadow-[inset_4px_0_0_var(--sec)]" : "hover-tint bg-transparent hover:shadow-[inset_4px_0_0_var(--sec)]")}>
         <ChatAvatar t={x} />
         <span className="min-w-0 flex-1">
           <span className="flex items-baseline justify-between gap-2">
             <strong className={cx("truncate", x.unread ? "font-bold" : "font-semibold")}>{x.title}</strong>
-            <small className={cx("shrink-0 text-[.7rem] tabular-nums", x.unread && !x.muted ? "font-bold text-pine-700" : "text-muted")}>{last ? listTime(last.at) : ""}</small>
+            <small className={cx("shrink-0 text-[.7rem] tabular-nums", x.unread && !x.muted ? "font-bold text-sec-ink" : "text-muted")}>{last ? listTime(last.at) : ""}</small>
           </span>
           <span className="mt-0.5 flex items-center gap-1.5">
-            {last?.by === ME && !last.deleted && <Icon name="done_all" className={cx("text-[15px]!", last.status === "read" ? "text-pine-600" : "text-faint")} />}
+            {last?.by === ME && !last.deleted && <Icon name="done_all" className={cx("text-[15px]!", last.status === "read" ? "text-sec" : "text-faint")} />}
             <span className={cx("min-w-0 flex-1 truncate text-small", x.unread ? "text-ink" : "text-muted", last?.deleted && "italic")}>
               {who && <span className="font-medium">{who}: </span>}{last ? snippet(last) : "No messages yet"}
             </span>
             {x.muted && <Icon name="notifications_off" size="xs" className="text-faint" title="Muted" />}
             {x.pinned && <Icon name="push_pin" size="xs" className="text-faint" />}
             {x.unread > 0 && (
-              <span className={cx("grid h-5 min-w-5 shrink-0 place-items-center rounded-full px-1.5 text-[.66rem] font-bold", x.muted ? "bg-surface-3 text-muted" : "bg-pine-700 text-white dark:bg-mint dark:text-pine-950")}>{x.unread}</span>
+              <span className={cx("grid h-5 min-w-5 shrink-0 place-items-center rounded-full px-1.5 text-[.66rem] font-bold", x.muted ? "bg-surface-3 text-muted" : "bg-sec text-sec-on")}>{x.unread}</span>
             )}
           </span>
         </span>
@@ -116,7 +116,7 @@ function ChatRow({ x, active, onOpen }) {
       {preview && <ChatPreview x={x} anchor={preview} />}
       {/* Row options: on hover, focus or right-click. */}
       <div className="absolute top-1/2 right-1.5 -translate-y-1/2 opacity-0 transition-opacity group-focus-within/row:opacity-100 group-hover/row:opacity-100 max-md:opacity-100">
-        <Menu label={`Options for ${x.title}`} trigger={(p) => <IconButton {...p} data-row-menu icon="more_vert" label={`Options for ${x.title}`} className="size-8! border-0! bg-transparent!" />}>
+        <Menu label={`Options for ${x.title}`} trigger={(p) => <IconButton {...p} data-row-menu icon="more_vert" label={`Options for ${x.title}`} className="size-8! border-0! bg-transparent! hover:bg-sec! hover:text-sec-on!" />}>
           <MenuItem icon="push_pin" onClick={() => set("pinned", !x.pinned, x.pinned ? "Unpinned" : "Pinned to the top")}>{x.pinned ? "Unpin" : "Pin to the top"}</MenuItem>
           <MenuItem icon={x.unread ? "mark_chat_read" : "mark_chat_unread"} onClick={() => set("unread", x.unread ? 0 : 1, x.unread ? "Marked as read" : "Marked as unread")}>
             {x.unread ? "Mark as read" : "Mark as unread"}
@@ -138,7 +138,7 @@ function StarredList({ threads, onOpen }) {
       {items.map(({ x, m }) => (
         <li key={m.id}>
           <button type="button" onClick={() => onOpen(x.id, m.id)}
-            className="grid w-full cursor-pointer gap-1 border-0 border-b border-line/60 bg-transparent px-4 py-3 text-left text-ink hover:bg-surface-2">
+            className="grid w-full cursor-pointer gap-1 border-0 border-b border-line/60 bg-transparent px-4 py-3 text-left text-ink hover-tint">
             <span className="flex items-center justify-between gap-2 text-xsmall text-muted">
               <span className="truncate"><strong className="text-ink">{m.by === ME ? "You" : person(m.by)?.first}</strong> in {x.title}</span>
               <span className="shrink-0">{dayLabel(m.at)}, {clock(m.at)}</span>
@@ -212,10 +212,10 @@ export default function Messages() {
                 const on = filter === k;
                 return (
                   <button key={k} type="button" role="tab" aria-selected={on} onClick={() => setFilter(k)}
-                    className={cx("inline-flex shrink-0 cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1.5 text-[.8rem] font-semibold easy:min-h-12",
-                      on ? "border-pine-900 bg-pine-900 text-white" : "border-line bg-surface text-ink hover:border-pine-600")}>
+                    className={cx("pressable inline-flex min-h-10 shrink-0 cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1.5 text-[.82rem] font-semibold easy:min-h-12",
+                      on ? "border-transparent bg-[linear-gradient(135deg,var(--sec),var(--sec-ink))] text-sec-on shadow-[0_4px_12px_-6px_var(--sec)]" : "hover-fill border-sec-line bg-surface text-ink")}>
                     <Icon name={icon} size="xs" />{label}
-                    {counts[k] > 0 && <span className={cx("rounded-full px-1.5 text-[.68rem]", on ? "bg-mint text-pine-900" : k === "unread" ? "bg-pine-700 text-white dark:bg-mint dark:text-pine-950" : "bg-surface-3")}>{counts[k]}</span>}
+                    {counts[k] > 0 && <span className={cx("rounded-full px-1.5 text-[.68rem]", on ? "bg-sec-on/25" : k === "unread" ? "bg-sec text-sec-on" : "bg-surface-3")}>{counts[k]}</span>}
                   </button>
                 );
               })}
@@ -236,7 +236,7 @@ export default function Messages() {
         {active ? <Chat key={active.id} t={active} focusId={params.get("m")} onBack={() => select(null)} /> : (
           <div className="hidden flex-1 place-items-center bg-surface-2 p-6 text-center text-muted md:grid">
             <div className="grid justify-items-center gap-2">
-              <span className="grid size-16 place-items-center rounded-full bg-mint-100 text-pine-700"><Icon name="forum" className="text-[34px]!" /></span>
+              <span className="grid size-16 place-items-center rounded-full bg-sec-soft text-sec-ink"><Icon name="forum" className="text-[34px]!" /></span>
               <h2 className="text-ink">Your family conversations</h2>
               <p className="max-w-80 text-small">Choose a chat on the left, or start a new one with any relative.</p>
             </div>

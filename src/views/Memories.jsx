@@ -50,7 +50,7 @@ function Slideshow({ list }) {
         <PhotoOverlay><strong className="block font-serif text-[1.2rem]">{m.title}</strong><small>{fmtDate(m.date, m.approx)} · {m.place}</small></PhotoOverlay>
       </Photo>
       <p className="text-small text-muted">{m.caption}</p>
-      <div className="h-1 overflow-hidden rounded-full bg-surface-3"><div className="h-full bg-pine-700 transition-[width] dark:bg-mint" style={{ width: `${((i + 1) / n) * 100}%` }} /></div>
+      <div className="h-1 overflow-hidden rounded-full bg-surface-3"><div className="h-full bg-sec transition-[width]" style={{ width: `${((i + 1) / n) * 100}%` }} /></div>
       <div className="flex items-center justify-center gap-2.5">
         <IconButton icon="skip_previous" label={t("common.prev")} onClick={() => setI((i - 1 + n) % n)} />
         <Button variant="primary" icon={playing ? "pause" : "play_arrow"} aria-pressed={playing} onClick={() => setPlaying(!playing)}>{playing ? t("common.pause") : t("common.play")}</Button>
@@ -91,7 +91,7 @@ function MemoryCard({ m }) {
   return (
     // Right-click (or the keyboard's Menu key / Shift+F10) opens the same actions as the ⋮ button.
     <article aria-label={m.title} onContextMenu={(e) => { if (e.target.closest("a, input")) return; e.preventDefault(); moreRef.current?.click(); }}
-      className="flex flex-col overflow-hidden rounded-[18px] border border-line bg-surface transition hover:border-pine-600 hover:shadow-card">
+      className="lift group/photo flex flex-col overflow-hidden rounded-[18px] border border-line bg-surface">
       <Photo p1={m.p1} p2={m.p2} icon={m.icon} img={m.img} alt={m.alt} aspect="aspect-[4/3.3]" flush>
         <PhotoCorner><Tag tone="glass" icon={m.type === "document" ? "description" : "photo_camera"}>{m.label}</Tag></PhotoCorner>
         {m.audio && <PhotoOverlay className="text-xsmall"><Icon name="graphic_eq" size="xs" /> Oral clip by Mary · “Crossing the Atlantic in ’68”</PhotoOverlay>}
@@ -111,7 +111,7 @@ function MemoryCard({ m }) {
           {m.tagged.slice(0, 3).map((id) => <Tag key={id} tone="outline">{person(id)?.first || "?"}</Tag>)}
           {m.tagged.length > 3 && <Tag tone="outline">+{m.tagged.length - 3}</Tag>}
         </span>
-        <IconButton icon="favorite" iconProps={{ fill: !!m.fav, className: m.fav ? "text-rose!" : "" }} aria-pressed={!!m.fav}
+        <IconButton icon="favorite" iconProps={{ fill: !!m.fav, className: m.fav ? "text-rose! [button:hover_&]:text-sec-on!" : "" }} aria-pressed={!!m.fav}
           label={`${m.fav ? "Remove from" : "Add to"} favourites`} title={`${m.fav ? "Remove from" : "Add to"} favourites`} onClick={toggleFav} />
         <Menu label={`Actions for ${m.title}`} trigger={(p) => (
           <IconButton ref={moreRef} icon="more_vert" label={`More actions for ${m.title}`} title="More actions (or right-click the card)" {...p} />
@@ -155,7 +155,7 @@ function AlbumDialog({ id }) {
             {state.memories.map((m) => {
               const on = picked.includes(m.id);
               return (
-                <label key={m.id} className={cx("grid cursor-pointer gap-1.5 rounded-xl border-2 p-1.5 text-xsmall", on ? "border-pine-700 bg-mint-100" : "border-line")}>
+                <label key={m.id} className={cx("grid cursor-pointer gap-1.5 rounded-xl border-2 p-1.5 text-xsmall", on ? "border-sec bg-sec-soft" : "border-line")}>
                   <Photo p1={m.p1} p2={m.p2} icon={m.icon} img={m.img} alt={m.alt} aspect="aspect-4/3">
                     <span className="absolute top-1.5 left-1.5 rounded bg-white/90 p-0.5 leading-none"><input type="checkbox" checked={on} onChange={() => setPicked(on ? picked.filter((x) => x !== m.id) : [...picked, m.id])} className="size-4.5" /></span>
                   </Photo>
@@ -241,7 +241,7 @@ export default function Memories() {
     <>
       <Hero className="flex flex-wrap items-center gap-6">
         <div className="min-w-65 flex-1">
-          <Tag tone="mint">AUTHENTICATED KINSHIP VAULT · 11 Decades Digitised</Tag>
+          <Tag tone="sec">AUTHENTICATED KINSHIP VAULT · 11 Decades Digitised</Tag>
           <h1 className="mt-4">{t("h1.memories")}</h1>
           <p className="mt-2 text-muted">Restored photographs, home cine-films and heirloom keepsakes across 11 decades of the Mackenzie family lineage — each with a caption, date, owner, and who can see it.</p>
           <div className="mt-4 flex flex-wrap gap-2.5">
@@ -279,7 +279,7 @@ export default function Memories() {
           {st.albums.map((a) => (
             <button key={a.id} type="button"
               aria-label={`Open album: ${a.title}`} onClick={() => open(<AlbumDialog id={a.id} />)}
-              className="flex cursor-pointer snap-start flex-col overflow-hidden rounded-2xl border border-line bg-surface p-0 text-left">
+              className="lift group/photo flex cursor-pointer snap-start flex-col overflow-hidden rounded-2xl border border-line bg-surface p-0 text-left">
               <Photo as="span" p1={a.p1} p2={a.p2} icon={a.icon} aspect="aspect-[4/3.2]" flush>
                 <PhotoCorner><Tag tone="glass">{a.tag}</Tag></PhotoCorner>
                 <PhotoOverlay className="text-xsmall">{a.items ? `${a.items.length} keepsake${a.items.length === 1 ? "" : "s"}` : a.meta}</PhotoOverlay>
@@ -322,7 +322,7 @@ export default function Memories() {
           <div className="mt-4 border-t border-line pt-4">
             <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
               <strong className="text-[.8rem]"><Icon name="bar_chart" size="xs" /> Keepsakes by decade</strong>
-              <span className="text-xsmall text-muted">Pick a bar to start from that decade{f.from > 1918 && <> · <button type="button" onClick={() => setF({ ...f, from: 1918 })} className="cursor-pointer border-0 bg-transparent p-0 font-semibold text-pine-700 hover:underline">show all</button></>}</span>
+              <span className="text-xsmall text-muted">Pick a bar to start from that decade{f.from > 1918 && <> · <button type="button" onClick={() => setF({ ...f, from: 1918 })} className="cursor-pointer border-0 bg-transparent p-0 font-semibold text-sec-ink hover-fill">show all</button></>}</span>
             </div>
             <div role="group" aria-label="Keepsakes by decade" className="flex h-28 items-end gap-1.5">
               {decadeKeys.map((d) => {
@@ -332,7 +332,7 @@ export default function Memories() {
                     aria-label={`${d}s: ${decades[d]} keepsake${decades[d] > 1 ? "s" : ""}. Show from ${d}.`} title={`${d}s · ${decades[d]}`}
                     className="group flex h-full min-w-0 flex-1 cursor-pointer flex-col items-center justify-end gap-1 border-0 bg-transparent p-0">
                     <span className="text-[.68rem] font-semibold text-muted">{decades[d]}</span>
-                    <span className={cx("w-full max-w-12 rounded-t-md transition-colors", on ? "bg-pine-700 group-hover:bg-pine-600 dark:bg-mint" : "bg-surface-3 group-hover:bg-line")}
+                    <span className={cx("w-full max-w-12 rounded-t-md transition-colors", on ? "bg-sec group-hover:brightness-110" : "bg-surface-3 group-hover:bg-sec/60")}
                       style={{ height: `${(decades[d] / maxDecade) * 70}%`, minHeight: 4 }} />
                     <span className={cx("text-[.66rem]", on ? "font-semibold text-ink" : "text-faint")}>{`’${String(d).slice(2)}s`}</span>
                   </button>

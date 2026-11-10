@@ -101,7 +101,7 @@ function StoryCard({ s }) {
     <article className="grid min-w-0 content-start gap-2.5 rounded-[18px] border border-line bg-surface p-4.5">
       <div className="flex flex-wrap items-center justify-between gap-2.5">
         <div className="flex flex-wrap items-center gap-1.5">
-          <Tag tone={audio ? "mint" : "default"} icon={audio ? "graphic_eq" : "edit_note"}>
+          <Tag tone={audio ? "sec" : "default"} icon={audio ? "graphic_eq" : "edit_note"}>
             {audio ? "Audio Story" : "Written Memoir"}{audio && s.duration ? ` · ${Math.round(s.duration / 60)} mins` : ""}
           </Tag>
           {s.verified && <Tag tone="gold" icon="verified">Verified Oral History</Tag>}
@@ -164,7 +164,7 @@ export default function Stories() {
     <>
       <Hero className="flex flex-wrap items-center gap-6">
         <div className="min-w-65 flex-1">
-          <Tag tone="mint" icon="mic">LIVING ORAL HERITAGE VAULT</Tag>
+          <Tag tone="sec" icon="mic">LIVING ORAL HERITAGE VAULT</Tag>
           <h1 className="mt-4">{t("h1.stories")}</h1>
           <p className="mt-2 text-muted">Preserving the voices, inflection, wisdom, and warm memories of the Mackenzie family lineage across four generations.</p>
         </div>

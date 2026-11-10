@@ -37,7 +37,7 @@ function RoleGrid({ role, onPick }) {
               if (["ArrowRight", "ArrowDown"].includes(e.key)) { e.preventDefault(); pick((i + 1) % ROLES.length); }
               if (["ArrowLeft", "ArrowUp"].includes(e.key)) { e.preventDefault(); pick((i + ROLES.length - 1) % ROLES.length); }
             }}
-            className={cx("relative grid cursor-pointer gap-1 rounded-[14px] border-2 p-3 text-left", on ? "border-pine-700 bg-mint-100" : "border-line bg-surface-2")}>
+            className={cx("relative grid cursor-pointer gap-1 rounded-[14px] border-2 p-3 text-left", on ? "border-sec bg-sec-soft shadow-[0_6px_18px_-10px_var(--sec)]" : "lift border-line bg-surface")}>
             <Icon name={icon} />
             <strong className="text-[.92rem]">{title}</strong>
             <small className="text-[.7rem] text-muted">{sub}</small>
@@ -211,7 +211,7 @@ export default function Auth() {
   return (
     <>
       <div className="mb-6.5 grid justify-items-center gap-2.5 text-center">
-        <Tag tone="mint" icon="shield">PRIVATE FAMILY HAVEN</Tag>
+        <Tag tone="sec" icon="shield">PRIVATE FAMILY HAVEN</Tag>
         <h1>Every generation has a story.<br />Keep yours connected.</h1>
         <p className="max-w-140 text-muted">Join the private living archive for the Mackenzie lineage — a dignified space kept away from public web trackers, data brokers and commercial noise.</p>
       </div>

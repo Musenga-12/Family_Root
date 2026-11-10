@@ -33,7 +33,8 @@ export function ModalProvider({ children }) {
 const FOCUSABLE = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
 
 /** Dialog shell. `footer` holds the action buttons; call useCloseModal() inside to close. */
-export function Dialog({ title, sub, wide, footer, children }) {
+/** `sec` gives the dialog a section colour (e.g. sec="memories" for "Upload a new memory"). */
+export function Dialog({ title, sub, wide, sec, footer, children }) {
   const close = useCloseModal();
   const closeRef = useRef(close);
   useLayoutEffect(() => { closeRef.current = close; });
@@ -63,8 +64,8 @@ export function Dialog({ title, sub, wide, footer, children }) {
   return (
     <div className="fixed inset-0 z-80 grid animate-fade place-items-center bg-[rgba(10,30,24,.45)] p-4"
       onMouseDown={(e) => e.target === e.currentTarget && close()}>
-      <div ref={ref} role="dialog" aria-modal="true" aria-labelledby={titleId}
-        className={cx("max-h-[calc(100vh-32px)] w-full animate-pop overflow-auto rounded-card bg-surface shadow-pop", wide ? "max-w-180" : "max-w-140")}>
+      <div ref={ref} role="dialog" aria-modal="true" aria-labelledby={titleId} data-sec={sec}
+        className={cx("max-h-[calc(100vh-32px)] w-full animate-pop overflow-auto rounded-card border-t-6 border-sec bg-surface shadow-pop", wide ? "max-w-180" : "max-w-140")}>
         <header className="flex items-start justify-between gap-3 px-5.5 pt-5">
           <div>
             <h2 id={titleId}>{title}</h2>
@@ -101,9 +102,9 @@ export function DraftNote({ draft }) {
   const time = new Date(savedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   return (
     <span role="status" className="mr-auto flex flex-wrap items-center gap-1.5 self-center text-xsmall text-muted">
-      <Icon name={restored ? "restore" : "cloud_done"} size="xs" className="text-pine-700" />
+      <Icon name={restored ? "restore" : "cloud_done"} size="xs" className="text-sec-ink" />
       {restored ? `Draft restored (saved ${time})` : `Draft saved ${time}`}
-      <button type="button" onClick={discard} className="cursor-pointer rounded border-0 bg-transparent px-1 font-semibold text-pine-700 hover:underline">Start over</button>
+      <button type="button" onClick={discard} className="cursor-pointer rounded border-0 bg-transparent px-1 font-semibold text-sec-ink hover-fill">Start over</button>
     </span>
   );
 }

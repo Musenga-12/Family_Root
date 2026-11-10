@@ -28,7 +28,7 @@ function LandingHeader() {
         <nav aria-label="Sections" className="ml-6 hidden gap-1 md:flex">
           {SECTIONS.map(([id, key]) => (
             <button key={id} type="button" onClick={() => scrollTo(id)}
-              className="cursor-pointer rounded-lg border-0 bg-transparent px-3 py-2 text-[.88rem] text-muted hover:bg-surface-2 hover:text-ink">{t(key)}</button>
+              className="cursor-pointer rounded-lg border-0 bg-transparent px-3 py-2 text-[.88rem] text-muted hover-fill">{t(key)}</button>
           ))}
         </nav>
         <div className="ml-auto flex items-center gap-2">
@@ -51,7 +51,7 @@ function LandingHeader() {
         <nav aria-label="Sections" className="grid gap-1 border-t border-line px-4 py-3 md:hidden">
           {SECTIONS.map(([id, key]) => (
             <button key={id} type="button" onClick={() => { setOpen(false); scrollTo(id); }}
-              className="cursor-pointer rounded-lg border-0 bg-transparent px-3 py-2.5 text-left text-ink hover:bg-surface-2">{t(key)}</button>
+              className="cursor-pointer rounded-lg border-0 bg-transparent px-3 py-2.5 text-left text-ink hover-fill">{t(key)}</button>
           ))}
           <div className="mt-2 grid grid-cols-2 gap-2"><Button to="/auth">{t("land.signin")}</Button><Button variant="primary" to="/overview">{t("land.demo")}</Button></div>
         </nav>
@@ -207,7 +207,7 @@ function Features() {
             <button key={k} ref={(el) => (tabs.current[i] = el)} type="button" role="tab" id={`feat-${k}`} aria-selected={i === sel}
               aria-controls="featPanel" tabIndex={i === sel ? 0 : -1} onClick={() => setSel(i)}
               className={cx("flex cursor-pointer items-center gap-3 rounded-2xl border p-4 text-left transition",
-                i === sel ? "border-pine-700 bg-surface shadow-card" : "border-transparent bg-surface-2 hover:bg-surface-3")}>
+                i === sel ? "border-pine-700 bg-surface shadow-card" : "hover-tint border-transparent bg-surface-2")}>
               <span className={cx("grid size-10 place-items-center rounded-xl", i === sel ? "bg-pine-900 text-mint" : "bg-surface text-pine-700")}><Icon name={ic} /></span>
               <strong className="text-ink">{t(`land.feat.${k}`)}</strong>
             </button>
@@ -292,7 +292,7 @@ function Pricing() {
             <div key={k} role="radio" aria-checked={on} tabIndex={0} onClick={() => setPlan(k)}
               onKeyDown={(e) => (e.key === " " || e.key === "Enter") && (e.preventDefault(), setPlan(k))}
               className={cx("relative grid cursor-pointer content-start gap-3 rounded-card border-2 bg-surface p-6 transition",
-                on ? "border-pine-700 shadow-pop" : "border-line hover:border-pine-600", k === "family" && "md:-translate-y-2")}>
+                on ? "border-pine-700 shadow-pop" : "lift border-line", k === "family" && "md:-translate-y-2")}>
               {k === "family" && <span className="absolute -top-3 left-6"><Tag tone="dark" icon="star">{t("land.price.popular")}</Tag></span>}
               <span className="grid size-11 place-items-center rounded-xl bg-mint-100 text-pine-800"><Icon name={icon} /></span>
               <h3 className="text-[1.3rem]!">{t(`land.price.${k}`)}</h3>
@@ -362,7 +362,7 @@ function Quiz() {
           {t("land.quiz.options").map((o, i) => (
             <button key={o} type="button" role="radio" aria-checked={pick === i} onClick={() => setPick(i)}
               className={cx("flex cursor-pointer flex-col items-start gap-2 rounded-2xl border-2 p-4 text-left text-ink transition",
-                pick === i ? "border-pine-700 bg-mint-100" : "border-line bg-surface hover:border-pine-600")}>
+                pick === i ? "border-pine-700 bg-mint-100" : "lift border-line bg-surface")}>
               <Icon name={icons[i]} className="text-pine-700" /><strong>{o}</strong>
             </button>
           ))}

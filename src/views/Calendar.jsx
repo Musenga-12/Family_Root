@@ -68,7 +68,7 @@ function EventRow({ e, locale, showDate }) {
   const [icon, tone] = KINDS[e.kind];
   return (
     <li className="flex items-start gap-3 rounded-[14px] bg-surface-2 p-3">
-      {e.person ? <Avatar p={e.person} round /> : <span className="grid size-10 shrink-0 place-items-center rounded-full bg-surface text-pine-700"><Icon name={icon} /></span>}
+      {e.person ? <Avatar p={e.person} round /> : <span className="grid size-10 shrink-0 place-items-center rounded-full bg-surface text-sec-ink"><Icon name={icon} /></span>}
       <div className="min-w-0 flex-1">
         <strong className="block text-[.92rem]">{e.title}</strong>
         <span className="text-xsmall text-muted">
@@ -177,8 +177,8 @@ export default function Calendar() {
                     aria-label={`${new Date(d + "T00:00").toLocaleDateString(locale, { weekday: "long", day: "numeric", month: "long" })}${evs.length ? `, ${evs.length}` : ""}`}
                     onClick={() => setSelected(d)}
                     className={cx("relative grid min-h-16 cursor-pointer content-start justify-items-start gap-1 rounded-xl border p-1.5 text-left text-ink sm:min-h-21",
-                      sel ? "border-pine-700 bg-mint-100" : "border-line bg-surface hover:border-pine-600")}>
-                    <span className={cx("grid size-7 place-items-center rounded-full text-small font-semibold", d === today && "bg-pine-900 text-white")}>{+d.slice(8)}</span>
+                      sel ? "border-sec bg-sec-soft ring-2 ring-sec-line" : "lift border-line bg-surface")}>
+                    <span className={cx("grid size-7 place-items-center rounded-full text-small font-semibold", d === today && "bg-sec text-sec-on")}>{+d.slice(8)}</span>
                     <span className="flex flex-wrap gap-0.5">
                       {evs.slice(0, 3).map((e) => (
                         <span key={e.id} title={e.title} className={cx("hidden max-w-full truncate rounded px-1 text-[.62rem] font-semibold sm:block",
@@ -186,7 +186,7 @@ export default function Calendar() {
                           {e.person?.first || e.title}
                         </span>
                       ))}
-                      {evs.length > 0 && <span className="size-1.5 rounded-full bg-pine-700 sm:hidden" />}
+                      {evs.length > 0 && <span className="size-1.5 rounded-full bg-sec sm:hidden" />}
                       {evs.length > 3 && <span className="hidden text-[.62rem] text-muted sm:inline">+{evs.length - 3}</span>}
                     </span>
                   </button>
