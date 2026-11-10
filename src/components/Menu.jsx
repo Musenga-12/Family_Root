@@ -1,12 +1,18 @@
-/* Dropdown menu: a trigger button plus a popup list. Closes on outside click, Escape or choosing an item; arrow keys move between items. */
+/* Dropdown menu: a trigger button plus a popup list. Closes on outside click, Escape or choosing an item; arrow keys move between items.
+   Opens upward when there isn't room below (e.g. on the newest message in a chat). */
 import { useEffect, useId, useRef, useState } from "react";
 import { cx } from "../lib/format";
 import { Icon } from "./ui";
 
 export function Menu({ trigger, label, align = "right", className, children }) {
   const [open, setOpen] = useState(false);
+  const [up, setUp] = useState(false);
   const ref = useRef(null);
   const id = useId();
+  const toggle = (e) => {
+    setUp(window.innerHeight - e.currentTarget.getBoundingClientRect().bottom < 280);
+    setOpen((o) => !o);
+  };
 
   useEffect(() => {
     if (!open) return;
@@ -29,10 +35,11 @@ export function Menu({ trigger, label, align = "right", className, children }) {
 
   return (
     <div ref={ref} className={cx("relative", className)}>
-      {trigger({ "aria-haspopup": "menu", "aria-expanded": open, "aria-controls": id, onClick: () => setOpen((o) => !o) })}
+      {trigger({ "aria-haspopup": "menu", "aria-expanded": open, "aria-controls": id, onClick: toggle })}
       {open && (
         <div id={id} role="menu" aria-label={label} onClick={(e) => e.target.closest("[role^=menuitem]") && setOpen(false)}
-          className={cx("absolute top-full z-50 mt-2 grid min-w-55 animate-pop gap-0.5 rounded-[14px] border border-line bg-surface p-1.5 shadow-pop",
+          className={cx("absolute z-50 grid min-w-55 animate-pop gap-0.5 rounded-[14px] border border-line bg-surface p-1.5 shadow-pop",
+            up ? "bottom-full mb-2" : "top-full mt-2",
             align === "right" ? "right-0" : "left-0")}>
           {children}
         </div>

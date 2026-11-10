@@ -157,9 +157,6 @@ function SignIn({ onEnter }) {
         </a>
       </div>
       <Button variant="primary" size="lg" block type="submit">Sign in <Icon name="arrow_forward" size="sm" /></Button>
-      <Button block icon="passkey" onClick={() => toast("Passkeys are not available in this demo", { sub: "Use email and passphrase, or create an account.", icon: "passkey" })}>
-        Sign in with a Passkey
-      </Button>
     </form>
   );
 }
@@ -183,7 +180,7 @@ function FamilyCode({ onAccepted }) {
         <h2>Join with a Family Code</h2>
         <p className="mt-2 text-small text-muted">A relative can give you a code from their “Invite Relative” screen. It links you to the right branch — a custodian still approves you.</p>
       </div>
-      <Field id="fcCode" label="Family code" hint="Format: ABC-1234" help="Tip: try MCK-8294 in this demo." error={error}>
+      <Field id="fcCode" label="Family code" hint="Format: ABC-1234" help="It's in your invitation email, or ask the relative who invited you." error={error}>
         <Input id="fcCode" value={code} onChange={(e) => setCode(e.target.value)} invalid={!!error} placeholder="MCK-8294" autoComplete="off" maxLength={8}
           className="text-center text-[1.3rem] tracking-[.15em] uppercase" />
       </Field>

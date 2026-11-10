@@ -36,7 +36,7 @@ function FamilyPoll() {
       p.votes[choice]++;
       p.mine = choice;
       s.poll = p;
-    });
+    }, "Voted in the family poll");
     setEditing(false);
     toast(t("poll.thanks"), { icon: "how_to_vote", duration: 2500 });
   };
@@ -195,10 +195,10 @@ export default function Overview() {
     e.preventDefault();
     const text = reply.trim();
     if (!text) { toast("Write a short recollection first", { error: true, sub: "Your reply can't be empty." }); document.getElementById("replyInput").focus(); return; }
-    update((s) => { s.replies.push({ by: ME, when: "Just now", text }); });
+    update((s) => { s.replies.push({ by: ME, when: "Just now", text }); }, "Shared a recollection");
     setReply("");
     toast("Recollection shared with the family", {
-      sub: "Visible to the Mackenzie Kinship Circle.", action: "Undo", onAction: () => update((s) => { s.replies.pop(); }),
+      sub: "Visible to the Mackenzie Kinship Circle.", action: "Undo", onAction: () => update((s) => { s.replies.pop(); }, "Removed your recollection"),
     });
   };
 
@@ -238,8 +238,8 @@ export default function Overview() {
         <MemoryShuffle />
       </div>
 
-      <div className="mt-5.5 grid gap-5.5 lg:grid-cols-[minmax(0,1fr)_330px]">
-        <div className="grid content-start gap-5.5">
+      <div className="mt-5.5 grid grid-cols-[minmax(0,1fr)] gap-5.5 lg:grid-cols-[minmax(0,1fr)_330px]">
+        <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] content-start gap-5.5">
           <Card aria-labelledby="lin">
             <SectionTitle>
               <h2 id="lin" className="flex flex-wrap items-center gap-2.5"><Icon name="account_tree" /> Direct Lineage Preview</h2>
@@ -323,7 +323,7 @@ export default function Overview() {
           </Card>
         </div>
 
-        <aside className="grid content-start gap-5.5">
+        <aside className="grid min-w-0 grid-cols-[minmax(0,1fr)] content-start gap-5.5">
           <Card aria-labelledby="gath">
             <SectionTitle><h2 id="gath" className="flex items-center gap-2.5 text-[1.2rem]!"><Icon name="event" /> Kin Gatherings &amp; Milestones</h2></SectionTitle>
             <div className="grid gap-3.5">

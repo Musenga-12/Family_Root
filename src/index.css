@@ -65,6 +65,15 @@
   }
 }
 
+/* Swipeable rows (chips, quick replies) without a visible scrollbar; they still scroll by touch, wheel and keyboard. */
+@utility no-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar { display: none; }
+}
+
+/* Used from inline styles (toast time-left bar), so declared outside @theme where unused keyframes are dropped. */
+@keyframes toast-life { from { width: 100%; } to { width: 0; } }
+
 /* Text size preference (Settings). Easy-to-Read below always wins. */
 html { font-size: 15px; }
 html[data-text="sm"] { font-size: 14px; }
@@ -165,4 +174,7 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
 
 @media print {
   [data-no-print] { display: none !important; }
+  body { background: #fff; color: #000; }
+  main { max-width: none !important; padding: 0 !important; }
+  a[href^="http"]::after { content: " (" attr(href) ")"; font-size: 0.8em; }
 }

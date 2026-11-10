@@ -1,19 +1,26 @@
-/* Private message to a relative (Tree + Directory). */
+/* Private message to a relative (Tree + Directory). It lands in the one-to-one conversation on the Messages screen. */
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { CancelButton, Dialog } from "../components/Modal";
 import { useCloseModal } from "../components/modalContext";
 import { useToast } from "../components/toastContext";
 import { Button, Field, Textarea } from "../components/ui";
+import { postMessage, threadIdFor } from "../lib/messages";
+import { fullName, useStore } from "../lib/store";
 
 export default function MessageDialog({ person, title, sub, label = "Message", sendLabel = "Send Message", placeholder }) {
   const toast = useToast();
   const close = useCloseModal();
+  const { state, update } = useStore();
+  const navigate = useNavigate();
   const [text, setText] = useState("");
   const [error, setError] = useState("");
 
   const send = () => {
     if (!text.trim()) { setError("Please write a message before sending."); document.getElementById("pm").focus(); return; }
-    toast(`Message sent to ${person.first}`, { icon: "send" });
+    const threadId = threadIdFor(state, [person.id]);
+    update((s) => { postMessage(s, { threadId, to: [person.id], title: fullName(person), text: text.trim() }); }, `Sent a message to ${person.first}`);
+    toast(`Message sent to ${person.first}`, { icon: "send", action: "Open chat", onAction: () => navigate(`/messages?c=${threadId}`) });
     close();
   };
 

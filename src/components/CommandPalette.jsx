@@ -1,4 +1,5 @@
-/* Quick search (Ctrl/⌘ + K): jump to any page, relative, memory or story, or run a common action. */
+/* Quick search (Ctrl/⌘ + K): jump to any page, relative, memory or story, or run a common action.
+   With an empty query it lists recently visited places first (recognition over recall). */
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { cx } from "../lib/format";
@@ -8,7 +9,7 @@ import { fullName, useStore } from "../lib/store";
 import { Icon } from "./ui";
 
 export default function CommandPalette({ onClose, actions }) {
-  const { state } = useStore();
+  const { state, recent, addRecent, clearRecent } = useStore();
   const t = useT();
   const navigate = useNavigate();
   const [q, setQ] = useState("");
@@ -21,20 +22,25 @@ export default function CommandPalette({ onClose, actions }) {
     const ql = q.trim().toLowerCase();
     const match = (...s) => !ql || s.join(" ").toLowerCase().includes(ql);
     const go = (to) => () => navigate(to);
+    // Opening a relative, memory or story also remembers it under "Recent".
+    const remember = (x) => ({ ...x, run: () => { addRecent({ id: x.id, label: x.label, sub: x.sub, icon: x.icon, to: x.to }); navigate(x.to); } });
     const pages = NAV.flatMap((g) => g.items)
       .map(([id, label, icon]) => ({ id: "p-" + id, label: t(`nav.${id}`), sub: label, icon, run: go(`/${id}`) }))
       .filter((x) => match(x.label, x.sub));
     const acts = actions.map((a) => ({ ...a, id: "a-" + a.key })).filter((x) => match(x.label));
-    if (!ql) return [[t("palette.pages"), pages], [t("palette.actions"), acts]];
+    if (!ql) {
+      const rec = recent.map((r) => ({ ...r, id: "recent-" + r.id, label: r.page ? t(`nav.${r.page}`) : r.label, sub: r.page ? t("palette.page") : r.sub, run: go(r.to) }));
+      return [[t("palette.recent"), rec], [t("palette.pages"), pages], [t("palette.actions"), acts]];
+    }
     const people = state.people.filter((p) => match(fullName(p), p.role, p.city))
-      .map((p) => ({ id: "r-" + p.id, label: fullName(p), sub: `${p.role} · ${p.city}`, icon: p.died ? "local_florist" : "person", run: go(`/tree?person=${p.id}`) }));
+      .map((p) => remember({ id: "r-" + p.id, label: fullName(p), sub: `${p.role} · ${p.city}`, icon: p.died ? "local_florist" : "person", to: `/tree?person=${p.id}` }));
     const mems = state.memories.filter((m) => match(m.title, m.place, m.caption))
-      .map((m) => ({ id: "m-" + m.id, label: m.title, sub: m.place, icon: "photo_library", run: go(`/memories?q=${encodeURIComponent(m.title)}`) }));
+      .map((m) => remember({ id: "m-" + m.id, label: m.title, sub: m.place, icon: "photo_library", to: `/memories?q=${encodeURIComponent(m.title)}` }));
     const stories = state.stories.filter((s) => match(s.title, s.excerpt))
-      .map((s) => ({ id: "s-" + s.id, label: s.title, sub: s.category, icon: s.kind === "audio" ? "graphic_eq" : "edit_note", run: go(`/stories?q=${encodeURIComponent(s.title)}`) }));
+      .map((s) => remember({ id: "s-" + s.id, label: s.title, sub: s.category, icon: s.kind === "audio" ? "graphic_eq" : "edit_note", to: `/stories?q=${encodeURIComponent(s.title)}` }));
     return [[t("palette.pages"), pages], [t("palette.people"), people], [t("palette.memories"), mems], [t("palette.stories"), stories], [t("palette.actions"), acts]]
       .map(([g, items]) => [g, items.slice(0, 6)]);
-  }, [q, state, t, navigate, actions]);
+  }, [q, state, t, navigate, actions, recent, addRecent]);
 
   const flat = groups.flatMap(([, items]) => items);
   const current = Math.min(active, Math.max(0, flat.length - 1));
@@ -70,7 +76,15 @@ export default function CommandPalette({ onClose, actions }) {
           {flat.length === 0 && <p className="px-3 py-8 text-center text-small text-muted">{t("palette.empty", { q })}</p>}
           {groups.map(([g, items]) => items.length > 0 && (
             <div key={g} role="group" aria-label={g}>
-              <div className="px-2.5 pt-2.5 pb-1 text-[.66rem] font-semibold tracking-[.12em] text-muted uppercase">{g}</div>
+              <div className="flex items-center justify-between px-2.5 pt-2.5 pb-1 text-[.66rem] font-semibold tracking-[.12em] text-muted uppercase">
+                {g}
+                {g === t("palette.recent") && (
+                  <button type="button" onClick={() => { clearRecent(); inputRef.current?.focus(); }}
+                    className="cursor-pointer rounded border-0 bg-transparent px-1 text-[.66rem] font-semibold tracking-normal text-pine-700 normal-case hover:underline">
+                    {t("common.clear")}
+                  </button>
+                )}
+              </div>
               {items.map((item) => {
                 index++;
                 const i = index;

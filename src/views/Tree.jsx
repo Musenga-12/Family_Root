@@ -189,7 +189,7 @@ function ReviewProofsDialog({ p }) {
   const { update } = useStore();
   const toast = useToast();
   const close = useCloseModal();
-  const setPending = (v) => update((s) => { s.people.find((x) => x.id === p.id).pending = v; });
+  const setPending = (v) => update((s) => { s.people.find((x) => x.id === p.id).pending = v; }, v ? `Reopened proofs for ${p.first}` : `Verified ${p.first}’s record`);
   const confirm = () => {
     setPending(false);
     toast("Branch link confirmed", { sub: `${fullName(p)} is now part of the verified tree.`, action: "Undo", onAction: () => setPending(true) });

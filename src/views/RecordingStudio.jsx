@@ -7,6 +7,7 @@ import { Button, Card, Check, Eyebrow, Field, Icon, Input, Record, Select, Tag }
 import { ME, PROMPTS } from "../data";
 import { cx, uid } from "../lib/format";
 import { useStore } from "../lib/store";
+import { saveAudio } from "../lib/audioStore";
 
 const AUDIENCES = ["Mackenzie Kinship Circle", "Immediate Family", "Only Me (private draft)"];
 const fmt = (s) => `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
@@ -125,7 +126,8 @@ export default function RecordingStudio({ promptIdx, setPromptIdx, forName }) {
     const r = rec.current;
     if (!r) return;
     if (r.chunks.length) {
-      r.url = URL.createObjectURL(new Blob(r.chunks, { type: r.mr.mimeType || "audio/webm" }));
+      r.blob = new Blob(r.chunks, { type: r.mr.mimeType || "audio/webm" });
+      r.url = URL.createObjectURL(r.blob);
       setReviewUrl(r.url);
     } else setReviewUrl(null);
     setTimeout(() => document.getElementById("recTitle")?.focus());
@@ -156,7 +158,7 @@ export default function RecordingStudio({ promptIdx, setPromptIdx, forName }) {
       setSimulated(false);
     } catch {
       setSimulated(true);
-      toast("Microphone not available — using demo mode", { sub: "Allow microphone access (or open the demo via a local server) to record real audio.", icon: "mic_off", duration: 7000 });
+      toast("Microphone not available", { sub: "Allow microphone access in your browser to record audio. You can still type or dictate your story below.", icon: "mic_off", duration: 8000 });
     }
     r.started = Date.now();
     r.timer = setInterval(tick, 250);
@@ -212,12 +214,14 @@ export default function RecordingStudio({ promptIdx, setPromptIdx, forName }) {
   useLayoutEffect(() => { discardRef.current = discard; });
   useEffect(() => () => discardRef.current(true), []);
 
-  const save = () => {
+  const save = async () => {
     if (!title.trim()) { setTitleErr("Add a title so your family can find this story."); document.getElementById("recTitle").focus(); return; }
     const r = rec.current;
     const id = uid("s");
     const text = transcript.trim();
     if (r.url) setAudioUrl(id, r.url);
+    // Keep the audio itself on this device so it can be played again after the tab is closed.
+    const kept = r.blob ? await saveAudio(id, r.blob) : false;
     update((s) => {
       s.stories.unshift({
         id, title: title.trim(), kind: "audio", category: "Spoken Audio", by: ME, recorded: new Date().toISOString().slice(0, 10),
@@ -225,9 +229,9 @@ export default function RecordingStudio({ promptIdx, setPromptIdx, forName }) {
         excerpt: text ? text.slice(0, 160) + (text.length > 160 ? "…" : "") : `Prompt: “${prompt}”`,
         transcript: text, loves: 0, reflections: 0, isNew: true, audience,
       });
-    });
+    }, `Recorded “${title.trim()}”`);
     toast("Story saved to the family archive", {
-      sub: `Shared with: ${audience}${r.url ? "" : " (audio kept for this session only in the demo)"}`, icon: "library_add_check",
+      sub: `Shared with: ${audience}${!r.url ? " · saved as text (no audio was captured)" : kept ? "" : " · this browser can't store audio, so it plays until you close the tab"}`, icon: "library_add_check",
     });
     rec.current = null;
     setStatus("idle"); setSeconds(0); setReviewUrl(null); setTitle(""); setTitleErr(""); setTranscript("");
@@ -236,7 +240,7 @@ export default function RecordingStudio({ promptIdx, setPromptIdx, forName }) {
   const active = status === "recording" || status === "paused";
   const statusText = {
     idle: "Microphone idle",
-    recording: simulated ? "Demo mode • simulated recording" : "Microphone active • Recording",
+    recording: simulated ? "No microphone • type or dictate your story" : "Microphone active • Recording",
     paused: "Paused — take your time",
     review: `Recorded ${fmt(seconds)} • Review before saving`,
   }[status];
@@ -251,10 +255,10 @@ export default function RecordingStudio({ promptIdx, setPromptIdx, forName }) {
         <Tag tone="outline" icon="cloud_done">Safe Draft Auto-Save: {autosave}</Tag>
       </div>
 
-      <div className="mt-4 grid gap-4.5 md:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]">
-        <div className="grid content-start gap-3.5">
+      <div className="mt-4 grid grid-cols-[minmax(0,1fr)] gap-4.5 md:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]">
+        <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] content-start gap-3.5">
           <div id="promptCard" className="rounded-2xl bg-surface-2 p-4.5">
-            <div className="flex items-center justify-between gap-2.5"><Eyebrow><Icon name="chat_bubble" size="xs" /> Current prompt</Eyebrow><Tag tone="gold">Recommended for Mary</Tag></div>
+            <div className="flex flex-wrap items-center justify-between gap-2.5"><Eyebrow><Icon name="chat_bubble" size="xs" /> Current prompt</Eyebrow><Tag tone="gold">Recommended for Mary</Tag></div>
             <p className="my-2.5 font-serif text-[1.25rem] leading-[1.35] italic">“{prompt}”</p>
             <p className="text-small text-muted">Who was there? What could you smell, hear, see? Take your time — you can pause whenever you like.</p>
             <p className="mt-4 text-xsmall text-muted">Or switch to another prompt:</p>
@@ -268,13 +272,13 @@ export default function RecordingStudio({ promptIdx, setPromptIdx, forName }) {
             </div>
           </div>
           <Card tone="soft" as="div" className="p-4!">
-            <div className="flex items-center justify-between gap-2.5">
+            <div className="flex flex-wrap items-center justify-between gap-2.5">
               <strong className="text-small"><Icon name="groups" size="sm" /> Vault Audience</strong><span className="text-xsmall text-muted">End-to-End Encrypted</span>
             </div>
-            <Record icon="diversity_3" className="mt-2 bg-surface!">
+            <Record icon="diversity_3" className="mt-2 flex-wrap bg-surface!">
               <div className="min-w-0 flex-1"><strong className="text-small">{audience}</strong><p className="text-xsmall text-muted">Who will be able to listen</p></div>
               <label className="sr-only" htmlFor="audSel">Change audience</label>
-              <Select id="audSel" className="w-auto!" value={audience}
+              <Select id="audSel" className="w-auto! max-w-full" value={audience}
                 onChange={(e) => { setAudience(e.target.value); toast("Audience updated", { sub: e.target.value, icon: "groups", duration: 2500 }); }}>
                 {AUDIENCES.map((a) => <option key={a}>{a}</option>)}
               </Select>
@@ -285,7 +289,7 @@ export default function RecordingStudio({ promptIdx, setPromptIdx, forName }) {
           </Card>
         </div>
 
-        <div className="grid content-start gap-3.5">
+        <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] content-start gap-3.5">
           <div className="grid justify-items-center gap-3.5 rounded-2xl bg-surface-2 p-5.5 text-center" aria-live="polite">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-surface px-2.5 py-1 text-[.74rem] font-semibold">
               <span className={cx("size-2 rounded-full", status === "recording" ? "animate-blink bg-[#e0443a]" : "bg-faint")} /> {statusText}

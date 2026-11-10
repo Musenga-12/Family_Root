@@ -6,8 +6,11 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:single": "vite build --mode single",
+    "build:all": "vite build && vite build --mode single",
     "lint": "oxlint",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "fonts": "python scripts/update-fonts.py"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.3.4",

@@ -1,4 +1,4 @@
-/* FamilyRoots demo seed data — the Mackenzie family shown in the design screens. */
+/* FamilyRoots sample archive: the Mackenzie family shown in the design screens. New installs start with it; Settings can restore it. */
 export const ME = "mary";
 
 export const SEED = {
@@ -67,11 +67,11 @@ export const SEED = {
   ],
 
   albums: [
-    { id: "a1", title: "Grandma Mary's 80th Celebration", tag: "Milestone 2026", meta: "24 Photos • 3 Audio", note: "9 Relatives Tagged", p1: "#c28a4d", p2: "#3b2a1c", icon: "cake" },
-    { id: "a2", title: "Summer on the Isle of Skye", tag: "Kodachrome", meta: "48 Slides • 1968–1985", note: "John, Mary, Sarah, Michael", p1: "#5f8b7d", p2: "#22423a", icon: "landscape" },
-    { id: "a3", title: "The 2026 Lake Highlands Reunion", tag: "Upcoming & RSVPs", meta: "18 Items • Active thread", note: "22 Kin Attending", p1: "#8fae7a", p2: "#3f5d3a", icon: "festival" },
-    { id: "a4", title: "Heirloom Recipes & Notes", tag: "Culinary Keepsakes", meta: "14 Parchments • 1940s–1990s", note: "OCR Transcriptions", p1: "#d8c49a", p2: "#7d6440", icon: "menu_book" },
-    { id: "a5", title: "School Days & University", tag: "Academia", meta: "31 Photos • 2014–2023", note: "Daniel & Anna", p1: "#8193a8", p2: "#2f3b4d", icon: "school" },
+    { id: "a1", items: ["m6"], title: "Grandma Mary's 80th Celebration", tag: "Milestone 2026", meta: "24 Photos • 3 Audio", note: "9 Relatives Tagged", p1: "#c28a4d", p2: "#3b2a1c", icon: "cake" },
+    { id: "a2", items: ["m1", "m3"], title: "Summer on the Isle of Skye", tag: "Kodachrome", meta: "48 Slides • 1968–1985", note: "John, Mary, Sarah, Michael", p1: "#5f8b7d", p2: "#22423a", icon: "landscape" },
+    { id: "a3", items: [], title: "The 2026 Lake Highlands Reunion", tag: "Upcoming & RSVPs", meta: "18 Items • Active thread", note: "22 Kin Attending", p1: "#8fae7a", p2: "#3f5d3a", icon: "festival" },
+    { id: "a4", items: ["m5"], title: "Heirloom Recipes & Notes", tag: "Culinary Keepsakes", meta: "14 Parchments • 1940s–1990s", note: "OCR Transcriptions", p1: "#d8c49a", p2: "#7d6440", icon: "menu_book" },
+    { id: "a5", items: ["m4", "m2"], title: "School Days & University", tag: "Academia", meta: "31 Photos • 2014–2023", note: "Daniel & Anna", p1: "#8193a8", p2: "#2f3b4d", icon: "school" },
   ],
 
   stories: [
@@ -125,6 +125,99 @@ export const SEED = {
   events: [
     { id: "e1", title: "Anna's Birthday", personId: "anna", kind: "birthday", sub: "Granddaughter" },
     { id: "e2", title: "Annual Summer Reunion", date: "2027-08-14", sub: "Lake Highlands • Park Veranda • 2:00 PM", attending: 18 },
+  ],
+
+  /* Legacy Archive: certificates, legal papers, letters and sealed time capsules. */
+  records: [
+    { id: "r1", title: "Birth certificate — John Mackenzie", category: "Certificates", date: "1942-05-03", custodian: "sarah", status: "verified",
+      visibility: "All Family Branches", source: "National Records of Scotland, extract #1942-685-0212", icon: "badge",
+      text: "Registered in the district of St Giles, Edinburgh. Father: Alexander Mackenzie, joiner. Mother: Margaret Mackenzie (née Grant)." },
+    { id: "r2", title: "Marriage certificate — John Mackenzie & Mary Campbell", category: "Certificates", date: "1968-04-20", custodian: "mary", status: "verified",
+      visibility: "All Family Branches", source: "St Cuthbert's Parish register, entry 114", icon: "favorite",
+      text: "Married at St Cuthbert's Parish Church, Edinburgh, by the Rev. A. Ross. Witnesses: Evelyn Mackenzie and Duncan Campbell." },
+    { id: "r3", title: "Royal Highland Regiment service record", category: "Certificates", date: "1961-09", custodian: "michael", status: "verified",
+      visibility: "All Family Branches", source: "Army Personnel Centre, Glasgow", icon: "military_tech",
+      text: "Private J. Mackenzie, 1st Battalion. Served 1961–1964 in Inverness and Berlin. Honourably discharged with good conduct." },
+    { id: "r4", title: "Mary's will and letter of wishes", category: "Wills & Legal", date: "2024-03-12", custodian: "mary", status: "verified",
+      visibility: "Only Me (draft)", source: "Original held by Thorntons Solicitors, Dundee", icon: "gavel",
+      text: "Letter of wishes: the 1928 heirloom violin passes to Anna; John's brass compass to Daniel; the shortbread tins to whoever bakes the most." },
+    { id: "r5", title: "Letter from Margaret to Mary on her wedding day", category: "Letters", date: "1968-04", custodian: "mary", status: "verified",
+      visibility: "Immediate Family", source: "Original letter, Mary's writing box", icon: "mail",
+      text: "My dear Mary — keep a warm kitchen and an open door, and never let the sun go down on a quarrel. John is a good lad, but he will forget his gloves. With all my love, Margaret." },
+    { id: "r6", title: "1921 census extract — Robert Dunbar", category: "Certificates", date: "1921", approx: true, custodian: "sarah", status: "review",
+      visibility: "All Family Branches", source: "Scotland's People, 1921 census, Aberdeen St Machar", icon: "fact_check",
+      text: "Household of William Dunbar, Old Aberdeen. Son: Robert, age 3. Birth year estimated as 1918; awaiting a second source before confirming." },
+    { id: "r7", title: "Time capsule: John's letter to his grandchildren", category: "Time capsules", date: "2019-12-25", custodian: "mary", status: "verified",
+      visibility: "All Family Branches", source: "Recorded by John at Rose Cottage", icon: "hourglass_top", sealedUntil: "2030-12-25",
+      text: "To Daniel, Anna and Grace: by the time you read this you will be grown. Measure twice, be kind always, and look after your grandmother." },
+  ],
+
+  /* Messages: private and group conversations. `unread` counts messages the signed-in user has not opened.
+     A message may quote another (`replyTo`), carry `reactions` ({ personId: emoji }), be `starred` by the signed-in user,
+     and, when sent by the signed-in user, has a `status`: "delivered" or "read". */
+  threads: [
+    { id: "c1", title: "Mackenzie Kinship Circle", group: true, pinned: true, members: ["mary", "sarah", "michael", "james", "daniel", "anna", "emma", "david"], unread: 2,
+      messages: [
+        { id: "x0", by: "mary", at: "2026-11-07T20:10", text: "Shall we hold the winter gathering at Rose Cottage this year? I'll do the shortbread.", status: "read",
+          reactions: { sarah: "❤️", anna: "😍", james: "👍" } },
+        { id: "x1", by: "sarah", at: "2026-11-08T18:02", text: "Reminder: please send your RSVP for the winter gathering by Friday!", starred: true },
+        { id: "x2", by: "james", at: "2026-11-08T19:40", text: "I'm flying in from Vancouver on the 20th. Can't wait to see everyone.", reactions: { mary: "❤️", daniel: "🎉" } },
+        { id: "x2b", by: "james", at: "2026-11-08T19:41", text: "Can someone pick me up from Edinburgh airport?" },
+        { id: "x2c", by: "michael", at: "2026-11-08T20:05", text: "I can. Send me your flight number.", replyTo: "x2b" },
+        { id: "x3", by: "anna", at: "2026-11-09T08:15", text: "Grandma, can you bring the shortbread tins again?", replyTo: "x0" },
+        { id: "x4", by: "michael", at: "2026-11-09T09:30", text: "I've uploaded the photos from Grace's school play to Memories." },
+      ] },
+    { id: "c2", title: "Sarah Mackenzie", members: ["mary", "sarah"], unread: 1,
+      messages: [
+        { id: "y1", by: "mary", at: "2026-11-06T10:12", text: "Did the parish office reply about Uncle Robert's birth record?", status: "read" },
+        { id: "y2", by: "sarah", at: "2026-11-07T16:45", text: "They found the 1921 census page. I've added it to the Legacy Archive for review.", replyTo: "y1" },
+      ] },
+    { id: "c3", title: "Daniel Miller", members: ["mary", "daniel"], unread: 0,
+      messages: [
+        { id: "z1", by: "daniel", at: "2026-10-30T21:05", text: "Thanks for the voice note, Gran. I listened to it twice before my exam.", reactions: { mary: "❤️" } },
+        { id: "z2", by: "mary", at: "2026-10-31T09:20", text: "I'm so proud of you, love. Call me on Sunday.", status: "read", reactions: { daniel: "🥰" } },
+      ] },
+    { id: "c4", title: "Miller Branch", group: true, members: ["mary", "sarah", "david", "daniel", "anna"], unread: 0, muted: true,
+      messages: [
+        { id: "w1", by: "david", at: "2026-10-21T12:00", text: "Photos from Anna's concert are in the shared album." },
+        { id: "w2", by: "anna", at: "2026-10-21T12:04", text: "Thank you Dad! The Bruch went so much better than the rehearsal.", replyTo: "w1", reactions: { mary: "👏", sarah: "❤️" } },
+      ] },
+  ],
+
+  /* Family Administration: account roles, join requests and outstanding invitations. */
+  members: [
+    { id: "mary", role: "Admin", lastActive: "2026-11-10" }, { id: "sarah", role: "Admin", lastActive: "2026-11-09" },
+    { id: "michael", role: "Custodian", lastActive: "2026-11-09" }, { id: "james", role: "Contributor", lastActive: "2026-11-08" },
+    { id: "emma", role: "Contributor", lastActive: "2026-10-28" }, { id: "david", role: "Contributor", lastActive: "2026-10-21" },
+    { id: "daniel", role: "Contributor", lastActive: "2026-10-31" }, { id: "anna", role: "Viewer", lastActive: "2026-11-09" },
+  ],
+  requests: [
+    { id: "q1", name: "Fiona Campbell", relation: "Cousin (Campbell side)", vouchedBy: "mary", date: "2026-11-07", note: "Daughter of Duncan Campbell, Mary's brother." },
+    { id: "q2", name: "Callum Ross", relation: "Brother-in-law of Michael", vouchedBy: "emma", date: "2026-11-05", note: "Emma's brother; would like to see the wedding album." },
+  ],
+  invites: [
+    { id: "i1", name: "Isla Dunbar", email: "isla.dunbar@example.com", relation: "Cousin", sent: "2026-11-02", by: "sarah" },
+  ],
+
+  /* Privacy & Consent: who sees each kind of information, protected minors, and consent records. */
+  privacy: {
+    categories: { memories: "All Family Branches", stories: "All Family Branches", contact: "Immediate Family", birthdays: "All Family Branches", location: "Immediate Family" },
+    minors: { grace: { hide: true, guardian: true }, anna: { hide: false, guardian: true } },
+    mine: { tagging: true, voice: true, books: true, age: false },
+    deletion: null,
+  },
+  consents: [
+    { id: "k1", person: "michael", item: "Treehouse photo (1982)", kind: "Photo", status: "given", date: "2026-03-02" },
+    { id: "k2", person: "anna", item: "Solo violin recital", kind: "Photo", status: "given", date: "2023-01-04", guardian: "sarah" },
+    { id: "k3", person: "james", item: "Grandma Mary's 80th gathering", kind: "Photo", status: "pending", date: "2026-02-21" },
+    { id: "k4", person: "daniel", item: "My first day at university", kind: "Voice", status: "given", date: "2022-09-06" },
+    { id: "k5", person: "emma", item: "Wedding photos (2012)", kind: "Photo", status: "withdrawn", date: "2025-06-11" },
+  ],
+  accessLog: [
+    { id: "l1", who: "daniel", what: "listened to “Crossing the Atlantic in 1968”", at: "2026-11-09T20:14" },
+    { id: "l2", who: "james", what: "viewed your profile", at: "2026-11-08T07:51" },
+    { id: "l3", who: "anna", what: "downloaded “Grandma Mary's 80th Milestone Gathering”", at: "2026-11-07T17:30" },
+    { id: "l4", who: "sarah", what: "asked to open “Mary's will and letter of wishes” (declined: private)", at: "2026-11-03T11:02" },
   ],
 
   replies: [

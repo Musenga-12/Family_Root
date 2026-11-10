@@ -31,11 +31,17 @@ const btnCls = (variant = "default", size = "md", block = false, extra, wrap = f
     BTN_VARIANTS[variant], block && "w-full", extra,
   );
 
-export function Button({ variant, size, block, wrap, icon, iconSize = "sm", to, className, children, ...rest }) {
-  const cls = btnCls(variant, size, block, className, wrap);
-  const inner = <>{icon && <Icon name={icon} size={iconSize} />}{children}</>;
+/** Small spinning ring for busy states. */
+export const Spinner = ({ className }) => (
+  <span aria-hidden="true" className={cx("inline-block size-4 shrink-0 animate-spin rounded-full border-2 border-current border-r-transparent", className)} />
+);
+
+/** `busy` shows a spinner and blocks further clicks until the work finishes (no duplicate submissions). */
+export function Button({ variant, size, block, wrap, icon, iconSize = "sm", to, busy, disabled, className, children, ...rest }) {
+  const cls = btnCls(variant, size, block, cx(busy && "cursor-progress!", className), wrap);
+  const inner = <>{busy ? <Spinner /> : icon && <Icon name={icon} size={iconSize} />}{children}</>;
   if (to) return <Link to={to} className={cls} {...rest}>{inner}</Link>;
-  return <button type="button" className={cls} {...rest}>{inner}</button>;
+  return <button type="button" className={cls} disabled={disabled || busy} aria-busy={busy || undefined} {...rest}>{inner}</button>;
 }
 
 export function IconButton({ icon, label, className, iconProps, children, ...rest }) {
@@ -298,10 +304,12 @@ export function Switch({ checked, onChange, label, help, id, className }) {
   return (
     <label htmlFor={id} className={cx("flex cursor-pointer items-start justify-between gap-4", className)}>
       <span className="min-w-0">
-        <strong className="block text-[.9rem] font-semibold">{label}</strong>
-        {help && <span className="block text-xsmall text-muted">{help}</span>}
+        <strong id={`${id}-label`} className="block text-[.9rem] font-semibold">{label}</strong>
+        {help && <span id={`${id}-help`} className="block text-xsmall text-muted">{help}</span>}
       </span>
+      {/* Named and described explicitly, so screen readers announce "Sound cues, switch, off" plus the help text. */}
       <button id={id} type="button" role="switch" aria-checked={checked} onClick={() => onChange(!checked)}
+        aria-labelledby={`${id}-label`} aria-describedby={help ? `${id}-help` : undefined}
         className={cx("relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-0 transition-colors",
           checked ? "bg-pine-800 dark:bg-mint" : "bg-surface-3 ring-1 ring-line ring-inset")}>
         <span className={cx("inline-block size-5 rounded-full bg-white shadow transition-transform", checked ? "translate-x-6 dark:bg-pine-950" : "translate-x-1")} />

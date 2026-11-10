@@ -9,7 +9,11 @@ const Directory = lazy(() => import("./views/Directory"));
 const Landing = lazy(() => import("./views/Landing"));
 const Memories = lazy(() => import("./views/Memories"));
 const Overview = lazy(() => import("./views/Overview"));
-const Placeholder = lazy(() => import("./views/Placeholder"));
+const Admin = lazy(() => import("./views/Admin"));
+const Legacy = lazy(() => import("./views/Legacy"));
+const Messages = lazy(() => import("./views/Messages"));
+const NotFound = lazy(() => import("./views/NotFound"));
+const Privacy = lazy(() => import("./views/Privacy"));
 const Settings = lazy(() => import("./views/Settings"));
 const Stories = lazy(() => import("./views/Stories"));
 const Timeline = lazy(() => import("./views/Timeline"));
@@ -32,8 +36,11 @@ export default function App() {
         <Route path="/auth" element={<Auth />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/calendar" element={<Calendar />} />
-        <Route path="/:route" element={<Placeholder />} />
-        <Route path="*" element={<Placeholder />} />
+        <Route path="/legacy" element={<Legacy />} />
+        <Route path="/messages" element={<Messages />} />
+        <Route path="/admin" element={<Admin />} />
+        <Route path="/privacy" element={<Privacy />} />
+        <Route path="*" element={<NotFound />} />
       </Route>
     </Routes>
   );

@@ -41,7 +41,7 @@ function AddGatheringDialog({ initialDate }) {
     const e = { title: f.title.trim() ? "" : t("cal.titleErr"), date: f.date ? "" : t("cal.dateErr") };
     setErrors(e);
     if (e.title || e.date) return;
-    update((s) => { s.events.push({ id: uid("e"), title: f.title.trim(), date: f.date, sub: f.place.trim(), attending: 1, going: true }); });
+    update((s) => { s.events.push({ id: uid("e"), title: f.title.trim(), date: f.date, sub: f.place.trim(), attending: 1, going: true }); }, `Added event “${f.title.trim()}”`);
     toast(t("cal.added"), { sub: f.title.trim(), icon: "event_available" });
     close();
   };
@@ -77,7 +77,7 @@ function EventRow({ e, locale, showDate }) {
         {e.kind === "gathering" && (
           <div className="mt-2">
             <Button size="sm" variant={e.going ? "primary" : "default"} icon={e.going ? "check_circle" : "event_available"} aria-pressed={!!e.going}
-              onClick={() => update((s) => { const x = s.events.find((y) => y.id === e.id); x.going = !x.going; x.attending = (x.attending || 0) + (x.going ? 1 : -1); })}>
+              onClick={() => update((s) => { const x = s.events.find((y) => y.id === e.id); x.going = !x.going; x.attending = (x.attending || 0) + (x.going ? 1 : -1); }, `${e.going ? "Left" : "Joined"} “${e.title}”`)}>
               {e.going ? t("cal.going") : t("cal.rsvp")} · {e.attending || 0}
             </Button>
           </div>

@@ -28,7 +28,7 @@ const ALL = { branch: "all", status: "all", gen: "all" };
 function PersonCard({ p, selected, list, onOpen }) {
   const { children, relationToMe, update } = useStore();
   const t = useT();
-  const toggleFav = () => update((s) => { const x = s.people.find((y) => y.id === p.id); x.fav = !x.fav; });
+  const toggleFav = () => update((s) => { const x = s.people.find((y) => y.id === p.id); x.fav = !x.fav; }, `${p.fav ? "Unstarred" : "Starred"} ${p.first}`);
   const { open } = useModal();
   const navigate = useNavigate();
   const kids = children(p.id);
@@ -167,8 +167,60 @@ function Dossier({ id, onClose }) {
   );
 }
 
+/** Table view: the same roster as rows and columns. Column headers sort; a row opens the dossier. */
+function PeopleTable({ list, selected, sort, onSort, onOpen }) {
+  const { relationToMe } = useStore();
+  // [label, sort key for ascending, sort key for descending]
+  const cols = [["Name", "nameAZ", "nameZA"], ["Kinship to you"], ["Generation", "generation"], ["Home"], ["Born", "oldestPerson", "youngestPerson"], ["Next birthday", "birthday"]];
+  const ariaSort = (c) => (sort === c[1] ? "ascending" : sort === c[2] ? "descending" : undefined);
+  return (
+    <div className="relative overflow-x-auto rounded-[18px] border border-line bg-surface">
+      <table className="w-full min-w-170 border-collapse text-left text-small">
+        <caption className="sr-only">Family roster, {list.length} relatives. Column headers with arrows can be sorted.</caption>
+        <thead className="bg-surface-2 text-xsmall tracking-wide text-muted uppercase">
+          <tr>
+            {cols.map((c) => (
+              <th key={c[0]} scope="col" aria-sort={ariaSort(c)} className="px-3.5 py-2.5 font-semibold">
+                {c[1] ? (
+                  <button type="button" onClick={() => onSort(sort === c[1] && c[2] ? c[2] : c[1])}
+                    className="inline-flex cursor-pointer items-center gap-1 rounded border-0 bg-transparent p-0 font-semibold tracking-wide text-inherit uppercase hover:text-ink">
+                    {c[0]}
+                    <Icon size="xs" name={sort === c[1] ? "arrow_upward" : sort === c[2] ? "arrow_downward" : "unfold_more"} className={ariaSort(c) ? "text-pine-700" : "opacity-60"} />
+                  </button>
+                ) : c[0]}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {list.map((p) => {
+            const days = !p.died && daysToBirthday(p);
+            return (
+              <tr key={p.id} onClick={() => onOpen(p.id)}
+                className={cx("cursor-pointer border-t border-line hover:bg-surface-2", p.id === selected && "bg-mint-100 hover:bg-mint-100")}>
+                <th scope="row" className="px-3.5 py-2 font-normal">
+                  <button type="button" onClick={(e) => { e.stopPropagation(); onOpen(p.id); }} aria-pressed={p.id === selected}
+                    className="flex cursor-pointer items-center gap-2.5 rounded-lg border-0 bg-transparent p-0 text-left text-ink">
+                    <Avatar p={p} className="size-8! rounded-lg! text-[.7rem]!" />
+                    <span><strong className="block font-semibold">{fullName(p)}</strong>{p.fav && <span className="text-xsmall text-gold-ink"><Icon name="star" size="xs" fill /> Starred</span>}</span>
+                  </button>
+                </th>
+                <td className="px-3.5 py-2">{relationToMe(p)}</td>
+                <td className="px-3.5 py-2">Gen {p.gen}</td>
+                <td className="px-3.5 py-2">{p.city}</td>
+                <td className="px-3.5 py-2 whitespace-nowrap">{fmtDate(p.born, p.bornApprox)}{p.died && <span className="block text-xsmall text-muted">d. {year(p.died)}</span>}</td>
+                <td className="px-3.5 py-2 whitespace-nowrap">{p.died ? <span className="text-muted"><Icon name="local_florist" size="xs" /> In memoriam</span> : days === 0 ? <strong><Icon name="cake" size="xs" /> Today!</strong> : `in ${days} day${days > 1 ? "s" : ""}`}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 export default function Directory() {
-  const { state } = useStore();
+  const { state, relationToMe } = useStore();
   const { open } = useModal();
   const toast = useToast();
   const [params, setParams] = useSearchParams();
@@ -206,6 +258,18 @@ export default function Directory() {
     setSelected(id);
     if (window.innerWidth < 1200) dossierRef.current?.scrollIntoView({ behavior: "smooth" });
   };
+  // The roster as a spreadsheet file, in the order and filters currently shown.
+  const exportCsv = () => {
+    const cell = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+    const rows = [["Name", "Kinship to you", "Generation", "Branch", "Home", "Born", "Died", "Occupation"],
+      ...list.map((p) => [fullName(p), relationToMe(p), p.gen, p.branch, p.city, fmtDate(p.born, p.bornApprox), p.died ? fmtDate(p.died) : "", p.occupation])];
+    // The BOM makes Excel read accented names (e.g. née) correctly.
+    const blob = new Blob(["\uFEFF" + rows.map((r) => r.map(cell).join(",")).join("\r\n")], { type: "text/csv;charset=utf-8" });
+    const a = Object.assign(document.createElement("a"), { href: URL.createObjectURL(blob), download: "mackenzie-family-roster.csv" });
+    a.click();
+    URL.revokeObjectURL(a.href);
+    toast("Roster exported", { sub: `${list.length} relatives · opens in Excel, Numbers or Google Sheets`, icon: "download" });
+  };
   const clearAll = () => { setF(ALL); setQ(""); setParams({}); setFavOnly(false); };
 
   return (
@@ -215,9 +279,7 @@ export default function Directory() {
           <Tag tone="mint">VERIFIED PEDIGREE {THIS_YEAR}</Tag><span className="text-small text-muted">● All {branches.length} Branches Synchronized</span>
         </div>
         <div className="flex flex-wrap items-center gap-2.5">
-          <Button icon="lock" onClick={() => toast("Encrypted export prepared", { sub: "In the real product this would download a password-protected archive.", icon: "lock" })}>
-            Export Encrypted Vault
-          </Button>
+          <Button icon="download" onClick={exportCsv}>Export roster (CSV)</Button>
           <Button variant="primary" icon="person_add" onClick={() => open(<InviteDialog />)}>Invite Relative</Button>
         </div>
       </div>
@@ -250,7 +312,7 @@ export default function Directory() {
           <Tabs dark label="Status" value={f.status} onChange={(status) => setF({ ...f, status })}
             items={[["all", "Everyone"], ["living", `Living (${living})`], ["memorial", `Memorial (${people.length - living})`]]} />
           <Tabs role="group" label="Layout" value={view} onChange={setView}
-            items={[["grid", <Icon key="grid" name="grid_view" size="sm" />, "Grid view"], ["list", <Icon key="list" name="view_list" size="sm" />, "List view"]]} />
+            items={[["grid", <Icon key="grid" name="grid_view" size="sm" />, "Grid view"], ["list", <Icon key="list" name="view_list" size="sm" />, "List view"], ["table", <Icon key="table" name="table_rows" size="sm" />, "Table view"]]} />
         </div>
         <Chips scroll className="mt-4" role="group" aria-label="Generation">
           <Chip pressed={f.gen === "all"} count={people.length} onClick={() => setF({ ...f, gen: "all" })}>All Generations</Chip>
@@ -269,14 +331,16 @@ export default function Directory() {
         </div>
       </Card>
 
-      <div className="mt-5 grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_300px]">
+      <div className="mt-5 grid grid-cols-[minmax(0,1fr)] items-start gap-5 [&>*]:min-w-0 lg:grid-cols-[minmax(0,1fr)_300px]">
         <div>
           {list.length ? (
             <>
               <p className="mb-2.5 text-small text-muted" aria-live="polite">{t("common.showing", { n: list.length, total: people.length })}</p>
-              <div className={cx("grid gap-4", view === "list" ? "grid-cols-1" : "grid-cols-[repeat(auto-fill,minmax(250px,1fr))]")}>
-                {list.map((p) => <PersonCard key={p.id} p={p} selected={p.id === selected} list={view === "list"} onOpen={openDossier} />)}
-              </div>
+              {view === "table" ? <PeopleTable list={list} selected={selected} sort={sort} onSort={setSort} onOpen={openDossier} /> : (
+                <div className={cx("grid gap-4", view === "list" ? "grid-cols-1" : "grid-cols-[repeat(auto-fill,minmax(250px,1fr))]")}>
+                  {list.map((p) => <PersonCard key={p.id} p={p} selected={p.id === selected} list={view === "list"} onOpen={openDossier} />)}
+                </div>
+              )}
             </>
           ) : (
             <Empty icon="person_off" title={`No relatives match ${q ? `“${q}”` : "these filters"}`}>

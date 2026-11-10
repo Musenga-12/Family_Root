@@ -90,10 +90,10 @@ function AddMilestoneDialog() {
       id: uid("t"), type: f.type, icon: TYPES.find((x) => x[0] === f.type)[1], title: f.title.trim(), date: f.date, approx, verified: !approx,
       source: f.source.trim(), place: f.place.trim() || "—", text: f.text.trim(), people: f.people,
     };
-    update((s) => { s.milestones.push(m); });
+    update((s) => { s.milestones.push(m); }, `Added milestone “${m.title}”`);
     toast("Milestone added to the chronicle", {
       sub: `${m.title} · ${fmtDate(m.date, m.approx)}`, icon: "event_available",
-      action: "Undo", onAction: () => update((s) => { s.milestones = s.milestones.filter((x) => x.id !== m.id); }),
+      action: "Undo", onAction: () => update((s) => { s.milestones = s.milestones.filter((x) => x.id !== m.id); }, `Removed milestone “${m.title}”`),
     });
     close();
   };

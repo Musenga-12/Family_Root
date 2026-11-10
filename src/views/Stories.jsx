@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import AudioPlayer from "../components/AudioPlayer";
-import { CancelButton, Dialog } from "../components/Modal";
+import { CancelButton, Dialog, DraftNote } from "../components/Modal";
 import { useCloseModal, useModal } from "../components/modalContext";
 import { useToast } from "../components/toastContext";
 import {
@@ -11,7 +11,9 @@ import {
 import { ME } from "../data";
 import { fmtDate, uid } from "../lib/format";
 import { useT } from "../lib/i18n";
+import { canSpeak, useSpeech } from "../lib/speech";
 import { fullName, useStore } from "../lib/store";
+import { useDraft } from "../lib/useDraft";
 import RecordingStudio from "./RecordingStudio";
 
 const SORTS = {
@@ -25,8 +27,14 @@ const CATS = ["Elder Oral Histories", "Spoken Audio", "Written Memories", "Tradi
 function ReadDialog({ s }) {
   const { person } = useStore();
   const close = useCloseModal();
+  const { toggle, speaking } = useSpeech();
+  const text = s.transcript || s.excerpt;
   return (
-    <Dialog title={s.title} sub={`${fullName(person(s.by))} • ${fmtDate(s.recorded)}`} footer={<Button variant="primary" onClick={close}>Close</Button>}>
+    <Dialog title={s.title} sub={`${fullName(person(s.by))} • ${fmtDate(s.recorded)}`}
+      footer={<>
+        {canSpeak && <Button icon={speaking ? "stop_circle" : "volume_up"} aria-pressed={speaking} onClick={() => toggle(`${s.title}. ${text}`)}>{speaking ? "Stop reading" : "Listen to this story"}</Button>}
+        <Button variant="primary" onClick={close}>Close</Button>
+      </>}>
       <p className="font-serif text-[1.1rem] leading-[1.7]">{s.transcript || s.excerpt}</p>
     </Dialog>
   );
@@ -36,9 +44,10 @@ function WriteStoryDialog() {
   const { update } = useStore();
   const toast = useToast();
   const close = useCloseModal();
-  const [title, setTitle] = useState("");
-  const [body, setBody] = useState("");
-  const [cat, setCat] = useState("Written Memories");
+  // Long writing is the easiest thing to lose, so it autosaves as a draft.
+  const [form, setForm, draft] = useDraft("story", { title: "", body: "", cat: "Written Memories" });
+  const { title, body, cat } = form;
+  const set = (k) => (e) => setForm((x) => ({ ...x, [k]: e.target.value }));
   const [tried, setTried] = useState(false);
 
   const publish = () => {
@@ -53,22 +62,23 @@ function WriteStoryDialog() {
         id: uid("s"), title: title.trim(), kind: "written", category: cat, by: ME, recorded: new Date().toISOString().slice(0, 10),
         excerpt: body.trim().slice(0, 180) + (body.length > 180 ? "…" : ""), transcript: body.trim(), loves: 0, reflections: 0, isNew: true,
       });
-    });
+    }, `Published “${title.trim()}”`);
     toast("Story published", { sub: "Visible to the Mackenzie Kinship Circle.", icon: "auto_stories" });
+    draft.clear();
     close();
   };
 
   return (
     <Dialog wide title="Write a family story" sub="A written memory is just as precious as a recording."
-      footer={<><CancelButton /><Button variant="primary" onClick={publish}>Publish to Archive</Button></>}>
+      footer={<><DraftNote draft={draft} /><CancelButton /><Button variant="primary" onClick={publish}>Publish to Archive</Button></>}>
       <Field id="wsT" label="Title" hint="Required">
-        <Input id="wsT" value={title} onChange={(e) => setTitle(e.target.value)} invalid={tried && !title.trim()} />
+        <Input id="wsT" value={title} onChange={set("title")} invalid={tried && !title.trim()} />
       </Field>
       <Field id="wsB" label="Your story" hint="Required">
-        <Textarea id="wsB" rows={8} value={body} onChange={(e) => setBody(e.target.value)} invalid={tried && !body.trim()} placeholder="Start wherever feels natural…" />
+        <Textarea id="wsB" rows={8} value={body} onChange={set("body")} invalid={tried && !body.trim()} placeholder="Start wherever feels natural…" />
       </Field>
       <Field id="wsC" label="Category">
-        <Select id="wsC" value={cat} onChange={(e) => setCat(e.target.value)}>
+        <Select id="wsC" value={cat} onChange={set("cat")}>
           <option>Written Memories</option><option>Traditions & Recipes</option><option>Elder Oral Histories</option>
         </Select>
       </Field>
@@ -85,7 +95,7 @@ function StoryCard({ s }) {
     const x = st.stories.find((y) => y.id === s.id);
     x.loved = !x.loved;
     x.loves += x.loved ? 1 : -1;
-  });
+  }, `${s.loved ? "Unloved" : "Loved"} “${s.title}”`);
 
   return (
     <article className="grid min-w-0 content-start gap-2.5 rounded-[18px] border border-line bg-surface p-4.5">

@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { cx } from "../lib/format";
 import { CloseContext, ModalContext, useCloseModal } from "./modalContext";
-import { Button, IconButton } from "./ui";
+import { Button, Icon, IconButton } from "./ui";
 
 export function ModalProvider({ children }) {
   const [stack, setStack] = useState([]);
@@ -44,7 +44,8 @@ export function Dialog({ title, sub, wide, footer, children }) {
     const close = () => closeRef.current();
     const prev = document.activeElement;
     const dlg = ref.current;
-    const first = dlg.querySelector("input:not([type=file]), select, textarea") || dlg.querySelector("footer button:last-child");
+    // First field, else the main footer action, else the Close button: focus always lands inside the dialog.
+    const first = dlg.querySelector("input:not([type=file]), select, textarea") || dlg.querySelector("footer button:last-child") || dlg.querySelector("button");
     first?.focus();
     const onKey = (e) => {
       if (e.key === "Escape") close();
@@ -90,5 +91,19 @@ function ConfirmDialog({ title, message, confirmLabel, onConfirm }) {
     <Dialog title={title} footer={<><CancelButton /><Button variant="danger" onClick={() => { onConfirm(); close(); }}>{confirmLabel}</Button></>}>
       <p>{message}</p>
     </Dialog>
+  );
+}
+
+/** Footer note for forms that autosave: "Draft restored … Start over" or "Draft saved 10:42". */
+export function DraftNote({ draft }) {
+  const { restored, savedAt, discard } = draft;
+  if (!savedAt) return <span className="mr-auto self-center text-xsmall text-muted"><Icon name="cloud_sync" size="xs" /> Drafts save automatically as you type</span>;
+  const time = new Date(savedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  return (
+    <span role="status" className="mr-auto flex flex-wrap items-center gap-1.5 self-center text-xsmall text-muted">
+      <Icon name={restored ? "restore" : "cloud_done"} size="xs" className="text-pine-700" />
+      {restored ? `Draft restored (saved ${time})` : `Draft saved ${time}`}
+      <button type="button" onClick={discard} className="cursor-pointer rounded border-0 bg-transparent px-1 font-semibold text-pine-700 hover:underline">Start over</button>
+    </span>
   );
 }

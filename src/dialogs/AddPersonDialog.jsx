@@ -1,17 +1,18 @@
 /* Add a family member (Tree + Directory). */
 import { useState } from "react";
-import { CancelButton, Dialog } from "../components/Modal";
+import { CancelButton, Dialog, DraftNote } from "../components/Modal";
 import { useCloseModal } from "../components/modalContext";
 import { useToast } from "../components/toastContext";
 import { Button, Check, Field, Input, Select } from "../components/ui";
 import { uid } from "../lib/format";
 import { fullName, useStore } from "../lib/store";
+import { useDraft } from "../lib/useDraft";
 
 export default function AddPersonDialog() {
   const { state, update, person } = useStore();
   const toast = useToast();
   const close = useCloseModal();
-  const [f, setF] = useState({ first: "", last: "Mackenzie", rel: "child", to: "james", born: "", approx: false, occ: "" });
+  const [f, setF, draft] = useDraft("person", { first: "", last: "Mackenzie", rel: "child", to: "james", born: "", approx: false, occ: "" });
   const [errors, setErrors] = useState({});
   const set = (k) => (e) => setF({ ...f, [k]: e.target.type === "checkbox" ? e.target.checked : e.target.value });
 
@@ -38,21 +39,22 @@ export default function AddPersonDialog() {
     update((s) => {
       s.people.push(p);
       if (f.rel === "spouse") s.people.find((x) => x.id === to.id).spouse = p.id;
-    });
+    }, `Added ${fullName(p)} to the tree`);
     toast(`${p.first} added to the family tree`, {
       sub: "Custodians have been notified to verify.", action: "Undo",
       onAction: () => update((s) => {
         s.people = s.people.filter((x) => x.id !== p.id);
         const t = s.people.find((x) => x.id === to.id);
         if (t.spouse === p.id) t.spouse = null;
-      }),
+      }, `Removed ${fullName(p)} (undo)`),
     });
+    draft.clear();
     close();
   };
 
   return (
     <Dialog title="Add a family member" sub="Only basic details are needed. You can add more later — and nothing is shared outside the family circle."
-      footer={<><CancelButton /><Button variant="primary" icon="person_add" onClick={save}>Add to tree</Button></>}>
+      footer={<><DraftNote draft={draft} /><CancelButton /><Button variant="primary" icon="person_add" onClick={save}>Add to tree</Button></>}>
       <div className="grid gap-3 sm:grid-cols-2">
         <Field id="ap-first" label="First name" hint="Required" error={errors.first}>
           <Input id="ap-first" autoComplete="off" value={f.first} onChange={set("first")} invalid={!!errors.first} />

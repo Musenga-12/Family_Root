@@ -1,16 +1,20 @@
-/* Invite a relative (Overview + Directory). */
+/* Invite a relative (Overview, Directory, Administration). The invitation is listed under Family Administration until accepted. */
 import { useState } from "react";
 import { CancelButton, Dialog } from "../components/Modal";
 import { useCloseModal } from "../components/modalContext";
 import { useToast } from "../components/toastContext";
 import { Button, Field, Icon, Input, Select } from "../components/ui";
-import { emailOk } from "../lib/format";
+import { ME } from "../data";
+import { emailOk, todayISO, uid } from "../lib/format";
+import { useStore } from "../lib/store";
 
 export default function InviteDialog() {
   const toast = useToast();
   const close = useCloseModal();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [rel, setRel] = useState("Cousin");
+  const { state, update } = useStore();
   const [errors, setErrors] = useState({});
 
   const send = () => {
@@ -20,7 +24,15 @@ export default function InviteDialog() {
     };
     setErrors(e);
     if (e.name || e.email) { document.getElementById(e.name ? "invName" : "invEmail").focus(); return; }
-    toast(`Invitation sent to ${name.trim()}`, { sub: "Sarah Mackenzie (custodian) will confirm their branch access.", icon: "mark_email_read" });
+    if (state.invites?.some((x) => x.email.toLowerCase() === email.trim().toLowerCase())) {
+      setErrors({ email: "This address already has an open invitation. You can resend it from Family Administration." });
+      document.getElementById("invEmail").focus();
+      return;
+    }
+    const inv = { id: uid("i"), name: name.trim(), email: email.trim(), relation: rel, sent: todayISO(), by: ME };
+    update((s) => { s.invites.push(inv); }, `Invited ${inv.name}`);
+    toast(`Invitation sent to ${inv.name}`, { sub: "An admin or custodian confirms their access when they accept.", icon: "mark_email_read",
+      action: "Undo", onAction: () => update((s) => { s.invites = s.invites.filter((x) => x.id !== inv.id); }, `Cancelled the invitation to ${inv.name}`) });
     close();
   };
 
@@ -34,7 +46,7 @@ export default function InviteDialog() {
         <Input id="invEmail" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="name@example.com" invalid={!!errors.email} />
       </Field>
       <Field id="invRel" label="How are they related to you?">
-        <Select id="invRel">{["Cousin", "Niece / Nephew", "Sibling", "In-law", "Other"].map((o) => <option key={o}>{o}</option>)}</Select>
+        <Select id="invRel" value={rel} onChange={(e) => setRel(e.target.value)}>{["Cousin", "Niece / Nephew", "Sibling", "In-law", "Other"].map((o) => <option key={o}>{o}</option>)}</Select>
       </Field>
       <div className="flex items-center gap-3 rounded-[14px] bg-surface-2 p-3">
         <Icon name="key" />

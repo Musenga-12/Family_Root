@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { CancelButton, Dialog } from "../components/Modal";
+import { Menu, MenuDivider, MenuItem } from "../components/Menu";
 import { useCloseModal, useModal } from "../components/modalContext";
 import { useToast } from "../components/toastContext";
 import {
@@ -11,6 +12,7 @@ import {
 import AddMemoryDialog from "../dialogs/AddMemoryDialog";
 import { cx, fmtDate, uid } from "../lib/format";
 import { useT } from "../lib/i18n";
+import { canSpeak, useSpeech } from "../lib/speech";
 import { fullName, useStore } from "../lib/store";
 
 const SORTS = {
@@ -65,20 +67,31 @@ function MemoryCard({ m }) {
   const { person, update } = useStore();
   const { confirm } = useModal();
   const toast = useToast();
+  const moreRef = useRef(null);
+  const { toggle: toggleSpeech, speaking } = useSpeech();
+  const copyLink = () => {
+    const url = `${location.href.split("#")[0]}#/memories?q=${encodeURIComponent(m.title)}`;
+    navigator.clipboard?.writeText(url).then(
+      () => toast("Link copied", { sub: "Only signed-in relatives can open it.", icon: "link", duration: 2500 }),
+      () => toast("Couldn't copy the link", { error: true, sub: url }),
+    );
+  };
 
   const toggleFav = () => {
-    update((s) => { const x = s.memories.find((y) => y.id === m.id); x.fav = !x.fav; });
+    update((s) => { const x = s.memories.find((y) => y.id === m.id); x.fav = !x.fav; }, `${m.fav ? "Unfavourited" : "Favourited"} “${m.title}”`);
     toast(m.fav ? "Removed from favourites" : "Added to favourites", { icon: "favorite", duration: 2500 });
   };
   const remove = () => confirm("Remove this keepsake?",
     `“${m.title}” will be removed from the vault for everyone in the family. You can undo straight after.`, "Remove", () => {
       let index = 0;
-      update((s) => { index = s.memories.findIndex((x) => x.id === m.id); s.memories.splice(index, 1); });
-      toast("Keepsake removed", { sub: m.title, action: "Undo", icon: "delete", onAction: () => update((s) => { s.memories.splice(index, 0, m); }) });
+      update((s) => { index = s.memories.findIndex((x) => x.id === m.id); s.memories.splice(index, 1); }, `Removed “${m.title}”`);
+      toast("Keepsake removed", { sub: m.title, action: "Undo", icon: "delete", onAction: () => update((s) => { s.memories.splice(index, 0, m); }, `Restored “${m.title}”`) });
     });
 
   return (
-    <article className="flex flex-col overflow-hidden rounded-[18px] border border-line bg-surface">
+    // Right-click (or the keyboard's Menu key / Shift+F10) opens the same actions as the ⋮ button.
+    <article aria-label={m.title} onContextMenu={(e) => { if (e.target.closest("a, input")) return; e.preventDefault(); moreRef.current?.click(); }}
+      className="flex flex-col overflow-hidden rounded-[18px] border border-line bg-surface transition hover:border-pine-600 hover:shadow-card">
       <Photo p1={m.p1} p2={m.p2} icon={m.icon} img={m.img} alt={m.alt} aspect="aspect-[4/3.3]" flush>
         <PhotoCorner><Tag tone="glass" icon={m.type === "document" ? "description" : "photo_camera"}>{m.label}</Tag></PhotoCorner>
         {m.audio && <PhotoOverlay className="text-xsmall"><Icon name="graphic_eq" size="xs" /> Oral clip by Mary · “Crossing the Atlantic in ’68”</PhotoOverlay>}
@@ -98,16 +111,77 @@ function MemoryCard({ m }) {
           {m.tagged.slice(0, 3).map((id) => <Tag key={id} tone="outline">{person(id)?.first || "?"}</Tag>)}
           {m.tagged.length > 3 && <Tag tone="outline">+{m.tagged.length - 3}</Tag>}
         </span>
-        <IconButton icon="favorite" iconProps={{ fill: !!m.fav }} aria-pressed={!!m.fav}
-          label={`${m.fav ? "Remove from" : "Add to"} favourites`} onClick={toggleFav} />
-        <IconButton icon="delete" label={`Remove ${m.title}`} onClick={remove} />
+        <IconButton icon="favorite" iconProps={{ fill: !!m.fav, className: m.fav ? "text-rose!" : "" }} aria-pressed={!!m.fav}
+          label={`${m.fav ? "Remove from" : "Add to"} favourites`} title={`${m.fav ? "Remove from" : "Add to"} favourites`} onClick={toggleFav} />
+        <Menu label={`Actions for ${m.title}`} trigger={(p) => (
+          <IconButton ref={moreRef} icon="more_vert" label={`More actions for ${m.title}`} title="More actions (or right-click the card)" {...p} />
+        )}>
+          <MenuItem icon="favorite" onClick={toggleFav}>{m.fav ? "Remove from favourites" : "Add to favourites"}</MenuItem>
+          {canSpeak && <MenuItem icon={speaking ? "stop_circle" : "volume_up"} onClick={() => toggleSpeech(`${m.title}. ${m.caption}. ${m.alt || ""}`)}>{speaking ? "Stop reading" : "Read caption aloud"}</MenuItem>}
+          <MenuItem icon="link" onClick={copyLink}>Copy link</MenuItem>
+          <MenuDivider />
+          <MenuItem icon="delete" onClick={remove}>Remove…</MenuItem>
+        </Menu>
       </div>
     </article>
   );
 }
 
+/** One album: its keepsakes as a grid, a slideshow, and a picker to choose what belongs in it. */
+function AlbumDialog({ id }) {
+  const { state, update } = useStore();
+  const { open } = useModal();
+  const toast = useToast();
+  const a = state.albums.find((x) => x.id === id);
+  const items = a?.items || [];
+  const [editing, setEditing] = useState(!items.length);
+  const [picked, setPicked] = useState(items);
+  if (!a) return null;
+  const inAlbum = state.memories.filter((m) => items.includes(m.id));
+  const save = () => {
+    update((s) => { s.albums.find((x) => x.id === id).items = picked; }, `Updated album “${a.title}”`);
+    toast("Album updated", { sub: `${a.title} · ${picked.length} keepsake${picked.length === 1 ? "" : "s"}`, icon: "photo_album" });
+    setEditing(false);
+  };
+  return (
+    <Dialog wide title={a.title} sub={`${a.tag} · ${items.length} keepsake${items.length === 1 ? "" : "s"} in this album`}
+      footer={editing
+        ? <><Button variant="soft" onClick={() => { setPicked(items); setEditing(false); }} disabled={!items.length}>Cancel</Button><Button variant="primary" icon="check" onClick={save}>Save album</Button></>
+        : <><Button icon="edit" onClick={() => setEditing(true)}>Choose keepsakes</Button><Button variant="primary" icon="slideshow" disabled={!inAlbum.length} onClick={() => open(<Slideshow list={inAlbum} />)}>Play slideshow</Button></>}>
+      {editing ? (
+        <fieldset className="m-0 border-0 p-0">
+          <legend className="mb-2 text-small font-semibold">Tick the keepsakes that belong in this album ({picked.length} chosen)</legend>
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-2.5">
+            {state.memories.map((m) => {
+              const on = picked.includes(m.id);
+              return (
+                <label key={m.id} className={cx("grid cursor-pointer gap-1.5 rounded-xl border-2 p-1.5 text-xsmall", on ? "border-pine-700 bg-mint-100" : "border-line")}>
+                  <Photo p1={m.p1} p2={m.p2} icon={m.icon} img={m.img} alt={m.alt} aspect="aspect-4/3">
+                    <span className="absolute top-1.5 left-1.5 rounded bg-white/90 p-0.5 leading-none"><input type="checkbox" checked={on} onChange={() => setPicked(on ? picked.filter((x) => x !== m.id) : [...picked, m.id])} className="size-4.5" /></span>
+                  </Photo>
+                  <span className="line-clamp-2 font-semibold">{m.title}</span>
+                </label>
+              );
+            })}
+          </div>
+        </fieldset>
+      ) : (
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(170px,1fr))] gap-3">
+          {inAlbum.map((m) => (
+            <figure key={m.id} className="m-0 grid gap-1.5">
+              <Photo p1={m.p1} p2={m.p2} icon={m.icon} img={m.img} alt={m.alt} aspect="aspect-4/3" />
+              <figcaption className="text-xsmall"><strong className="block text-small">{m.title}</strong>{fmtDate(m.date, m.approx)} · {m.place}</figcaption>
+            </figure>
+          ))}
+        </div>
+      )}
+    </Dialog>
+  );
+}
+
 function CreateAlbumDialog() {
   const { update } = useStore();
+  const { open } = useModal();
   const toast = useToast();
   const close = useCloseModal();
   const [title, setTitle] = useState("");
@@ -115,9 +189,11 @@ function CreateAlbumDialog() {
   const create = () => {
     const t = title.trim();
     if (!t) { setInvalid(true); toast("Give the album a name", { error: true }); return; }
-    update((s) => { s.albums.unshift({ id: uid("a"), title: t, tag: "New Album", meta: "0 Items", note: "Just created", p1: "#7fa894", p2: "#2a5140", icon: "photo_album" }); });
-    toast("Album created", { sub: t });
+    const id = uid("a");
+    update((s) => { s.albums.unshift({ id, items: [], title: t, tag: "New Album", meta: "0 Items", note: "Just created", p1: "#7fa894", p2: "#2a5140", icon: "photo_album" }); }, `Created album “${t}”`);
+    toast("Album created", { sub: `${t} · now choose its keepsakes`, icon: "photo_album" });
     close();
+    open(<AlbumDialog id={id} />);
   };
   return (
     <Dialog title="Create a family album" footer={<><CancelButton /><Button variant="primary" onClick={create}>Create</Button></>}>
@@ -131,7 +207,6 @@ function CreateAlbumDialog() {
 export default function Memories() {
   const { state: st } = useStore();
   const { open } = useModal();
-  const toast = useToast();
   const [params] = useSearchParams();
   const [f, setF] = useState(() => ({ ...ALL, person: params.get("person") || "all", q: params.get("q") || "" }));
   const [sort, setSort] = useState("newest");
@@ -155,6 +230,11 @@ export default function Memories() {
       && (!favOnly || m.fav);
   };
   const list = st.memories.filter(matches).sort(SORTS[sort]);
+  // Same items by decade (ignoring the era filter), as a second view that can also set the era.
+  const decades = {};
+  for (const m of st.memories) if (matches({ ...m, date: String(NOW) })) { const d = Math.floor(+m.date.slice(0, 4) / 10) * 10; decades[d] = (decades[d] || 0) + 1; }
+  const decadeKeys = Object.keys(decades).map(Number).sort((a, b) => a - b);
+  const maxDecade = Math.max(1, ...Object.values(decades));
   const scrollAlbums = (dir) => strip.current.scrollBy({ left: dir * strip.current.clientWidth * 0.8 });
 
   return (
@@ -198,11 +278,11 @@ export default function Memories() {
         <div ref={strip} className="grid snap-x snap-mandatory auto-cols-[minmax(200px,1fr)] grid-flow-col gap-3.5 overflow-x-auto scroll-smooth pb-1.5">
           {st.albums.map((a) => (
             <button key={a.id} type="button"
-              onClick={() => toast("Album viewer coming soon", { sub: "In this demo, use the filters below to browse keepsakes.", icon: "photo_album" })}
+              aria-label={`Open album: ${a.title}`} onClick={() => open(<AlbumDialog id={a.id} />)}
               className="flex cursor-pointer snap-start flex-col overflow-hidden rounded-2xl border border-line bg-surface p-0 text-left">
               <Photo as="span" p1={a.p1} p2={a.p2} icon={a.icon} aspect="aspect-[4/3.2]" flush>
                 <PhotoCorner><Tag tone="glass">{a.tag}</Tag></PhotoCorner>
-                <PhotoOverlay className="text-xsmall">{a.meta}</PhotoOverlay>
+                <PhotoOverlay className="text-xsmall">{a.items ? `${a.items.length} keepsake${a.items.length === 1 ? "" : "s"}` : a.meta}</PhotoOverlay>
               </Photo>
               <span className="grid gap-1.5 p-3">
                 <h3 className="text-base!">{a.title}</h3>
@@ -229,7 +309,7 @@ export default function Memories() {
               {st.people.map((p) => <option key={p.id} value={p.id}>{fullName(p)}</option>)}
             </Select>
           </Field>
-          <Field id="memEra" label={<><Icon name="history" size="xs" /> Historic era span</>} hint={`${f.from} — ${NOW}`} className="min-w-0 flex-1">
+          <Field id="memEra" label={<><Icon name="history" size="xs" /> Historic era span</>} hint={`${f.from} — ${NOW}`} className="min-w-0 flex-1 basis-60">
             <div className="flex flex-wrap items-center gap-3.5">
               <span className="text-xsmall text-muted">1918</span>
               <input type="range" id="memEra" min="1918" max="2026" step="1" value={f.from} aria-valuetext={`From ${f.from}`}
@@ -238,6 +318,29 @@ export default function Memories() {
             </div>
           </Field>
         </div>
+        {decadeKeys.length > 1 && (
+          <div className="mt-4 border-t border-line pt-4">
+            <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
+              <strong className="text-[.8rem]"><Icon name="bar_chart" size="xs" /> Keepsakes by decade</strong>
+              <span className="text-xsmall text-muted">Pick a bar to start from that decade{f.from > 1918 && <> · <button type="button" onClick={() => setF({ ...f, from: 1918 })} className="cursor-pointer border-0 bg-transparent p-0 font-semibold text-pine-700 hover:underline">show all</button></>}</span>
+            </div>
+            <div role="group" aria-label="Keepsakes by decade" className="flex h-28 items-end gap-1.5">
+              {decadeKeys.map((d) => {
+                const on = d + 9 >= f.from;
+                return (
+                  <button key={d} type="button" aria-pressed={f.from === d} onClick={() => setF({ ...f, from: d })}
+                    aria-label={`${d}s: ${decades[d]} keepsake${decades[d] > 1 ? "s" : ""}. Show from ${d}.`} title={`${d}s · ${decades[d]}`}
+                    className="group flex h-full min-w-0 flex-1 cursor-pointer flex-col items-center justify-end gap-1 border-0 bg-transparent p-0">
+                    <span className="text-[.68rem] font-semibold text-muted">{decades[d]}</span>
+                    <span className={cx("w-full max-w-12 rounded-t-md transition-colors", on ? "bg-pine-700 group-hover:bg-pine-600 dark:bg-mint" : "bg-surface-3 group-hover:bg-line")}
+                      style={{ height: `${(decades[d] / maxDecade) * 70}%`, minHeight: 4 }} />
+                    <span className={cx("text-[.66rem]", on ? "font-semibold text-ink" : "text-faint")}>{`’${String(d).slice(2)}s`}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </Card>
 
       <section className="mt-7" aria-labelledby="artH">
