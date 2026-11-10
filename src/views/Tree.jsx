@@ -11,15 +11,16 @@ import {
 import { ME } from "../data";
 import AddPersonDialog from "../dialogs/AddPersonDialog";
 import MessageDialog from "../dialogs/MessageDialog";
-import { ROMAN, cx, fmtDate, fmtDur } from "../lib/format";
-import { useT } from "../lib/i18n";
+import { ROMAN, cx, dateWord, fmtDate, fmtDur } from "../lib/format";
+import { rich, useT } from "../lib/i18n";
 import { age, fullName, useStore, year } from "../lib/store";
 
-const GEN_LABEL = { 1: "Great-Grand Elders", 2: "Grandparents", 3: "Children & Partners", 4: "The Grandchildren" };
+const lifeLine = (p, t) => (p.died
+  ? t("tree.lifeDied", { from: year(p.born), to: year(p.died), age: age(p) })
+  : t("tree.lifeBorn", { year: `${p.bornApprox ? dateWord("approx") + " " : ""}${year(p.born)}`, age: age(p) }));
 
-const lifeLine = (p) => (p.died
-  ? `${year(p.born)} – ${year(p.died)} (Aged ${age(p)})`
-  : `b. ${p.bornApprox ? "c. " : ""}${year(p.born)} (Age ${age(p)})`);
+/** "<b>John</b>, <b>Mary</b>" for the kinship sentences (rendered bold by rich()). */
+const boldNames = (arr) => arr.map((x) => `<b>${x.first}</b>`).join(", ");
 
 /** Group a generation into households: a blood relative plus their partner. */
 function households(people, person, gen) {
@@ -41,11 +42,12 @@ function households(people, person, gen) {
 }
 
 function PNode({ p, selected, dim, onSelect }) {
-  const { relationToMe } = useStore();
-  const life = lifeLine(p);
-  const tag = p.id === ME ? <Tag tone="sec" icon="check_circle">You • Matriarch</Tag>
-    : p.died ? <Tag tone="gold" icon="local_florist">In Loving Memory</Tag>
-    : selected ? <Tag tone="dark">Selected</Tag> : null;
+  const { relationToMe, kin } = useStore();
+  const t = useT();
+  const life = lifeLine(p, t);
+  const tag = p.id === ME ? <Tag tone="sec" icon="check_circle">{t("tree.youTag", { role: kin(p.role) })}</Tag>
+    : p.died ? <Tag tone="gold" icon="local_florist">{t("tree.memory")}</Tag>
+    : selected ? <Tag tone="dark">{t("tree.selected")}</Tag> : null;
   return (
     <button type="button" data-node={p.id} data-dim={dim || undefined} aria-pressed={selected} onClick={() => onSelect(p.id)}
       aria-label={`${fullName(p)}, ${relationToMe(p)}, ${life}`}
@@ -60,14 +62,15 @@ function PNode({ p, selected, dim, onSelect }) {
       <span className="min-w-0 flex-1">
         <strong className="block font-serif text-[.98rem]">{fullName(p)}</strong>
         <small className="block text-xsmall text-muted">{life}</small>
-        <small className="block text-xsmall text-muted">{p.role} • {p.occupation}</small>
+        <small className="block text-xsmall text-muted">{kin(p.role)} • {p.occupation}</small>
       </span>
     </button>
   );
 }
 
 function Canvas({ genFilter, selected, onSelect, isDim }) {
-  const { state, person, children } = useStore();
+  const { state, person, children, kin } = useStore();
+  const t = useT();
   const gens = [...new Set(state.people.map((p) => p.gen))].sort();
   const node = (p) => <PNode key={p.id} p={p} selected={p.id === selected} dim={isDim(p)} onSelect={onSelect} />;
 
@@ -77,7 +80,7 @@ function Canvas({ genFilter, selected, onSelect, isDim }) {
         <div key={g}>
           <div className="my-5.5 mb-3.5 flex items-center gap-3 before:h-px before:flex-1 before:bg-line after:h-px after:flex-1 after:bg-line">
             <span className="rounded-full bg-sec-soft px-3 py-1 text-tag font-bold tracking-[.12em] text-sec-ink uppercase ring-1 ring-sec-line ring-inset">
-              Generation {ROMAN[g]} • {GEN_LABEL[g] || ""}
+              {t("tree.generation", { n: ROMAN[g] })}{t(`tree.gen.${g}`) !== `tree.gen.${g}` && ` • ${t(`tree.gen.${g}`)}`}
             </span>
           </div>
           <div className="flex flex-nowrap justify-center gap-4.5">
@@ -90,7 +93,7 @@ function Canvas({ genFilter, selected, onSelect, isDim }) {
                     {node(a)}
                     <div className="flex flex-col items-center justify-center gap-1 text-center text-[.7rem] text-gold">
                       <span className="grid size-8.5 place-items-center rounded-full bg-gold-100"><Icon name="favorite" size="sm" /></span>
-                      m. {a.married}<br />{years} Golden Years
+                      {rich(t("tree.golden", { year: a.married, n: years }).replace("<br>", " "))}
                     </div>
                     {node(b)}
                   </div>
@@ -101,16 +104,16 @@ function Canvas({ genFilter, selected, onSelect, isDim }) {
               return (
                 <div key={a.id} className={cx("relative grid min-w-47.5 content-start gap-2.5 rounded-2xl p-3", hl ? "bg-sec-soft outline-2 outline-sec" : "bg-surface-2")}>
                   <span className="text-[.64rem] font-bold tracking-widest text-muted uppercase">
-                    {a.parents.length ? `${a.first}'s household` : a.role}{a.pending && " • unconfirmed"}
+                    {a.parents.length ? t("tree.household", { name: a.first }) : kin(a.role)}{a.pending && ` • ${t("tree.unconfirmed")}`}
                   </span>
                   {node(a)}
                   {b && (
                     <>
-                      <span className="flex items-center gap-1 pl-1.5 text-[.7rem] text-muted"><Icon name="favorite" size="xs" /> Partner • m. {b.married || a.married}</span>
+                      <span className="flex items-center gap-1 pl-1.5 text-[.7rem] text-muted"><Icon name="favorite" size="xs" /> {t("tree.partnerSince", { year: b.married || a.married })}</span>
                       {node(b)}
                     </>
                   )}
-                  {g < 4 && a.parents.length > 0 && !kids && <Tag tone="outline" className="justify-self-center">No children listed yet</Tag>}
+                  {g < 4 && a.parents.length > 0 && !kids && <Tag tone="outline" className="justify-self-center">{t("tree.noChildren")}</Tag>}
                   {kids > 0 && <div className="mx-auto my-1.5 h-6.5 w-0.5 bg-sec" />}
                   {a.pending && <div className="mx-auto my-1.5 h-6.5 w-0.5 bg-[repeating-linear-gradient(var(--sec)_0_4px,transparent_4px_8px)]" />}
                 </div>
@@ -119,13 +122,14 @@ function Canvas({ genFilter, selected, onSelect, isDim }) {
           </div>
         </div>
       ))}
-      <Empty icon="eco" className="mx-auto mt-7 max-w-65"><p className="text-small">Future branch expansions</p></Empty>
+      <Empty icon="eco" className="mx-auto mt-7 max-w-65"><p className="text-small">{t("tree.future")}</p></Empty>
     </>
   );
 }
 
 function Pedigree({ onSelect, isDim }) {
   const { state, person, children, relationToMe } = useStore();
+  const t = useT();
   const item = (p) => {
     const sp = p.spouse && person(p.spouse);
     const kids = children(p.id);
@@ -137,7 +141,7 @@ function Pedigree({ onSelect, isDim }) {
           <span className="min-w-0 flex-1">
             <strong>{fullName(p)}</strong>{" "}
             <span className="text-small text-muted">{relationToMe(p)} • {year(p.born)}{p.died && "–" + year(p.died)}</span>
-            {sp && <><br /><span className="text-small text-muted">Partner: {fullName(sp)}</span></>}
+            {sp && <><br /><span className="text-small text-muted">{t("tree.partner", { name: fullName(sp) })}</span></>}
           </span>
         </button>
         {kids.length > 0 && (
@@ -153,64 +157,67 @@ function Pedigree({ onSelect, isDim }) {
   });
   return (
     <>
-      <p className="mb-3 text-small text-muted">Accessible pedigree list — each relative is listed under their parents. Use Tab to move between people and Enter to open a profile.</p>
+      <p className="mb-3 text-small text-muted">{t("tree.listHelp")}</p>
       <ul className="m-0 grid list-none gap-1 p-0">{roots.map(item)}</ul>
     </>
   );
 }
 
 function SuggestEditDialog({ p }) {
+  const t = useT();
   const toast = useToast();
   const close = useCloseModal();
   const [value, setValue] = useState("");
   const [invalid, setInvalid] = useState(false);
   const send = () => {
-    if (!value.trim()) { setInvalid(true); document.getElementById("sv").focus(); toast("Add the suggested correction", { error: true }); return; }
-    toast("Suggestion sent to custodian", { sub: "Sarah Mackenzie will review it. Nothing changes until it's approved.", icon: "fact_check" });
+    if (!value.trim()) { setInvalid(true); document.getElementById("sv").focus(); toast(t("tree.sug.err"), { error: true }); return; }
+    toast(t("tree.sug.sent"), { sub: t("tree.sug.sentSub"), icon: "fact_check" });
     close();
   };
   return (
-    <Dialog title="Suggest a lineage or fact edit" sub={`About ${fullName(p)}. A family custodian reviews every change before it's published.`}
-      footer={<><CancelButton /><Button variant="primary" onClick={send}>Send for review</Button></>}>
-      <Field id="sf" label="What should change?">
-        <Select id="sf">{["Birth date", "Birth place", "Relationship", "Occupation", "Other"].map((o) => <option key={o}>{o}</option>)}</Select>
+    <Dialog title={t("tree.sug.title")} sub={t("tree.sug.sub", { name: fullName(p) })}
+      footer={<><CancelButton /><Button variant="primary" onClick={send}>{t("tree.sug.send")}</Button></>}>
+      <Field id="sf" label={t("tree.sug.what")}>
+        <Select id="sf">{["Birth date", "Birth place", "Relationship", "Occupation", "Other"].map((o) => <option key={o} value={o}>{t(`tree.sug.${o}`)}</option>)}</Select>
       </Field>
-      <Field id="sv" label="Suggested correction">
-        <Input id="sv" value={value} onChange={(e) => setValue(e.target.value)} invalid={invalid} placeholder="e.g. Born 15 Nov 1975, not 14 Nov" />
+      <Field id="sv" label={t("tree.sug.correction")}>
+        <Input id="sv" value={value} onChange={(e) => setValue(e.target.value)} invalid={invalid} placeholder={t("tree.sug.correctionPh")} />
       </Field>
-      <Field id="ss" label="Source" hint="Optional" help="Sources help others tell confirmed facts from remembered ones.">
-        <Input id="ss" placeholder="e.g. Birth certificate, family bible, Gran's memory" />
+      <Field id="ss" label={t("tree.sug.source")} hint={t("common.optional")} help={t("tree.sug.sourceHelp")}>
+        <Input id="ss" placeholder={t("tree.sug.sourcePh")} />
       </Field>
     </Dialog>
   );
 }
 
 function ReviewProofsDialog({ p }) {
-  const { update } = useStore();
+  const { update, kin } = useStore();
+  const t = useT();
   const toast = useToast();
   const close = useCloseModal();
-  const setPending = (v) => update((s) => { s.people.find((x) => x.id === p.id).pending = v; }, v ? `Reopened proofs for ${p.first}` : `Verified ${p.first}’s record`);
+  const setPending = (v) => update((s) => { s.people.find((x) => x.id === p.id).pending = v; }, t(v ? "tree.proof.reopened" : "tree.proof.verified", { name: p.first }));
   const confirm = () => {
     setPending(false);
-    toast("Branch link confirmed", { sub: `${fullName(p)} is now part of the verified tree.`, action: "Undo", onAction: () => setPending(true) });
+    toast(t("tree.proof.confirmed"), { sub: t("tree.proof.confirmedSub", { name: fullName(p) }), action: t("common.undo"), onAction: () => setPending(true) });
     close();
   };
   return (
-    <Dialog title="Review pending proofs" sub={`${fullName(p)} • ${p.role}`}
-      footer={<><CancelButton>Keep pending</CancelButton><Button variant="primary" onClick={confirm}>Confirm branch link</Button></>}>
-      <Record><Icon name="description" /><div className="min-w-0 flex-1"><strong>Aberdeen parish baptism register</strong><p className="text-xsmall text-muted">Lists “Robt. Dunbar”, baptised spring 1918</p></div></Record>
-      <Record><Icon name="description" /><div className="min-w-0 flex-1"><strong>1921 Scotland census extract</strong><p className="text-xsmall text-muted">Age recorded as 3 — consistent with c. 1918</p></div></Record>
-      <p className="text-small text-muted">Confirming keeps the year as approximate (“c. 1918”) but links Robert into the Dunbar branch for everyone.</p>
+    <Dialog title={t("tree.proof.title")} sub={`${fullName(p)} • ${kin(p.role)}`}
+      footer={<><CancelButton>{t("tree.proof.keep")}</CancelButton><Button variant="primary" onClick={confirm}>{t("tree.proof.confirm")}</Button></>}>
+      <Record><Icon name="description" /><div className="min-w-0 flex-1"><strong>{t("tree.proof.doc1")}</strong><p className="text-xsmall text-muted">{t("tree.proof.doc1Sub")}</p></div></Record>
+      <Record><Icon name="description" /><div className="min-w-0 flex-1"><strong>{t("tree.proof.doc2")}</strong><p className="text-xsmall text-muted">{t("tree.proof.doc2Sub")}</p></div></Record>
+      <p className="text-small text-muted">{t("tree.proof.note")}</p>
     </Dialog>
   );
 }
 
 function Profile({ id, onClose }) {
   const { state, person, children, relationToMe } = useStore();
+  const t = useT();
   const { open } = useModal();
   const p = person(id);
   if (!p) {
-    return <Empty icon="person_search" title="Select a relative"><p className="text-small">Choose anyone on the canvas to see their lineage profile.</p></Empty>;
+    return <Empty icon="person_search" title={t("tree.select")}><p className="text-small">{t("tree.selectHelp")}</p></Empty>;
   }
   const parents = p.parents.map(person).filter(Boolean);
   const siblings = state.people.filter((x) => x.id !== p.id && x.parents.length && x.parents.some((pp) => p.parents.includes(pp)));
@@ -218,60 +225,60 @@ function Profile({ id, onClose }) {
   const sp = p.spouse && person(p.spouse);
   const mems = state.memories.filter((m) => m.tagged.includes(p.id));
   const story = state.stories.find((s) => s.by === p.id && s.kind === "audio");
-  const names = (arr) => arr.map((x, i) => <span key={x.id}>{i > 0 && ", "}<strong>{x.first}</strong></span>);
 
   return (
     <>
-      <div className="flex items-center justify-between"><Eyebrow icon="badge">Lineage Profile</Eyebrow><IconButton icon="close" label="Close profile" onClick={onClose} /></div>
+      <div className="flex items-center justify-between"><Eyebrow icon="badge">{t("tree.profile")}</Eyebrow><IconButton icon="close" label={t("tree.closeProfile")} onClick={onClose} /></div>
       <div className="mt-4 grid justify-items-center gap-1.5 text-center">
         <Avatar p={p} size="xl" />
-        <Tag tone="sec">Generation {ROMAN[p.gen]}</Tag>
+        <Tag tone="sec">{t("tree.generation", { n: ROMAN[p.gen] })}</Tag>
         <h2>{fullName(p)}</h2>
-        <p className="text-small text-muted">{p.occupation} • {p.died ? `${fmtDate(p.born, p.bornApprox)} – ${fmtDate(p.died)}` : `Born ${fmtDate(p.born, p.bornApprox)}`}</p>
-        {p.verified ? <Tag icon="verified">Birth Record Verified</Tag>
-          : (p.pending || p.bornApprox) && <Tag tone="rose" icon="help">Approximate date — awaiting proof</Tag>}
+        <p className="text-small text-muted">{p.occupation} • {p.died ? `${fmtDate(p.born, p.bornApprox)} – ${fmtDate(p.died)}` : t("tree.born", { date: fmtDate(p.born, p.bornApprox) })}</p>
+        {p.verified ? <Tag icon="verified">{t("tree.verifiedTag")}</Tag>
+          : (p.pending || p.bornApprox) && <Tag tone="rose" icon="help">{t("tree.approxTag")}</Tag>}
       </div>
       <div className="mt-4 rounded-[14px] bg-sec-soft p-3.5 text-[.84rem]">
-        <Eyebrow>Kinship relationship</Eyebrow>
+        <Eyebrow>{t("tree.kinship")}</Eyebrow>
         <p className="mt-2">
-          {p.id === ME ? <>This is <strong>you</strong>.</> : <>{p.first} is your <strong>{relationToMe(p).toLowerCase()}</strong>.</>}
-          {parents.length > 0 && <> Child of {names(parents)}.</>}
-          {siblings.length > 0 && <> Sibling of {names(siblings)}.</>}
-          {sp && <> Partner of {names([sp])}.</>}
-          {kids.length > 0 && <> Parent of {names(kids)}.</>}
+          {rich([
+            p.id === ME ? t("tree.isYou") : t("tree.isYour", { name: p.first, rel: relationToMe(p).toLowerCase() }),
+            parents.length > 0 && t("tree.childOf", { names: boldNames(parents) }),
+            siblings.length > 0 && t("tree.siblingOf", { names: boldNames(siblings) }),
+            sp && t("tree.partnerOf", { names: boldNames([sp]) }),
+            kids.length > 0 && t("tree.parentOf", { names: boldNames(kids) }),
+          ].filter(Boolean).join(""))}
         </p>
       </div>
-      <Eyebrow className="mt-4 text-muted!">Archival records • {mems.length + (p.verified ? 1 : 0)} items</Eyebrow>
+      <Eyebrow className="mt-4 text-muted!">{t("tree.records", { n: mems.length + (p.verified ? 1 : 0) })}</Eyebrow>
       <div className="mt-2 grid gap-2">
         {p.verified && (
           <Record icon="description">
-            <div className="min-w-0 flex-1"><strong>Scottish General Register</strong><p className="text-xsmall text-muted">Civil Birth Entry #{year(p.born)}-408</p></div>
+            <div className="min-w-0 flex-1"><strong>{t("tree.register")}</strong><p className="text-xsmall text-muted">{t("tree.registerEntry", { n: `${year(p.born)}-408` })}</p></div>
             <Icon name="verified" size="sm" />
           </Record>
         )}
         <Record as={Link} to={`/memories?person=${p.id}`} icon="photo_camera">
-          <div className="min-w-0 flex-1"><strong>{mems.length} Linked Keepsakes</strong><p className="text-xsmall text-muted">Photos, letters & documents</p></div>
+          <div className="min-w-0 flex-1"><strong>{t("tree.linked", { n: mems.length })}</strong><p className="text-xsmall text-muted">{t("tree.linkedSub")}</p></div>
           <Icon name="chevron_right" size="sm" />
         </Record>
       </div>
       {story && (
         <Card tone="dark" className="mt-4 p-4!">
           <div className="flex items-center justify-between text-xsmall">
-            <Eyebrow className="text-mint!"><Icon name="mic" size="xs" /> Oral history clip</Eyebrow><span>{fmtDur(story.duration)} mins</span>
+            <Eyebrow className="text-mint!"><Icon name="mic" size="xs" /> {t("tree.clip")}</Eyebrow><span>{t("tree.mins", { d: fmtDur(story.duration) })}</span>
           </div>
           <h3 className="mt-2 font-sans">“{story.title}”</h3>
-          <p className="text-xsmall text-on-dark">Recorded {fmtDate(story.recorded)}</p>
+          <p className="text-xsmall text-on-dark">{t("tree.recorded", { date: fmtDate(story.recorded) })}</p>
           <div className="mt-2"><AudioPlayer id={story.id} duration={story.duration} label={story.title} dark /></div>
         </Card>
       )}
       <Record className="mt-4 text-small">
         <Icon name="shield" size="sm" />
-        <span>{p.minor ? "Protected minor: profile details are visible to parents and verified guardians only."
-          : <>Contact information &amp; home address are shared only with verified <strong>Immediate Mackenzie Family</strong>.</>}</span>
+        <span>{p.minor ? t("tree.minor") : rich(t("tree.contact"))}</span>
       </Record>
       <div className="mt-4 grid gap-2">
-        {!p.died && <Button variant="primary" block icon="chat" onClick={() => open(<MessageDialog person={p} placeholder="Write something kind…" />)}>Send Private Message to {p.first}</Button>}
-        <Button variant="soft" block icon="edit_note" onClick={() => open(<SuggestEditDialog p={p} />)}>Suggest Lineage or Fact Edit</Button>
+        {!p.died && <Button variant="primary" block icon="chat" onClick={() => open(<MessageDialog person={p} placeholder={t("tree.msgPh")} />)}>{t("tree.msgBtn", { name: p.first })}</Button>}
+        <Button variant="soft" block icon="edit_note" onClick={() => open(<SuggestEditDialog p={p} />)}>{t("tree.suggestBtn")}</Button>
       </div>
     </>
   );
@@ -309,7 +316,7 @@ function useDragPan(ref, enabled) {
 }
 
 export default function Tree() {
-  const { state, person } = useStore();
+  const { state, person, kin } = useStore();
   const { open } = useModal();
   const [params] = useSearchParams();
   const fromLink = params.get("person");
@@ -379,30 +386,30 @@ export default function Tree() {
     <>
       <div className="flex flex-wrap items-start justify-between gap-2.5">
         <div>
-          <Eyebrow icon="park">Lineage Canvas <Tag tone="outline">Branch: Mackenzie-Dunbar</Tag></Eyebrow>
+          <Eyebrow icon="park">{t("tree.canvas")} <Tag tone="outline">{t("tree.branch")}</Tag></Eyebrow>
           <h1 className="mt-2">{t("h1.tree")}</h1>
         </div>
         <div className="flex flex-wrap items-center gap-2.5">
           <Button aria-pressed={listMode} icon={listMode ? "account_tree" : "list"} onClick={() => setListMode(!listMode)}>
-            {listMode ? "Switch to Visual Canvas" : "Switch to Accessible Pedigree List"} <span className="text-xsmall text-muted">(Alt+L)</span>
+            {listMode ? t("tree.toCanvas") : t("tree.toList")} <span className="text-xsmall text-muted">(Alt+L)</span>
           </Button>
-          <Button variant="primary" icon="person_add" onClick={() => open(<AddPersonDialog />)}>Add Family Member</Button>
+          <Button variant="primary" icon="person_add" onClick={() => open(<AddPersonDialog />)}>{t("tree.add")}</Button>
         </div>
       </div>
 
-      <div role="toolbar" aria-label="Tree controls" className="mt-4.5 flex flex-wrap items-center gap-2.5 rounded-[14px] border border-line bg-surface p-2.5">
-        <Chips role="group" aria-label="Filter by generation">
-          <Chip pressed={genFilter === "all"} onClick={() => setGenFilter("all")}>All Generations ({gens.length} Tiers)</Chip>
-          {gens.map((g) => <Chip key={g} pressed={genFilter === String(g)} onClick={() => setGenFilter(String(g))}>Gen {ROMAN[g]}</Chip>)}
+      <div role="toolbar" aria-label={t("tree.controls")} className="mt-4.5 flex flex-wrap items-center gap-2.5 rounded-[14px] border border-line bg-surface p-2.5">
+        <Chips role="group" aria-label={t("tree.filterGen")}>
+          <Chip pressed={genFilter === "all"} onClick={() => setGenFilter("all")}>{t("tree.allGens", { n: gens.length })}</Chip>
+          {gens.map((g) => <Chip key={g} pressed={genFilter === String(g)} onClick={() => setGenFilter(String(g))}>{t("tree.genShort", { n: ROMAN[g] })}</Chip>)}
         </Chips>
         <InputIcon icon="person_search" className="min-w-45 flex-1">
-          <label className="sr-only" htmlFor="findRel">Find relative in tree</label>
-          <Input id="findRel" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Find relative in tree…" />
+          <label className="sr-only" htmlFor="findRel">{t("tree.find")}</label>
+          <Input id="findRel" value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t("tree.findPh")} />
         </InputIcon>
-        <Button variant="tint" size="sm" icon="my_location" onClick={centerMe}>Center on Me</Button>
-        <IconButton icon="zoom_in" label="Zoom in" onClick={() => changeZoom(zoom + 0.1)} />
-        <IconButton icon="zoom_out" label="Zoom out" onClick={() => changeZoom(zoom - 0.1)} />
-        <IconButton icon="fit_screen" label="Reset zoom" onClick={() => changeZoom(1)} />
+        <Button variant="tint" size="sm" icon="my_location" onClick={centerMe}>{t("tree.centerMe")}</Button>
+        <IconButton icon="zoom_in" label={t("tree.zoomIn")} onClick={() => changeZoom(zoom + 0.1)} />
+        <IconButton icon="zoom_out" label={t("tree.zoomOut")} onClick={() => changeZoom(zoom - 0.1)} />
+        <IconButton icon="fit_screen" label={t("tree.zoomReset")} onClick={() => changeZoom(1)} />
         <IconButton icon={full ? "fullscreen_exit" : "fullscreen"} label={t(full ? "tree.exitFullscreen" : "tree.fullscreen")} title={t(full ? "tree.exitFullscreen" : "tree.fullscreen")}
           disabled={listMode} onClick={toggleFull} />
         <label htmlFor="treeHl" className="flex items-center gap-1.5 text-small text-muted"><Icon name="highlight" size="sm" />{t("tree.colorBy")}</label>
@@ -411,21 +418,21 @@ export default function Tree() {
         </Select>
       </div>
 
-      <div aria-label="Legend" className="mt-2.5 flex flex-wrap items-center gap-x-4.5 gap-y-2 rounded-xl bg-surface-2 px-3.5 py-2.5 text-[.76rem] text-muted">
-        <strong className="text-xsmall">LEGEND:</strong>
-        <span><i className="mr-1.5 inline-block size-3 rounded-full border-2 border-pine-600 align-middle" />Living Relative (emerald border)</span>
-        <span><i className="mr-1.5 inline-block size-3 rounded-full border-2 border-gold align-middle" />In Loving Memory (gold border + flower icon)</span>
-        <span><i className="mr-1.5 inline-block w-4.5 border-t-2 border-ink align-middle" />Direct biological line</span>
-        <span><i className="mr-1.5 inline-block w-4.5 border-t-2 border-dashed border-ink align-middle" />Unconfirmed / pending proof</span>
+      <div aria-label={t("tree.legend")} className="mt-2.5 flex flex-wrap items-center gap-x-4.5 gap-y-2 rounded-xl bg-surface-2 px-3.5 py-2.5 text-[.76rem] text-muted">
+        <strong className="text-xsmall">{t("tree.legendTitle")}</strong>
+        <span><i className="mr-1.5 inline-block size-3 rounded-full border-2 border-pine-600 align-middle" />{t("tree.legendLiving")}</span>
+        <span><i className="mr-1.5 inline-block size-3 rounded-full border-2 border-gold align-middle" />{t("tree.legendMemory")}</span>
+        <span><i className="mr-1.5 inline-block w-4.5 border-t-2 border-ink align-middle" />{t("tree.legendLine")}</span>
+        <span><i className="mr-1.5 inline-block w-4.5 border-t-2 border-dashed border-ink align-middle" />{t("tree.legendPending")}</span>
       </div>
 
       <div className="mt-4.5 grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
-        <Card className="overflow-hidden p-0!" aria-label={listMode ? "Pedigree list" : "Family tree canvas"}>
+        <Card className="overflow-hidden p-0!" aria-label={listMode ? t("tree.listLabel") : t("tree.canvasLabel")}>
           {listMode ? (
             <div className="p-5.5"><Pedigree onSelect={select} isDim={isDim} /></div>
           ) : (
             <div ref={fullRef} className="bg-surface">
-              <div className="flex items-center justify-between gap-2 border-b border-line px-4 py-2.5 text-xsmall text-muted"><span><Icon name="pan_tool" size="xs" /> Drag or scroll the canvas freely • Use zoom buttons to resize</span>
+              <div className="flex items-center justify-between gap-2 border-b border-line px-4 py-2.5 text-xsmall text-muted"><span><Icon name="pan_tool" size="xs" /> {t("tree.dragHint")}</span>
                 {full && <Button size="sm" icon="fullscreen_exit" onClick={toggleFull}>{t("tree.exitFullscreen")}</Button>}
               </div>
               <div ref={canvasRef} className={cx("relative overflow-auto bg-surface", full ? "h-[calc(100vh-45px)]" : "h-180", dragging ? "cursor-grabbing select-none" : "cursor-grab")}>
@@ -442,13 +449,13 @@ export default function Tree() {
       </div>
 
       {pending && (
-        <Card tone="soft" aria-label="Pending discovery" className="mt-7 flex flex-wrap items-center gap-2.5">
+        <Card tone="soft" aria-label={t("tree.pendingLabel")} className="mt-7 flex flex-wrap items-center gap-2.5">
           <IconBox icon="menu_book" />
           <div className="min-w-0 flex-1">
-            <h3>Unconfirmed Branch Discovery Pending</h3>
-            <p className="text-small text-muted">{pending.role} {fullName(pending)} • {pending.note}</p>
+            <h3>{t("tree.pendingTitle")}</h3>
+            <p className="text-small text-muted">{kin(pending.role)} {fullName(pending)} • {pending.note}</p>
           </div>
-          <Button onClick={() => open(<ReviewProofsDialog p={pending} />)}>Review Pending Proofs</Button>
+          <Button onClick={() => open(<ReviewProofsDialog p={pending} />)}>{t("tree.reviewProofs")}</Button>
         </Card>
       )}
     </>
