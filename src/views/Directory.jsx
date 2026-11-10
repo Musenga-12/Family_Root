@@ -74,7 +74,7 @@ function PersonCard({ p, selected, list, onOpen }) {
       <div className={cx("flex gap-2 [&>*:first-child]:flex-1", list ? "col-span-full sm:col-span-1 sm:col-start-3" : "mt-1")}>
         {primary}
         <Button size="sm" icon="person_search" aria-label={`Open kinship dossier for ${p.first}`} onClick={() => onOpen(p.id)}>Details</Button>
-        <IconButton icon="star" iconProps={{ fill: !!p.fav, className: p.fav ? "text-gold! [button:hover_&]:text-sec-on!" : "" }} aria-pressed={!!p.fav} className="size-8.5!"
+        <IconButton icon="star" iconProps={{ fill: !!p.fav, className: p.fav ? "text-gold! [button:active_&]:text-sec-on!" : "" }} aria-pressed={!!p.fav} className="size-8.5!"
           label={t(p.fav ? "fav.remove" : "fav.add", { name: p.first })} title={t(p.fav ? "fav.remove" : "fav.add", { name: p.first })} onClick={toggleFav} />
       </div>
     </article>
@@ -309,7 +309,7 @@ export default function Directory() {
           </form>
           <Tabs label="Branch" value={f.branch} onChange={(branch) => setF({ ...f, branch })}
             items={[["all", <span key="all" className="inline-flex items-center gap-1"><Icon name="hub" size="xs" /> All Branches</span>], ...branches.map((b) => [b, `${b} Stem`])]} />
-          <Tabs dark label="Status" value={f.status} onChange={(status) => setF({ ...f, status })}
+          <Tabs label="Status" value={f.status} onChange={(status) => setF({ ...f, status })}
             items={[["all", "Everyone"], ["living", `Living (${living})`], ["memorial", `Memorial (${people.length - living})`]]} />
           <Tabs role="group" label="Layout" value={view} onChange={setView}
             items={[["grid", <Icon key="grid" name="grid_view" size="sm" />, "Grid view"], ["list", <Icon key="list" name="view_list" size="sm" />, "List view"], ["table", <Icon key="table" name="table_rows" size="sm" />, "Table view"]]} />

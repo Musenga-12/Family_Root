@@ -10,13 +10,13 @@ export function Icon({ name, size, fill, className }) {
 
 /* ---------- Buttons ---------- */
 const BTN_VARIANTS = {
-  default: "hover-fill bg-surface border-sec-line text-sec-ink hover:shadow-[0_6px_16px_-8px_var(--sec)]",
-  /* Primary buttons take the colour of the section they are in (green on the Tree, amber on Memories…),
-     as a gentle gradient that glows in the same colour on hover. Text contrast stays above 4.5:1 across the gradient. */
-  primary: cx("border-transparent bg-[linear-gradient(135deg,var(--sec),var(--sec-ink))] text-sec-on shadow-[0_4px_12px_-6px_var(--sec)]",
-    /* Hover: a solid, deeper shade and a halo; pressed: deeper still. */
-    "hover:-translate-y-px hover:bg-none hover:bg-sec-ink hover:shadow-[0_10px_22px_-8px_var(--sec)] hover:ring-4 hover:ring-sec-line",
-    "focus-visible:bg-none focus-visible:bg-sec-ink active:bg-none active:bg-(--sec-press) active:ring-sec"),
+  default: "hover-fill bg-surface border-sec-line text-sec-ink hover:shadow-[0_6px_16px_-10px_var(--sec)]",
+  /* Primary buttons are navy. Hover turns them soft slate blue with navy text (like everything else under the
+     pointer); pressing makes them a deeper navy. */
+  primary: cx("border-transparent bg-sec text-sec-on shadow-[0_4px_12px_-6px_var(--sec)]",
+    "hover:-translate-y-px hover:border-sec-hover-line hover:bg-sec-hover hover:text-sec-ink hover:shadow-[0_10px_22px_-10px_var(--sec)]",
+    "focus-visible:border-sec-hover-line focus-visible:bg-sec-hover focus-visible:text-sec-ink",
+    "active:translate-y-0 active:border-(--sec-press) active:bg-(--sec-press) active:text-sec-on"),
   brand: "bg-pine-900 border-pine-900 text-white hover:bg-pine-700 hover:-translate-y-px hover:ring-4 hover:ring-mint-200 active:bg-pine-950",
   tint: "hover-fill bg-sec-soft border-sec-line text-sec-ink",
   mint: "bg-mint border-mint text-pine-900 hover:-translate-y-px hover:border-pine-900 hover:bg-pine-900 hover:text-white active:bg-pine-950",
@@ -92,7 +92,7 @@ const chipCls = (pressed) =>
   cx(
     "pressable group inline-flex min-h-10 items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-[.84rem] font-medium whitespace-nowrap cursor-pointer easy:min-h-12",
     pressed
-      ? "border-transparent bg-[linear-gradient(135deg,var(--sec),var(--sec-ink))] font-semibold text-sec-on shadow-[0_4px_12px_-6px_var(--sec)] hover:ring-4 hover:ring-sec-line"
+      ? "border-transparent bg-sec font-semibold text-sec-on shadow-[0_4px_12px_-6px_var(--sec)] hover:ring-4 hover:ring-sec-line"
       : "hover-fill border-sec-line bg-surface text-ink",
   );
 
@@ -111,8 +111,8 @@ export function Chips({ scroll, className, children, ...rest }) {
   return <div className={cx("flex gap-2", scroll ? "flex-nowrap overflow-x-auto pb-1" : "flex-wrap", className)} {...rest}>{children}</div>;
 }
 
-/** Segmented tab control. items: [[key, label]] */
-export function Tabs({ items, value, onChange, dark, label, role = "tablist", className, itemClassName }) {
+/** Segmented tab control. items: [[key, label]]. The selected item is always navy. */
+export function Tabs({ items, value, onChange, label, role = "tablist", className, itemClassName }) {
   return (
     <div role={role} aria-label={label} className={cx("inline-flex flex-wrap gap-0.5 rounded-xl border border-sec-line bg-sec-soft p-1", className)}>
       {items.map(([key, text, aria]) => {
@@ -123,7 +123,7 @@ export function Tabs({ items, value, onChange, dark, label, role = "tablist", cl
             onClick={() => onChange(key)}
             className={cx(
               "inline-flex min-h-10 items-center justify-center gap-1 rounded-[9px] border-0 px-3.5 py-2 text-[.88rem] cursor-pointer easy:min-h-12",
-              sel ? (dark ? "bg-sec font-semibold text-sec-on" : "bg-surface font-semibold text-sec-ink shadow-card ring-1 ring-sec-line") : "hover-fill bg-transparent font-medium text-muted",
+              sel ? "bg-sec font-semibold text-sec-on shadow-card" : "hover-fill bg-transparent font-medium text-muted",
               itemClassName,
             )}>
             {text}
@@ -182,7 +182,7 @@ export function Stat({ value, label }) {
 export function Empty({ icon, title, className, children }) {
   return (
     <div className={cx("rounded-[14px] border-2 border-dashed border-line px-5 py-10 text-center text-muted", className)}>
-      <Icon name={icon} className="text-[40px]! text-sec" />
+      <Icon name={icon} className="text-[40px]! text-sec-ink" />
       {title && <h3 className="mt-2 mb-1 text-ink">{title}</h3>}
       {children}
     </div>

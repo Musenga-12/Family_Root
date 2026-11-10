@@ -158,7 +158,7 @@ function WhoPicker() {
     <Card className="mx-auto mt-14 max-w-300">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div><h2>{t("land.who.title")}</h2><p className="mt-1 text-muted">{t("land.who.sub")}</p></div>
-        <Tabs role="radiogroup" label={t("land.who.title")} value={who} onChange={setWho} dark
+        <Tabs role="radiogroup" label={t("land.who.title")} value={who} onChange={setWho}
           items={["elder", "parent", "young"].map((k) => [k, <span key={k} className="inline-flex items-center gap-1.5"><Icon name={icons[k]} size="sm" />{t(`land.who.${k}`)}</span>])} />
       </div>
       <ul key={who} className="mt-5 grid list-none gap-3 p-0 md:grid-cols-3">

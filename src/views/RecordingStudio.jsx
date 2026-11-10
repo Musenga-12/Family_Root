@@ -19,7 +19,7 @@ function RecButton({ label, caption, big, dark, live, disabled, icon, onClick })
         className={cx(
           "grid cursor-pointer place-items-center rounded-full enabled:hover:scale-105 enabled:active:scale-95 disabled:cursor-not-allowed disabled:opacity-40",
           big ? "size-19 border-6 border-[#f5c7c2] bg-rec text-white" : "size-13 border",
-          dark ? "border-transparent bg-[linear-gradient(135deg,var(--sec),var(--sec-ink))] text-sec-on" : !big && "hover-fill border-sec-line bg-surface text-sec-ink",
+          dark ? "border-transparent bg-sec text-sec-on" : !big && "hover-fill border-sec-line bg-surface text-sec-ink",
           live && "animate-rec-pulse",
         )}>
         <Icon name={icon} size={big ? "lg" : undefined} />
@@ -61,7 +61,7 @@ export default function RecordingStudio({ promptIdx, setPromptIdx, forName }) {
     if (!c) return;
     const g = c.getContext("2d"), w = c.width, h = c.height;
     g.clearRect(0, 0, w, h);
-    g.fillStyle = getComputedStyle(c).getPropertyValue("--sec").trim() || "#1d4ed8";
+    g.fillStyle = getComputedStyle(c).getPropertyValue("--sec").trim() || "#1e3a8a";
     const r = rec.current, live = statusRef.current === "recording";
     let data = null;
     if (r?.analyser) { data = new Uint8Array(r.analyser.frequencyBinCount); r.analyser.getByteFrequencyData(data); }

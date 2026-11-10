@@ -54,7 +54,7 @@ function Quote({ t, m, mine, onClick, onClose }) {
         <span className={cx("line-clamp-2 text-small", mine ? "text-white/85" : "text-muted")}>{m.img && !m.deleted && <Icon name="photo_camera" size="xs" />} {snippet(m)}</span>
       </span>
       {m.img && !m.deleted && <img src={m.img} alt="" className="size-12 shrink-0 object-cover" />}
-      {onClose && <IconButton icon="close" label="Cancel reply" className="m-1 size-8! self-center border-0! bg-transparent! hover:bg-sec! hover:text-sec-on!" onClick={onClose} />}
+      {onClose && <IconButton icon="close" label="Cancel reply" className="m-1 size-8! self-center border-0! bg-transparent! hover:bg-sec-hover! hover:text-sec-ink! active:bg-sec! active:text-sec-on!" onClick={onClose} />}
     </Tag>
   );
 }
@@ -146,9 +146,9 @@ function Bubble({ t, m, prev, next, q, flash, onReply, onJump, onOpenImage, setR
         {/* Hover / focus actions: reply, react, more. */}
         {!m.deleted && (
           <div className={cx("flex shrink-0 items-center gap-0.5 self-center opacity-0 transition-opacity group-focus-within/msg:opacity-100 group-hover/msg:opacity-100 max-md:hidden max-md:group-focus-within/msg:flex", picker && "opacity-100 max-md:flex")}>
-            <IconButton icon="reply" label="Reply" title="Reply (R)" className="size-8! border-0! bg-transparent! text-muted! hover:bg-sec! hover:text-sec-on!" onClick={() => onReply(m)} />
+            <IconButton icon="reply" label="Reply" title="Reply (R)" className="size-8! border-0! bg-transparent! text-muted! hover:bg-sec-hover! hover:text-sec-ink! active:bg-sec! active:text-sec-on!" onClick={() => onReply(m)} />
             <div ref={pickerRef} className="relative">
-              <IconButton icon="add_reaction" label="React" title="React" aria-expanded={picker} className="size-8! border-0! bg-transparent! text-muted! hover:bg-sec! hover:text-sec-on!" onClick={() => setPicker(!picker)} />
+              <IconButton icon="add_reaction" label="React" title="React" aria-expanded={picker} className="size-8! border-0! bg-transparent! text-muted! hover:bg-sec-hover! hover:text-sec-ink! active:bg-sec! active:text-sec-on!" onClick={() => setPicker(!picker)} />
               {picker && (
                 <div role="group" aria-label="Reactions" className={cx("absolute bottom-full z-20 mb-1 flex animate-pop gap-0.5 rounded-full border border-line bg-surface p-1 shadow-pop", mine ? "right-0" : "left-0")}>
                   {REACTIONS.map((e) => (
@@ -159,7 +159,7 @@ function Bubble({ t, m, prev, next, q, flash, onReply, onJump, onOpenImage, setR
               )}
             </div>
             <Menu label="Message actions" align={mine ? "right" : "left"} trigger={(p) => (
-              <IconButton {...p} data-more icon="more_vert" label="More actions" title="More actions (or right-click the message)" className="size-8! border-0! bg-transparent! text-muted! hover:bg-sec! hover:text-sec-on!" />
+              <IconButton {...p} data-more icon="more_vert" label="More actions" title="More actions (or right-click the message)" className="size-8! border-0! bg-transparent! text-muted! hover:bg-sec-hover! hover:text-sec-ink! active:bg-sec! active:text-sec-on!" />
             )}>
               <MenuItem icon="reply" hint="R" onClick={() => onReply(m)}>Reply</MenuItem>
               <MenuItem icon="add_reaction" onClick={() => setPicker(true)}>React…</MenuItem>
@@ -265,7 +265,7 @@ function Composer({ t, replyTo, setReplyTo, boxRef }) {
       <form className="flex items-end gap-1.5" onSubmit={(e) => { e.preventDefault(); send(); }}>
         <div className="flex min-w-0 flex-1 items-end gap-0.5 rounded-3xl border border-line bg-surface-2 px-1.5 focus-within:border-sec focus-within:bg-surface">
           <div ref={emojiRef} className="relative">
-            <IconButton icon="mood" label="Emoji" title="Emoji" aria-expanded={emoji} className="my-1 size-9! border-0! bg-transparent! text-muted! hover:bg-sec! hover:text-sec-on!" onClick={() => setEmoji(!emoji)} />
+            <IconButton icon="mood" label="Emoji" title="Emoji" aria-expanded={emoji} className="my-1 size-9! border-0! bg-transparent! text-muted! hover:bg-sec-hover! hover:text-sec-ink! active:bg-sec! active:text-sec-on!" onClick={() => setEmoji(!emoji)} />
             {emoji && (
               <div role="group" aria-label="Emoji" className="absolute bottom-full left-0 z-30 mb-2 grid w-72 animate-pop grid-cols-8 gap-0.5 rounded-2xl border border-line bg-surface p-2 shadow-pop">
                 {EMOJI.map((e) => <button key={e} type="button" aria-label={e} onClick={() => insert(e)} className="grid size-8 cursor-pointer place-items-center rounded-lg border-0 bg-transparent text-[1.2rem] transition-transform hover:scale-125 hover-tint">{e}</button>)}
@@ -280,7 +280,7 @@ function Composer({ t, replyTo, setReplyTo, boxRef }) {
             }}
             placeholder={replyTo ? `Reply to ${replyTo.by === ME ? "yourself" : person(replyTo.by)?.first}…` : "Message"}
             className="max-h-40 min-w-0 flex-1 resize-none border-0 bg-transparent py-2.5 leading-normal text-ink outline-0 placeholder:text-faint" />
-          <IconButton icon="attach_file" label="Attach a photo" title="Attach a photo" className="my-1 size-9! border-0! bg-transparent! text-muted! hover:bg-sec! hover:text-sec-on!" onClick={() => fileRef.current.click()} />
+          <IconButton icon="attach_file" label="Attach a photo" title="Attach a photo" className="my-1 size-9! border-0! bg-transparent! text-muted! hover:bg-sec-hover! hover:text-sec-ink! active:bg-sec! active:text-sec-on!" onClick={() => fileRef.current.click()} />
           <input ref={fileRef} type="file" accept="image/*" className="sr-only" tabIndex={-1} aria-hidden="true" aria-label="Attach a photo" onChange={(e) => { attach(e.target.files[0]); e.target.value = ""; }} />
         </div>
         {/* Send when there is something to send; otherwise the same spot dictates by voice. */}
@@ -420,7 +420,7 @@ export default function Chat({ t, focusId, onBack }) {
           <IconButton icon="search" label="Search in this chat" title="Search in this chat (Ctrl+F)" aria-pressed={searching} className={tool} onClick={toggleSearch} />
           <IconButton icon="info" label="Chat info and members" title="Chat info and members" className={cx(tool, "max-sm:hidden")} onClick={info} />
           <IconButton icon="push_pin" label={t.pinned ? "Unpin chat" : "Pin chat"} title={t.pinned ? "Unpin chat" : "Pin chat to the top"} aria-pressed={!!t.pinned}
-            iconProps={{ fill: !!t.pinned }} className={cx(tool, "max-md:hidden", t.pinned && "text-sec! hover:text-sec-on!")} onClick={() => set("pinned", !t.pinned, t.pinned ? "Unpinned" : "Pinned to the top")} />
+            iconProps={{ fill: !!t.pinned }} className={cx(tool, "max-md:hidden", t.pinned && "text-sec-ink! active:text-sec-on!")} onClick={() => set("pinned", !t.pinned, t.pinned ? "Unpinned" : "Pinned to the top")} />
           <IconButton icon={t.muted ? "notifications_off" : "notifications"} label={t.muted ? "Unmute chat" : "Mute chat"} title={t.muted ? "Unmute notifications" : "Mute notifications"}
             aria-pressed={!!t.muted} className={cx(tool, "max-md:hidden")} onClick={() => set("muted", !t.muted, t.muted ? "Notifications on" : "Muted")} />
           <Menu label="All chat options" trigger={(p) => <IconButton {...p} icon="more_vert" label="All chat options" title="All chat options" className={tool} />}>

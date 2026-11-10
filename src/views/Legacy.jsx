@@ -73,7 +73,7 @@ function RecordDialog({ r }) {
       <div className="flex flex-wrap items-center gap-2"><Status r={r} /><Visibility>{r.visibility}</Visibility></div>
       {sealed ? (
         <div className="grid justify-items-center gap-2 rounded-2xl bg-surface-2 p-6 text-center">
-          <Icon name="lock_clock" className="text-[44px]! text-sec" />
+          <Icon name="lock_clock" className="text-[44px]! text-sec-ink" />
           <strong>This time capsule opens on {fmtDate(r.sealedUntil)}</strong>
           <p className="text-small text-muted">That's {opensIn(r.sealedUntil)}. Its contents stay sealed until then, even for custodians.</p>
         </div>

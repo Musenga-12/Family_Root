@@ -77,7 +77,7 @@ export default function AudioPlayer({ id, duration = 0, label = "recording", dar
       dark ? "border-white/10 bg-white/5" : "border-line bg-surface")}>
       <button type="button" onClick={toggle} aria-label={`${playing ? "Pause" : "Play"} ${label}`}
         className={cx("pressable grid size-10 shrink-0 cursor-pointer place-items-center rounded-full border-0 hover:scale-110 hover:ring-4 hover:ring-sec-line",
-          dark ? "bg-mint text-pine-900" : "bg-[linear-gradient(135deg,var(--sec),var(--sec-ink))] text-sec-on shadow-[0_4px_12px_-6px_var(--sec)]")}>
+          dark ? "bg-mint text-pine-900" : "bg-sec text-sec-on shadow-[0_4px_12px_-6px_var(--sec)]")}>
         <Icon name={playing ? "pause" : "play_arrow"} fill />
       </button>
       <div role="slider" tabIndex={0} aria-label={`Seek ${label}`} aria-valuemin={0} aria-valuemax={Math.round(dur)} aria-valuenow={Math.round(t)}

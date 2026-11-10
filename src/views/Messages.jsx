@@ -93,7 +93,7 @@ function ChatRow({ x, active, onOpen }) {
         aria-describedby={preview ? `preview-${x.id}` : undefined}
         aria-label={`${x.title}${x.unread ? `, ${x.unread} unread` : ""}${x.pinned ? ", pinned" : ""}. ${who ? who + ": " : ""}${snippet(last)}`}
         className={cx("flex w-full cursor-pointer items-center gap-3 border-0 border-b border-line/60 px-3 py-2.5 pr-10 text-left text-ink",
-          active ? "bg-sec-soft shadow-[inset_4px_0_0_var(--sec)]" : "hover-tint bg-transparent hover:shadow-[inset_4px_0_0_var(--sec)]")}>
+          active ? "bg-sec-soft shadow-[inset_4px_0_0_var(--sec)]" : "hover-tint bg-transparent hover:shadow-[inset_4px_0_0_var(--sec-hover-line)]")}>
         <ChatAvatar t={x} />
         <span className="min-w-0 flex-1">
           <span className="flex items-baseline justify-between gap-2">
@@ -101,7 +101,7 @@ function ChatRow({ x, active, onOpen }) {
             <small className={cx("shrink-0 text-[.7rem] tabular-nums", x.unread && !x.muted ? "font-bold text-sec-ink" : "text-muted")}>{last ? listTime(last.at) : ""}</small>
           </span>
           <span className="mt-0.5 flex items-center gap-1.5">
-            {last?.by === ME && !last.deleted && <Icon name="done_all" className={cx("text-[15px]!", last.status === "read" ? "text-sec" : "text-faint")} />}
+            {last?.by === ME && !last.deleted && <Icon name="done_all" className={cx("text-[15px]!", last.status === "read" ? "text-sec-ink" : "text-faint")} />}
             <span className={cx("min-w-0 flex-1 truncate text-small", x.unread ? "text-ink" : "text-muted", last?.deleted && "italic")}>
               {who && <span className="font-medium">{who}: </span>}{last ? snippet(last) : "No messages yet"}
             </span>
@@ -116,7 +116,7 @@ function ChatRow({ x, active, onOpen }) {
       {preview && <ChatPreview x={x} anchor={preview} />}
       {/* Row options: on hover, focus or right-click. */}
       <div className="absolute top-1/2 right-1.5 -translate-y-1/2 opacity-0 transition-opacity group-focus-within/row:opacity-100 group-hover/row:opacity-100 max-md:opacity-100">
-        <Menu label={`Options for ${x.title}`} trigger={(p) => <IconButton {...p} data-row-menu icon="more_vert" label={`Options for ${x.title}`} className="size-8! border-0! bg-transparent! hover:bg-sec! hover:text-sec-on!" />}>
+        <Menu label={`Options for ${x.title}`} trigger={(p) => <IconButton {...p} data-row-menu icon="more_vert" label={`Options for ${x.title}`} className="size-8! border-0! bg-transparent! hover:bg-sec-hover! hover:text-sec-ink! active:bg-sec! active:text-sec-on!" />}>
           <MenuItem icon="push_pin" onClick={() => set("pinned", !x.pinned, x.pinned ? "Unpinned" : "Pinned to the top")}>{x.pinned ? "Unpin" : "Pin to the top"}</MenuItem>
           <MenuItem icon={x.unread ? "mark_chat_read" : "mark_chat_unread"} onClick={() => set("unread", x.unread ? 0 : 1, x.unread ? "Marked as read" : "Marked as unread")}>
             {x.unread ? "Mark as read" : "Mark as unread"}
@@ -213,7 +213,7 @@ export default function Messages() {
                 return (
                   <button key={k} type="button" role="tab" aria-selected={on} onClick={() => setFilter(k)}
                     className={cx("pressable inline-flex min-h-10 shrink-0 cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1.5 text-[.82rem] font-semibold easy:min-h-12",
-                      on ? "border-transparent bg-[linear-gradient(135deg,var(--sec),var(--sec-ink))] text-sec-on shadow-[0_4px_12px_-6px_var(--sec)]" : "hover-fill border-sec-line bg-surface text-ink")}>
+                      on ? "border-transparent bg-sec text-sec-on shadow-[0_4px_12px_-6px_var(--sec)]" : "hover-fill border-sec-line bg-surface text-ink")}>
                     <Icon name={icon} size="xs" />{label}
                     {counts[k] > 0 && <span className={cx("rounded-full px-1.5 text-[.68rem]", on ? "bg-sec-on/25" : k === "unread" ? "bg-sec text-sec-on" : "bg-surface-3")}>{counts[k]}</span>}
                   </button>

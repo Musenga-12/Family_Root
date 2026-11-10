@@ -9,15 +9,16 @@
    FamilyRoots – design tokens (from the Google Stitch screens)
    ========================================================== */
 @theme {
-  /* One colour for the whole app: a deep, calm blue chosen to suit every age. It keeps 6.7:1 contrast with
-     white text (older eyes lose sensitivity to pale blues and violets, not to deep saturated blue), it stays
-     clear for the common red-green colour-vision differences, and people already read blue as "you can
-     click this". The names pine/mint are kept so the optional accents in Settings can re-tint the same scale. */
-  --color-pine-950: #0b1d4d;
-  --color-pine-900: #102a6b;
-  --color-pine-800: #17389a;
-  --color-pine-700: #1d4ed8;
-  --color-pine-600: #3b6fe6;
+  /* One colour for the whole app: navy blue, chosen to suit every age. It keeps over 10:1 contrast with white
+     text (older eyes lose sensitivity to pale blues and violets, not to deep blue), it stays clear for the
+     common red-green colour-vision differences, and people already read blue as "you can click this".
+     Navy marks what is selected or clicked; a soft slate blue marks what is under the pointer (see --sec-hover).
+     The names pine/mint are kept so the optional accents in Settings can re-tint the same scale. */
+  --color-pine-950: #0c1a42;
+  --color-pine-900: #12255a;
+  --color-pine-800: #182f70;
+  --color-pine-700: #1e3a8a;
+  --color-pine-600: #4065c9;
   --color-mint: #93b6ff;
   --color-mint-hover: #7fa7ff;
   --color-mint-200: #cddcff;
@@ -37,7 +38,7 @@
   --color-rose: #b4473f;
   --color-rose-100: #fbe1de;
   --color-rec: #d63c33;
-  --color-focus: #1d4ed8;
+  --color-focus: #1e3a8a;
 
   --font-serif: "Playfair Display", Georgia, "Times New Roman", serif;
   --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -76,46 +77,51 @@
   --color-sec-line: var(--sec-line);
   --color-sec-ink: var(--sec-ink);
   --color-sec-on: var(--sec-on);
+  --color-sec-hover: var(--sec-hover);
+  --color-sec-hover-line: var(--sec-hover-line);
 }
 
 /* ----------------------------------------------------------
-   Hover & press feedback. Every clickable thing visibly changes colour when the pointer is on it
-   (or keyboard focus reaches it), and changes again while it is being pressed, so everyone can tell
-   what will react: three clearly different states (resting, hover, pressed).
+   Hover & press feedback, the same everywhere:
+     resting  -> its normal look
+     hover    -> soft slate blue background with a slate-blue outline, navy text (or keyboard focus)
+     clicked  -> navy blue with white text while pressed; selected things (open page, chosen chip/tab) stay navy
+   Light slate under the pointer and dark navy when clicked differ strongly in lightness, so every user can
+   tell them apart, colour-blind users included.
    ---------------------------------------------------------- */
 
-/* Simple controls (buttons, icon buttons, chips, menu items): fill solid with the section colour,
-   white text and icons (dark text in the dark theme); a deeper shade while pressed. The jump in
-   lightness is visible to colour-blind users too. Badges and avatars inside keep their own colours. */
+/* Simple controls (buttons, icon buttons, chips, menu items). Badges and avatars inside keep their own colours. */
 @utility hover-fill {
   &:is(:hover, :focus-visible):not(:disabled, [aria-disabled="true"]) {
-    background-color: var(--sec);
+    background-color: var(--sec-hover);
     background-image: none;
+    border-color: var(--sec-hover-line);
+    color: var(--sec-ink);
+    & :is(.ms, [class*="text-"]):not([class*="bg-"], [role="img"], [role="img"] *) { color: var(--sec-ink); }
+  }
+  &:active:not(:disabled, [aria-disabled="true"]) {
+    background-color: var(--sec);
     border-color: var(--sec);
     color: var(--sec-on);
     & :is(.ms, [class*="text-"]):not([class*="bg-"], [role="img"], [role="img"] *) { color: var(--sec-on); }
   }
-  &:active:not(:disabled, [aria-disabled="true"]) {
-    background-color: var(--sec-press);
-    border-color: var(--sec-press);
-  }
 }
-/* Rows and cards that hold several lines of text: a clearly stronger tint and a section-coloured border,
-   deeper while pressed (text keeps its normal, readable colours). */
+/* Rows and cards that hold several lines of text: slate blue on hover, navy outline and deeper tint when clicked
+   (text keeps its normal, readable colours). */
 @utility hover-tint {
-  &:is(:hover, :focus-visible):not(:disabled) { background-color: var(--sec-hover); border-color: var(--sec); }
-  &:active:not(:disabled) { background-color: var(--sec-line); }
+  &:is(:hover, :focus-visible):not(:disabled) { background-color: var(--sec-hover); border-color: var(--sec-hover-line); }
+  &:active:not(:disabled) { background-color: var(--sec-line); border-color: var(--sec); }
 }
-/* Clickable cards: tint + lift with a glow in the section colour on hover; sink back and deepen when pressed. */
+/* Clickable cards: slate blue + a slight lift on hover; navy outline when clicked. */
 @utility lift {
   transition: transform 0.2s cubic-bezier(0.2, 0.7, 0.3, 1), box-shadow 0.2s, border-color 0.2s, background-color 0.2s;
   &:is(:hover, :focus-visible) {
     transform: translateY(-2px);
-    border-color: var(--sec);
+    border-color: var(--sec-hover-line);
     background-color: var(--sec-hover);
-    box-shadow: 0 0 0 1px var(--sec), 0 12px 26px -12px color-mix(in oklab, var(--sec) 75%, transparent);
+    box-shadow: 0 0 0 1px var(--sec-hover-line), 0 12px 26px -14px color-mix(in oklab, var(--sec) 60%, transparent);
   }
-  &:active { transform: translateY(0) scale(0.99); background-color: var(--sec-line); }
+  &:active { transform: translateY(0) scale(0.99); background-color: var(--sec-line); border-color: var(--sec); box-shadow: 0 0 0 2px var(--sec); }
 }
 /* Small press feedback for buttons and chips. */
 @utility pressable {
@@ -149,26 +155,31 @@ html[data-text="lg"] { font-size: 17.5px; }
   --sec-soft: color-mix(in oklab, var(--sec) 11%, var(--color-surface));
   --sec-line: color-mix(in oklab, var(--sec) 32%, var(--color-surface));
   --sec-ink: color-mix(in oklab, var(--sec) 78%, #000);
-  --sec-hover: color-mix(in oklab, var(--sec) 20%, var(--color-surface));
-  --sec-press: color-mix(in oklab, var(--sec) 66%, #000);
+  /* Soft slate blue: the app colour mixed into a cool slate grey. */
+  --sec-hover: color-mix(in oklab, var(--sec) 16%, #e4e9f1);
+  --sec-hover-line: color-mix(in oklab, var(--sec) 40%, #b9c3d3);
+  --sec-press: color-mix(in oklab, var(--sec) 72%, #000);
   --sec-on: #fff;
   --stripe: var(--sec);
 }
 
-/* Dark theme: the light version of the same colour, with dark text on top. */
+/* Dark theme: a brighter navy for fills (white text, 5:1+) so it stands out on the dark background,
+   light blue for coloured text, and a dark slate blue on hover. */
 html.dark :is(:root, [data-sec]) {
-  --sec: var(--color-mint);
-  --sec-soft: color-mix(in oklab, var(--sec) 14%, var(--color-surface));
-  --sec-line: color-mix(in oklab, var(--sec) 34%, var(--color-surface));
-  --sec-ink: color-mix(in oklab, var(--sec) 82%, #fff);
-  --sec-hover: color-mix(in oklab, var(--sec) 26%, var(--color-surface));
-  --sec-press: color-mix(in oklab, var(--sec) 55%, #fff);
-  --sec-on: #0b1120;
+  --sec: var(--color-pine-600);
+  --sec-soft: color-mix(in oklab, var(--sec) 18%, var(--color-surface));
+  --sec-line: color-mix(in oklab, var(--sec) 40%, var(--color-surface));
+  --sec-ink: var(--color-mint);
+  --sec-hover: color-mix(in oklab, var(--sec) 30%, #1c2433);
+  --sec-hover-line: color-mix(in oklab, var(--sec) 60%, #3a4458);
+  --sec-press: color-mix(in oklab, var(--sec) 75%, #000);
+  --sec-on: #fff;
 }
 /* Easy-to-Read: deeper tints and borders, so highlights are even easier to see. */
 html.easy :is(:root, [data-sec]) {
   --sec-soft: color-mix(in oklab, var(--sec) 16%, var(--color-surface));
-  --sec-hover: color-mix(in oklab, var(--sec) 28%, var(--color-surface));
+  --sec-hover: color-mix(in oklab, var(--sec) 24%, #dfe5ee);
+  --sec-hover-line: color-mix(in oklab, var(--sec) 60%, #aab5c8);
   --sec-line: color-mix(in oklab, var(--sec) 50%, var(--color-surface));
 }
 
@@ -252,7 +263,7 @@ html.dark.easy {
     transition: color 0.15s, text-decoration-color 0.15s;
   }
   a:hover { text-decoration-color: var(--sec); background-color: var(--sec-hover); border-radius: 4px; }
-  a:active { background-color: var(--sec-line); }
+  a:active { background-color: var(--sec); color: var(--sec-on); }
   /* Fallback press feedback for anything clickable that has no colour of its own for that state. */
   :where(button, a, summary, [role="button"], [role="option"], [role="tab"]):not(:disabled):active { filter: brightness(0.93); }
   /* One focus ring for everything you can click, in the section's colour, so keyboard users always see where they are. */

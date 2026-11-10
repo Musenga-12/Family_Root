@@ -91,7 +91,7 @@ export default function CommandPalette({ onClose, actions }) {
                 return (
                   <div key={item.id} id={item.id} role="option" aria-selected={i === current} data-index={i}
                     onMouseMove={() => setActive(i)} onClick={() => run(item)}
-                    className={cx("flex cursor-pointer items-center gap-3 rounded-[10px] px-2.5 py-2", i === current && "bg-sec text-sec-on [&_.text-muted]:text-sec-on/85")}>
+                    className={cx("flex cursor-pointer items-center gap-3 rounded-[10px] px-2.5 py-2", i === current && "bg-sec-hover ring-1 ring-sec-hover-line ring-inset")}>
                     <span data-sec={item.sec} className={cx("grid size-8 shrink-0 place-items-center rounded-lg", i === current ? "bg-sec text-sec-on ring-2 ring-sec-on" : "bg-sec-soft text-sec-ink")}>
                       <Icon name={item.icon} size="sm" />
                     </span>

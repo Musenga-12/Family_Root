@@ -123,7 +123,7 @@ export default function Settings() {
                 <button key={l.code} type="button" role="radio" aria-checked={prefs.lang === l.code} onClick={() => setLang(l.code)}
                   className={cx("flex cursor-pointer items-center gap-3 rounded-2xl border-2 p-3 text-left text-ink",
                     prefs.lang === l.code ? "border-sec bg-sec-soft shadow-[0_6px_18px_-10px_var(--sec)]" : "lift border-line bg-surface")}>
-                  <span className="grid size-9 place-items-center rounded-lg bg-[linear-gradient(135deg,var(--sec),var(--sec-ink))] text-[.78rem] font-bold text-sec-on">{l.short}</span>
+                  <span className="grid size-9 place-items-center rounded-lg bg-sec text-[.78rem] font-bold text-sec-on">{l.short}</span>
                   <strong className="flex-1">{l.name}</strong>
                   {prefs.lang === l.code && <Icon name="check_circle" className="text-pine-700" />}
                 </button>
@@ -191,7 +191,7 @@ export default function Settings() {
               label={t("settings.notify.stories")} help={t("settings.notify.storiesHelp")} />
             <div>
               <div className="mb-2 text-[.86rem] font-semibold">{t("settings.digest")}</div>
-              <Tabs role="radiogroup" dark label={t("settings.digest")} value={prefs.notify.digest} onChange={(v) => set("notify")({ ...prefs.notify, digest: v })}
+              <Tabs role="radiogroup" label={t("settings.digest")} value={prefs.notify.digest} onChange={(v) => set("notify")({ ...prefs.notify, digest: v })}
                 items={["off", "daily", "weekly", "monthly"].map((k) => [k, t(`settings.digest.${k}`)])} />
             </div>
           </Section>

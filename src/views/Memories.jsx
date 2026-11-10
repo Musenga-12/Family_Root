@@ -111,7 +111,7 @@ function MemoryCard({ m }) {
           {m.tagged.slice(0, 3).map((id) => <Tag key={id} tone="outline">{person(id)?.first || "?"}</Tag>)}
           {m.tagged.length > 3 && <Tag tone="outline">+{m.tagged.length - 3}</Tag>}
         </span>
-        <IconButton icon="favorite" iconProps={{ fill: !!m.fav, className: m.fav ? "text-rose! [button:hover_&]:text-sec-on!" : "" }} aria-pressed={!!m.fav}
+        <IconButton icon="favorite" iconProps={{ fill: !!m.fav, className: m.fav ? "text-rose! [button:active_&]:text-sec-on!" : "" }} aria-pressed={!!m.fav}
           label={`${m.fav ? "Remove from" : "Add to"} favourites`} title={`${m.fav ? "Remove from" : "Add to"} favourites`} onClick={toggleFav} />
         <Menu label={`Actions for ${m.title}`} trigger={(p) => (
           <IconButton ref={moreRef} icon="more_vert" label={`More actions for ${m.title}`} title="More actions (or right-click the card)" {...p} />
@@ -295,7 +295,7 @@ export default function Memories() {
 
       <Card className="mt-7" aria-label="Filters">
         <div className="flex flex-wrap items-center gap-3">
-          <Tabs dark label="Type" value={f.type} onChange={(type) => setF({ ...f, type })}
+          <Tabs label="Type" value={f.type} onChange={(type) => setF({ ...f, type })}
             items={[["all", "All Items"], ["photo", "Photos"], ["document", "Documents & Letters"]].map(([k, l]) => [k, `${l} (${counts(k)})`])} />
           <InputIcon icon="search" className="min-w-55 flex-1">
             <label className="sr-only" htmlFor="memQ">Search captions and tags</label>

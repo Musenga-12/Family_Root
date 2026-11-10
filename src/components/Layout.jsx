@@ -63,13 +63,13 @@ function Sidebar({ open, onClose }) {
                         "group relative -ml-3.5 flex min-h-11 items-center gap-3.5 rounded-r-full py-1.5 pr-3 pl-6 text-[.92rem] no-underline transition-[background-color,box-shadow,color] duration-200",
                         compact && "md:ml-0 md:justify-center md:rounded-full md:px-0",
                         isActive
-                          ? cx("bg-[linear-gradient(110deg,var(--sec)_0%,var(--sec)_45%,var(--sec-ink)_100%)] font-bold text-sec-on",
-                            "shadow-[0_6px_18px_-6px_var(--sec),inset_0_1px_0_rgb(255_255_255/.25)] hover:brightness-110 dark:hover:brightness-105")
-                          : "text-ink hover:bg-[color-mix(in_oklab,var(--sec)_15%,var(--color-surface))] hover:text-sec-ink active:bg-[color-mix(in_oklab,var(--sec)_32%,var(--color-surface))]",
+                          ? cx("bg-sec font-bold text-sec-on",
+                            "shadow-[0_6px_18px_-6px_var(--sec),inset_0_1px_0_rgb(255_255_255/.25)]")
+                          : "text-ink hover:bg-sec-hover hover:text-sec-ink hover:shadow-[inset_0_0_0_1px_var(--sec-hover-line)] active:bg-sec active:text-sec-on",
                       )}>
                       {({ isActive }) => <>
                         <Icon name={icon} fill={isActive}
-                          className={cx("shrink-0 text-[21px]!", isActive ? "text-sec-on" : "text-muted group-hover:text-sec-ink")} />
+                          className={cx("shrink-0 text-[21px]!", isActive ? "text-sec-on" : "text-muted group-hover:text-sec-ink group-active:text-sec-on")} />
                         <span className={cx("min-w-0 flex-1", compact && "md:sr-only")}>{t(`nav.${id}`)}</span>
                         {/* A small dot on the open page, so it is marked by shape as well as colour. */}
                         {isActive && !compact && <span aria-hidden="true" className="size-2 shrink-0 rounded-full bg-sec-on shadow-[0_0_0_3px_rgb(255_255_255/.25)]" />}
@@ -401,7 +401,7 @@ function Topbar({ menuOpen, onMenu, onPalette, onTour, speech }) {
       <UndoControls />
       <button type="button" data-tour="easy" data-sec="easy" aria-pressed={easy} title={t("top.easyTitle")} onClick={toggleEasy}
         className={cx("pressable inline-flex min-h-11 cursor-pointer items-center gap-1.5 rounded-xl border px-3 py-2 text-small font-medium easy:min-h-12",
-          easy ? "border-transparent bg-[linear-gradient(135deg,var(--sec),var(--sec-ink))] text-sec-on shadow-[0_4px_12px_-6px_var(--sec)] hover:ring-4 hover:ring-sec-line"
+          easy ? "border-transparent bg-sec text-sec-on shadow-[0_4px_12px_-6px_var(--sec)] hover:ring-4 hover:ring-sec-line"
             : "hover-fill border-sec-line bg-sec-soft text-sec-ink")}>
         <span className="font-bold">Aa</span> <span className="hidden xl:inline">{t("top.easy")}</span>
       </button>
@@ -538,7 +538,7 @@ function QuickActions() {
               <button type="button" onClick={() => { setExpanded(false); run(); }}
                 className="group pressable hover-fill flex min-h-12 cursor-pointer items-center gap-2.5 rounded-full border border-sec-line bg-surface py-1.5 pr-1.5 pl-4 text-[.9rem] font-semibold text-ink shadow-pop hover:-translate-x-1">
                 {t(label)}
-                <span className="grid size-9 place-items-center rounded-full bg-[linear-gradient(135deg,var(--sec),var(--sec-ink))] text-sec-on group-hover:bg-none group-hover:bg-sec-on/25"><Icon name={icon} size="sm" /></span>
+                <span className="grid size-9 place-items-center rounded-full bg-sec text-sec-on"><Icon name={icon} size="sm" /></span>
               </button>
             </li>
           ))}
@@ -547,7 +547,7 @@ function QuickActions() {
       <button type="button" data-tour="fab" aria-expanded={expanded} aria-controls="quickActions" aria-label={t("fab.label")} title={t("fab.label")}
         onClick={() => setExpanded((x) => !x)}
         className={cx("grid size-15 cursor-pointer place-items-center rounded-full border-0 text-sec-on shadow-[0_10px_28px_-8px_var(--sec)]",
-          "bg-[linear-gradient(135deg,var(--sec),var(--sec-ink))] transition-[transform,box-shadow] duration-300",
+          "bg-sec transition-[transform,box-shadow] duration-300",
           "hover:scale-105 hover:ring-4 hover:ring-sec-line active:scale-95 active:ring-sec", expanded && "ring-4 ring-sec-line")}>
         <Icon name="add" className={cx("text-[30px]! transition-transform", expanded && "rotate-45")} />
       </button>
