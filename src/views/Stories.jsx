@@ -26,14 +26,15 @@ const CATS = ["Elder Oral Histories", "Spoken Audio", "Written Memories", "Tradi
 
 function ReadDialog({ s }) {
   const { person } = useStore();
+  const t = useT();
   const close = useCloseModal();
   const { toggle, speaking } = useSpeech();
   const text = s.transcript || s.excerpt;
   return (
     <Dialog title={s.title} sub={`${fullName(person(s.by))} • ${fmtDate(s.recorded)}`}
       footer={<>
-        {canSpeak && <Button icon={speaking ? "stop_circle" : "volume_up"} aria-pressed={speaking} onClick={() => toggle(`${s.title}. ${text}`)}>{speaking ? "Stop reading" : "Listen to this story"}</Button>}
-        <Button variant="primary" onClick={close}>Close</Button>
+        {canSpeak && <Button icon={speaking ? "stop_circle" : "volume_up"} aria-pressed={speaking} onClick={() => toggle(`${s.title}. ${text}`)}>{speaking ? t("read.stop") : t("st.listen")}</Button>}
+        <Button variant="primary" onClick={close}>{t("common.close")}</Button>
       </>}>
       <p className="font-serif text-[1.1rem] leading-[1.7]">{s.transcript || s.excerpt}</p>
     </Dialog>
@@ -42,6 +43,7 @@ function ReadDialog({ s }) {
 
 function WriteStoryDialog() {
   const { update } = useStore();
+  const t = useT();
   const toast = useToast();
   const close = useCloseModal();
   // Long writing is the easiest thing to lose, so it autosaves as a draft.
@@ -53,7 +55,7 @@ function WriteStoryDialog() {
   const publish = () => {
     setTried(true);
     if (!title.trim() || !body.trim()) {
-      toast("Add a title and your story", { error: true, sub: "Both fields are needed to publish." });
+      toast(t("st.needBoth"), { error: true, sub: t("st.needBothSub") });
       document.getElementById(title.trim() ? "wsB" : "wsT").focus();
       return;
     }
@@ -62,24 +64,24 @@ function WriteStoryDialog() {
         id: uid("s"), title: title.trim(), kind: "written", category: cat, by: ME, recorded: new Date().toISOString().slice(0, 10),
         excerpt: body.trim().slice(0, 180) + (body.length > 180 ? "…" : ""), transcript: body.trim(), loves: 0, reflections: 0, isNew: true,
       });
-    }, `Published “${title.trim()}”`);
-    toast("Story published", { sub: "Visible to the Mackenzie Kinship Circle.", icon: "auto_stories" });
+    }, t("st.publishedHistory", { title: title.trim() }));
+    toast(t("st.published"), { sub: t("st.publishedSub"), icon: "auto_stories" });
     draft.clear();
     close();
   };
 
   return (
-    <Dialog wide title="Write a family story" sub="A written memory is just as precious as a recording."
-      footer={<><DraftNote draft={draft} /><CancelButton /><Button variant="primary" onClick={publish}>Publish to Archive</Button></>}>
-      <Field id="wsT" label="Title" hint="Required">
+    <Dialog wide title={t("st.writeTitle")} sub={t("st.writeSub")}
+      footer={<><DraftNote draft={draft} /><CancelButton /><Button variant="primary" onClick={publish}>{t("st.publish")}</Button></>}>
+      <Field id="wsT" label={t("st.title")} hint={t("common.required")}>
         <Input id="wsT" value={title} onChange={set("title")} invalid={tried && !title.trim()} />
       </Field>
-      <Field id="wsB" label="Your story" hint="Required">
-        <Textarea id="wsB" rows={8} value={body} onChange={set("body")} invalid={tried && !body.trim()} placeholder="Start wherever feels natural…" />
+      <Field id="wsB" label={t("st.yourStory")} hint={t("common.required")}>
+        <Textarea id="wsB" rows={8} value={body} onChange={set("body")} invalid={tried && !body.trim()} placeholder={t("st.storyPh")} />
       </Field>
-      <Field id="wsC" label="Category">
+      <Field id="wsC" label={t("st.category")}>
         <Select id="wsC" value={cat} onChange={set("cat")}>
-          <option>Written Memories</option><option>Traditions & Recipes</option><option>Elder Oral Histories</option>
+          {["Written Memories", "Traditions & Recipes", "Elder Oral Histories"].map((c) => <option key={c} value={c}>{t(`cat.${c}`)}</option>)}
         </Select>
       </Field>
     </Dialog>
@@ -87,7 +89,8 @@ function WriteStoryDialog() {
 }
 
 function StoryCard({ s }) {
-  const { person, update } = useStore();
+  const { person, update, kin } = useStore();
+  const t = useT();
   const { open } = useModal();
   const by = person(s.by);
   const audio = s.kind === "audio";
@@ -95,17 +98,17 @@ function StoryCard({ s }) {
     const x = st.stories.find((y) => y.id === s.id);
     x.loved = !x.loved;
     x.loves += x.loved ? 1 : -1;
-  }, `${s.loved ? "Unloved" : "Loved"} “${s.title}”`);
+  }, t(s.loved ? "st.unlovedHistory" : "st.lovedHistory", { title: s.title }));
 
   return (
     <article className="grid min-w-0 content-start gap-2.5 rounded-[18px] border border-line bg-surface p-4.5">
       <div className="flex flex-wrap items-center justify-between gap-2.5">
         <div className="flex flex-wrap items-center gap-1.5">
           <Tag tone={audio ? "sec" : "default"} icon={audio ? "graphic_eq" : "edit_note"}>
-            {audio ? "Audio Story" : "Written Memoir"}{audio && s.duration ? ` · ${Math.round(s.duration / 60)} mins` : ""}
+            {audio ? t("st.audio") : t("st.written")}{audio && s.duration ? ` · ${t("st.mins", { n: Math.round(s.duration / 60) })}` : ""}
           </Tag>
-          {s.verified && <Tag tone="gold" icon="verified">Verified Oral History</Tag>}
-          {s.isNew && <Tag tone="dark">Just recorded</Tag>}
+          {s.verified && <Tag tone="gold" icon="verified">{t("st.verified")}</Tag>}
+          {s.isNew && <Tag tone="dark">{t("st.new")}</Tag>}
         </div>
         <span className="text-xsmall text-muted">{fmtDate(s.recorded)}</span>
       </div>
@@ -114,16 +117,16 @@ function StoryCard({ s }) {
       {audio && <AudioPlayer id={s.id} duration={s.duration} label={s.title} />}
       <div className="flex flex-wrap items-center gap-2.5">
         {s.transcript || !audio
-          ? <Button size="sm" variant="soft" icon="article" onClick={() => open(<ReadDialog s={s} />)}>{audio ? "View Full Transcript" : "Read Story"}</Button>
-          : <span className="text-xsmall text-muted"><Icon name="hourglass_empty" size="xs" /> Transcript being prepared</span>}
+          ? <Button size="sm" variant="soft" icon="article" onClick={() => open(<ReadDialog s={s} />)}>{audio ? t("st.transcript") : t("st.read")}</Button>
+          : <span className="text-xsmall text-muted"><Icon name="hourglass_empty" size="xs" /> {t("st.preparing")}</span>}
       </div>
       <div className="mt-1 flex items-center gap-2.5 border-t border-line pt-3">
         <Avatar p={by} round />
         <div className="min-w-0 flex-1">
           <strong className="text-small">{fullName(by)}</strong>
-          <p className="text-xsmall text-muted">{by.role} (Gen {by.gen})</p>
+          <p className="text-xsmall text-muted">{t("st.gen", { role: kin(by.role), n: by.gen })}</p>
         </div>
-        <Button variant="ghost" size="sm" aria-label={`Love this story, ${s.loves} loves`} aria-pressed={!!s.loved} onClick={toggleLove}>
+        <Button variant="ghost" size="sm" aria-label={t("st.love", { n: s.loves })} aria-pressed={!!s.loved} onClick={toggleLove}>
           <Icon name="favorite" size="sm" fill={s.loved} /> {s.loves}
         </Button>
         <span className="text-xsmall text-muted"><Icon name="forum" size="xs" /> {s.reflections}</span>
@@ -164,17 +167,17 @@ export default function Stories() {
     <>
       <Hero className="flex flex-wrap items-center gap-6">
         <div className="min-w-65 flex-1">
-          <Tag tone="sec" icon="mic">LIVING ORAL HERITAGE VAULT</Tag>
+          <Tag tone="sec" icon="mic">{t("st.vault")}</Tag>
           <h1 className="mt-4">{t("h1.stories")}</h1>
-          <p className="mt-2 text-muted">Preserving the voices, inflection, wisdom, and warm memories of the Mackenzie family lineage across four generations.</p>
+          <p className="mt-2 text-muted">{t("st.intro")}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2.5">
           <Button icon="lightbulb" onClick={() => {
             document.getElementById("promptCard").scrollIntoView({ behavior: "smooth", block: "center" });
             document.querySelector("[data-alt-prompt]")?.focus({ preventScroll: true });
-          }}>Browse Prompts</Button>
-          <Button icon="edit" onClick={() => open(<WriteStoryDialog />)}>Write a Story</Button>
-          <Button variant="primary" icon="mic" onClick={goToStudio}>Record a Voice Story</Button>
+          }}>{t("st.browse")}</Button>
+          <Button icon="edit" onClick={() => open(<WriteStoryDialog />)}>{t("st.write")}</Button>
+          <Button variant="primary" icon="mic" onClick={goToStudio}>{t("st.record")}</Button>
         </div>
       </Hero>
 
@@ -183,18 +186,18 @@ export default function Stories() {
       <section className="mt-7" aria-labelledby="presH">
         <SectionTitle>
           <div>
-            <h2 id="presH">Preserved Stories &amp; Folios</h2>
-            <p className="text-small text-muted">{st.stories.length} digitised audio tapes, written journals, and heirloom spoken recordings.</p>
+            <h2 id="presH">{t("st.preserved")}</h2>
+            <p className="text-small text-muted">{t("st.preservedSub", { n: st.stories.length })}</p>
           </div>
           <InputIcon icon="search" className="min-w-60">
-            <label className="sr-only" htmlFor="stQ">Search spoken transcripts</label>
-            <Input id="stQ" type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search spoken transcripts…" />
+            <label className="sr-only" htmlFor="stQ">{t("st.searchLabel")}</label>
+            <Input id="stQ" type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder={t("st.searchPh")} />
           </InputIcon>
         </SectionTitle>
-        <Chips scroll role="group" aria-label="Category">
-          <Chip pressed={cat === "all"} count={st.stories.length} onClick={() => setCat("all")}>All Stories</Chip>
+        <Chips scroll role="group" aria-label={t("st.categoryLabel")}>
+          <Chip pressed={cat === "all"} count={st.stories.length} onClick={() => setCat("all")}>{t("st.all")}</Chip>
           {CATS.map((c) => (
-            <Chip key={c} pressed={cat === c} count={st.stories.filter((s) => s.category === c).length} onClick={() => setCat(c)}>{c}</Chip>
+            <Chip key={c} pressed={cat === c} count={st.stories.filter((s) => s.category === c).length} onClick={() => setCat(c)}>{t(`cat.${c}`)}</Chip>
           ))}
         </Chips>
         <div className="mt-3 flex flex-wrap items-center gap-3">
@@ -209,7 +212,7 @@ export default function Stories() {
           {list.length ? (
             <div className="grid grid-cols-[repeat(auto-fill,minmax(300px,1fr))] gap-4.5">{list.map((s) => <StoryCard key={s.id} s={s} />)}</div>
           ) : (
-            <Empty icon="search_off" title="No stories found"><p className="text-small">Try different words, or record the first one yourself.</p></Empty>
+            <Empty icon="search_off" title={t("st.none")}><p className="text-small">{t("st.noneHelp")}</p></Empty>
           )}
         </div>
       </section>
@@ -217,8 +220,8 @@ export default function Stories() {
       <Card tone="soft" className="mt-7 flex flex-wrap items-center gap-2.5">
         <IconBox icon="backup" tone="dark" />
         <div className="min-w-0 flex-1">
-          <strong>Permanent Heritage Redundancy Active</strong>
-          <p className="text-xsmall text-muted">All Mackenzie voice archives are replicated across offline storage and dual family custodians.</p>
+          <strong>{t("st.redundancy")}</strong>
+          <p className="text-xsmall text-muted">{t("st.redundancySub")}</p>
         </div>
       </Card>
     </>
