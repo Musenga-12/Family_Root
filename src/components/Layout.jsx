@@ -31,14 +31,14 @@ function Sidebar({ open, onClose }) {
   const compact = prefs.sidebar === "compact";
   return (
     <>
-      <aside id="sidebar" aria-label="Primary" data-no-print
+      <aside id="sidebar" aria-label={t("shell.primaryNav")} data-no-print
         className={cx(
           "z-40 flex h-screen w-62 shrink-0 flex-col gap-4.5 overflow-y-auto border-r border-line bg-surface-2 px-3.5 py-4.5 transition-[width,transform]",
           "fixed top-0 left-0 shadow-pop md:sticky md:translate-x-0 md:shadow-none",
           compact && "md:w-19 md:px-2.5",
           open ? "translate-x-0" : "-translate-x-full",
         )}>
-        <Link to="/" aria-label="FamilyRoots home" className={cx("flex items-center gap-2.5 px-1.5 text-ink no-underline", compact && "md:justify-center")}>
+        <Link to="/" aria-label={t("shell.home")} className={cx("flex items-center gap-2.5 px-1.5 text-ink no-underline", compact && "md:justify-center")}>
           <span className="grid size-8.5 shrink-0 place-items-center rounded-full bg-pine-900 text-mint"><Icon name="park" /></span>
           <span className={cx(compact && "md:sr-only")}>
             <strong className="block font-serif text-[1.15rem] leading-[1.1]">FamilyRoots</strong>
@@ -75,7 +75,7 @@ function Sidebar({ open, onClose }) {
                         {isActive && !compact && <span aria-hidden="true" className="size-2 shrink-0 rounded-full bg-sec-on shadow-[0_0_0_3px_rgb(255_255_255/.25)]" />}
                         {id === "messages" && unread > 0 && (
                           <span className={cx("grid h-5 min-w-5 place-items-center rounded-full bg-rose px-1 text-[.66rem] font-bold text-white", isActive && "ring-2 ring-white", compact && "md:absolute md:top-1 md:right-1")}>
-                            {unread}<span className="sr-only"> unread</span>
+                            {unread}<span className="sr-only"> {t("shell.unread")}</span>
                           </span>
                         )}
                       </>}
@@ -103,13 +103,14 @@ function Sidebar({ open, onClose }) {
 }
 
 function NotificationsDialog({ onRead }) {
+  const t = useT();
   const items = [
-    ["cake", "Anna's birthday is coming up", "Send a voice card or attach a memory."],
-    ["forum", "2 new replies to this week's prompt", "Michael and Anna shared recollections."],
-    ["fact_check", "Pending proof review", "Robert Dunbar's birth record awaits family consensus."],
+    ["cake", t("notif.birthday", { name: "Anna" }), t("notif.birthdaySub")],
+    ["forum", t("notif.replies"), t("notif.repliesSub")],
+    ["fact_check", t("notif.proof"), t("notif.proofSub")],
   ];
   return (
-    <Dialog title="Notifications" footer={<CloseAfter onClick={onRead}>Mark all as read</CloseAfter>}>
+    <Dialog title={t("top.notifications")} footer={<CloseAfter onClick={onRead}>{t("notif.markRead")}</CloseAfter>}>
       <div className="grid gap-2">
         {items.map(([icon, title, sub]) => (
           <Record key={title} icon={icon}><div className="min-w-0 flex-1"><strong>{title}</strong><p className="text-small text-muted">{sub}</p></div></Record>
@@ -373,12 +374,12 @@ function Topbar({ menuOpen, onMenu, onPalette, onTour, speech }) {
 
   return (
     <header data-no-print className="sticky top-0 z-30 flex items-center gap-2 border-b border-line bg-bg/90 px-4 py-2.5 backdrop-blur-md sm:gap-2.5 sm:px-7 sm:py-3">
-      <IconButton icon="menu" label="Open navigation" aria-expanded={menuOpen} aria-controls="sidebar" onClick={onMenu} className="md:hidden" />
-      <button type="button" onClick={() => toast("You belong to one family archive", { sub: "To join another family's archive, ask one of its admins for an invitation.", icon: "info" })}
+      <IconButton icon="menu" label={t("shell.openNav")} aria-expanded={menuOpen} aria-controls="sidebar" onClick={onMenu} className="md:hidden" />
+      <button type="button" onClick={() => toast(t("shell.oneArchive"), { sub: t("shell.oneArchiveSub"), icon: "info" })}
         className="pressable hidden cursor-pointer items-center gap-4 rounded-xl border border-line bg-surface px-3 py-1.5 text-left text-ink hover-fill min-[1500px]:flex">
         <span>
           <small className="block text-[.6rem] font-semibold tracking-[.12em] text-muted uppercase">{t("top.activeArchive")}</small>
-          <strong className="text-[.92rem] font-semibold">The Mackenzie Family</strong>
+          <strong className="text-[.92rem] font-semibold">{t("shell.familyName")}</strong>
         </span>
         <Icon name="expand_more" size="sm" />
       </button>
@@ -445,8 +446,8 @@ function Topbar({ menuOpen, onMenu, onPalette, onTour, speech }) {
         <MenuItem icon="history" onClick={() => open(<HistoryDialog />)}>{t("history.title")}</MenuItem>
         <MenuItem icon="tour" onClick={onTour}>{t("tour.restart")}</MenuItem>
         {app.status === "available" && (
-          <MenuItem icon="install_desktop" onClick={async () => { if (await app.install()) toast("FamilyRoots installed", { sub: "Open it from your home screen or apps list.", icon: "install_desktop" }); }}>
-            Install FamilyRoots app
+          <MenuItem icon="install_desktop" onClick={async () => { if (await app.install()) toast(t("shell.installed"), { sub: t("shell.installedSub"), icon: "install_desktop" }); }}>
+            {t("shell.install")}
           </MenuItem>
         )}
         <MenuDivider />
@@ -458,7 +459,7 @@ function Topbar({ menuOpen, onMenu, onPalette, onTour, speech }) {
         </div>
         <MenuDivider />
         <MenuItem icon="home" onClick={() => navigate("/")}>{t("menu.landing")}</MenuItem>
-        <MenuItem icon="logout" onClick={() => { toast("You've signed out", { sub: "Your archive stays saved on this device.", icon: "logout" }); navigate("/auth"); }}>{t("menu.signout")}</MenuItem>
+        <MenuItem icon="logout" onClick={() => { toast(t("shell.signedOut"), { sub: t("shell.signedOutSub"), icon: "logout" }); navigate("/auth"); }}>{t("menu.signout")}</MenuItem>
       </Menu>
     </header>
   );
@@ -640,7 +641,7 @@ export default function Layout({ children }) {
     <>
       <a href="#main" onClick={(e) => { e.preventDefault(); mainRef.current?.focus(); }}
         className="absolute top-2 -left-249.75 z-100 rounded-lg bg-pine-900 px-3.5 py-2 text-white focus:left-2">
-        Skip to main content
+        {t("shell.skip")}
       </a>
       {/* data-sec gives the whole page its section colour (header, buttons, chips, progress bar). */}
       <div data-sec={route} className="contents">

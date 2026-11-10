@@ -1,6 +1,7 @@
 /* Modal dialogs with focus trap. Open from anywhere: const { open } = useModal(); open(<MyDialog />). */
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { cx } from "../lib/format";
+import { useT } from "../lib/i18n";
 import { CloseContext, ModalContext, useCloseModal } from "./modalContext";
 import { Button, Icon, IconButton } from "./ui";
 
@@ -35,6 +36,7 @@ const FOCUSABLE = 'button, [href], input, select, textarea, [tabindex]:not([tabi
 /** Dialog shell. `footer` holds the action buttons; call useCloseModal() inside to close. */
 /** `sec` gives the dialog a section colour (e.g. sec="memories" for "Upload a new memory"). */
 export function Dialog({ title, sub, wide, sec, footer, children }) {
+  const t = useT();
   const close = useCloseModal();
   const closeRef = useRef(close);
   useLayoutEffect(() => { closeRef.current = close; });
@@ -71,7 +73,7 @@ export function Dialog({ title, sub, wide, sec, footer, children }) {
             <h2 id={titleId}>{title}</h2>
             {sub && <p className="mt-2 text-small text-muted">{sub}</p>}
           </div>
-          <IconButton icon="close" label="Close dialog" onClick={close} />
+          <IconButton icon="close" label={t("common.closeDialog")} onClick={close} />
         </header>
         <div className="grid gap-3.5 px-5.5 py-4.5">{children}</div>
         {footer && <footer className="flex flex-wrap justify-end gap-2.5 px-5.5 pb-5">{footer}</footer>}
@@ -81,9 +83,10 @@ export function Dialog({ title, sub, wide, sec, footer, children }) {
 }
 
 /** Standard Cancel button for dialog footers. */
-export function CancelButton({ children = "Cancel" }) {
+export function CancelButton({ children }) {
+  const t = useT();
   const close = useCloseModal();
-  return <Button variant="soft" onClick={close}>{children}</Button>;
+  return <Button variant="soft" onClick={close}>{children ?? t("common.cancel")}</Button>;
 }
 
 function ConfirmDialog({ title, message, confirmLabel, onConfirm }) {
@@ -97,14 +100,15 @@ function ConfirmDialog({ title, message, confirmLabel, onConfirm }) {
 
 /** Footer note for forms that autosave: "Draft restored … Start over" or "Draft saved 10:42". */
 export function DraftNote({ draft }) {
+  const t = useT();
   const { restored, savedAt, discard } = draft;
-  if (!savedAt) return <span className="mr-auto self-center text-xsmall text-muted"><Icon name="cloud_sync" size="xs" /> Drafts save automatically as you type</span>;
+  if (!savedAt) return <span className="mr-auto self-center text-xsmall text-muted"><Icon name="cloud_sync" size="xs" /> {t("draft.auto")}</span>;
   const time = new Date(savedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   return (
     <span role="status" className="mr-auto flex flex-wrap items-center gap-1.5 self-center text-xsmall text-muted">
       <Icon name={restored ? "restore" : "cloud_done"} size="xs" className="text-sec-ink" />
-      {restored ? `Draft restored (saved ${time})` : `Draft saved ${time}`}
-      <button type="button" onClick={discard} className="cursor-pointer rounded border-0 bg-transparent px-1 font-semibold text-sec-ink hover-fill">Start over</button>
+      {restored ? t("draft.restored", { time }) : t("draft.saved", { time })}
+      <button type="button" onClick={discard} className="cursor-pointer rounded border-0 bg-transparent px-1 font-semibold text-sec-ink hover-fill">{t("draft.startOver")}</button>
     </span>
   );
 }

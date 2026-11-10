@@ -2,6 +2,7 @@
 import { Suspense, lazy } from "react";
 import { Outlet, Route, Routes } from "react-router-dom";
 import Layout from "./components/Layout";
+import { useT } from "./lib/i18n";
 
 const Auth = lazy(() => import("./views/Auth"));
 const Calendar = lazy(() => import("./views/Calendar"));
@@ -19,7 +20,11 @@ const Stories = lazy(() => import("./views/Stories"));
 const Timeline = lazy(() => import("./views/Timeline"));
 const Tree = lazy(() => import("./views/Tree"));
 
-const loading = <div className="grid min-h-[50vh] place-items-center text-muted" role="status">Loading…</div>;
+function Loading() {
+  const t = useT();
+  return <div className="grid min-h-[50vh] place-items-center text-muted" role="status">{t("common.loading")}</div>;
+}
+const loading = <Loading />;
 
 export default function App() {
   return (

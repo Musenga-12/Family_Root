@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { cue } from "../lib/feedback";
+import { useT } from "../lib/i18n";
 import { ToastContext } from "./toastContext";
 import { Icon } from "./ui";
 
@@ -32,6 +33,7 @@ export function ToastProvider({ children }) {
 }
 
 function Toast({ t, onDismiss }) {
+  const tr = useT();
   const [paused, setPaused] = useState(false);
   const [left, setLeft] = useState(t.duration);
   const startedAt = useRef(0);
@@ -53,7 +55,7 @@ function Toast({ t, onDismiss }) {
       <div className="min-w-0 flex-1">
         <strong>{t.title}</strong>
         {t.sub && <small className="block text-[.76rem] text-on-dark">{t.sub}</small>}
-        {paused && t.duration != null && <small className="block text-[.68rem] text-on-dark/80">Paused while you read</small>}
+        {paused && t.duration != null && <small className="block text-[.68rem] text-on-dark/80">{tr("toast.paused")}</small>}
       </div>
       {t.action && (
         <button type="button" onClick={() => { t.onAction?.(); onDismiss(); }}
@@ -61,7 +63,7 @@ function Toast({ t, onDismiss }) {
           {t.action}
         </button>
       )}
-      <button type="button" aria-label="Dismiss" onClick={onDismiss}
+      <button type="button" aria-label={tr("common.dismiss")} onClick={onDismiss}
         className="grid size-9 cursor-pointer place-items-center rounded-lg border-0 bg-transparent text-on-dark hover:bg-white/10 hover:text-white">
         <Icon name="close" size="sm" />
       </button>
