@@ -22,29 +22,28 @@ const SORTS = {
   youngestPerson: (a, b) => b.born.localeCompare(a.born),
 };
 
-const GEN_NAMES = { 1: "Great-Grand Elders", 2: "Grandparents", 3: "Parents & Children", 4: "Grandchildren" };
 const ALL = { branch: "all", status: "all", gen: "all" };
 
 function PersonCard({ p, selected, list, onOpen }) {
-  const { children, relationToMe, update } = useStore();
+  const { children, relationToMe, update, kin } = useStore();
   const t = useT();
-  const toggleFav = () => update((s) => { const x = s.people.find((y) => y.id === p.id); x.fav = !x.fav; }, `${p.fav ? "Unstarred" : "Starred"} ${p.first}`);
+  const toggleFav = () => update((s) => { const x = s.people.find((y) => y.id === p.id); x.fav = !x.fav; }, t(p.fav ? "dir.unstarred" : "dir.starred", { name: p.first }));
   const { open } = useModal();
   const navigate = useNavigate();
   const kids = children(p.id);
   const days = !p.died && daysToBirthday(p);
-  const status = p.id === ME ? <Tag tone="sec">YOU (MATRIARCH)</Tag>
-    : p.died ? <Tag tone="gold" icon="local_florist">IN MEMORIAM</Tag>
-    : p.pending ? <Tag tone="rose">PARISH PROOFS PENDING</Tag>
-    : days <= 14 ? <Tag tone="gold" icon="cake">{days} DAYS</Tag>
-    : <Tag>{p.role.toUpperCase()}</Tag>;
-  const life = p.died ? `${year(p.born)} – ${year(p.died)}` : `b. ${year(p.born)} (Age ${age(p)})`;
-  const primary = p.died ? <Button wrap variant="soft" size="sm" icon="play_circle" onClick={() => navigate("/stories")}>Listen to Stories</Button>
-    : p.id === ME ? <Button wrap variant="soft" size="sm" icon="badge" to={`/tree?person=${p.id}`}>View Profile</Button>
-    : p.minor ? <Button wrap variant="soft" size="sm" icon="folder_shared" onClick={() => onOpen(p.id)}>View Children Folio</Button>
+  const status = p.id === ME ? <Tag tone="sec">{t("dir.youTag", { role: kin(p.role).toUpperCase() })}</Tag>
+    : p.died ? <Tag tone="gold" icon="local_florist">{t("dir.memoriam")}</Tag>
+    : p.pending ? <Tag tone="rose">{t("dir.proofs")}</Tag>
+    : days <= 14 ? <Tag tone="gold" icon="cake">{t("dir.days", { n: days })}</Tag>
+    : <Tag>{kin(p.role).toUpperCase()}</Tag>;
+  const life = p.died ? `${year(p.born)} – ${year(p.died)}` : t("dir.life", { year: year(p.born), age: age(p) });
+  const primary = p.died ? <Button wrap variant="soft" size="sm" icon="play_circle" onClick={() => navigate("/stories")}>{t("dir.listen")}</Button>
+    : p.id === ME ? <Button wrap variant="soft" size="sm" icon="badge" to={`/tree?person=${p.id}`}>{t("dir.profile")}</Button>
+    : p.minor ? <Button wrap variant="soft" size="sm" icon="folder_shared" onClick={() => onOpen(p.id)}>{t("dir.folio")}</Button>
     : <Button wrap variant="primary" size="sm" icon="chat"
-        onClick={() => open(<MessageDialog person={p} title={`Message ${p.first}`} sub="Private family message — end-to-end encrypted." label="Your message" sendLabel="Send" />)}>
-        Message
+        onClick={() => open(<MessageDialog person={p} title={t("dir.msgTitle", { name: p.first })} sub={t("dir.msgSub")} label={t("dir.msgLabel")} sendLabel={t("dir.send")} />)}>
+        {t("dir.message")}
       </Button>;
 
   return (
@@ -55,25 +54,25 @@ function PersonCard({ p, selected, list, onOpen }) {
         selected ? "border-sec shadow-[0_0_0_3px_var(--sec-line)]" : "border-line",
       )}>
       <div className={cx("grid justify-items-end gap-1 text-right", list ? "col-start-2 row-start-1 justify-items-start text-left sm:col-start-3 sm:justify-items-end" : "absolute top-4 right-4")}>
-        {status}<span className="text-xsmall text-muted">Generation {p.gen}</span>
+        {status}<span className="text-xsmall text-muted">{t("dir.generation", { n: p.gen })}</span>
       </div>
       <Avatar p={p} size="lg" />
       <div>
         <h3 className="text-[1.1rem]!">{fullName(p)}</h3>
         <div className="flex items-center gap-1 text-[.76rem] text-muted"><Icon name="location_on" size="xs" /> {p.city} • {life}</div>
         {!list && (
-          <div className="mt-2 flex flex-wrap gap-1.5">{(p.tags || []).slice(0, 2).map((t) => <Tag key={t} tone="outline">{t}</Tag>)}</div>
+          <div className="mt-2 flex flex-wrap gap-1.5">{(p.tags || []).slice(0, 2).map((tag) => <Tag key={tag} tone="outline">{tag}</Tag>)}</div>
         )}
       </div>
       {!list && (
         <div className="flex justify-between gap-2 rounded-[10px] bg-surface-2 p-2.5 text-[.74rem]">
-          <span>{kids.length ? `${kids.length} Child${kids.length > 1 ? "ren" : ""}: ${kids.map((k) => k.first).join(", ")}` : p.occupation}</span>
-          <span className="text-sec-ink">Kinship: {relationToMe(p)}</span>
+          <span>{kids.length ? t(kids.length > 1 ? "dir.childrenMany" : "dir.childrenOne", { n: kids.length, names: kids.map((k) => k.first).join(", ") }) : p.occupation}</span>
+          <span className="text-sec-ink">{t("dir.kinship", { rel: relationToMe(p) })}</span>
         </div>
       )}
       <div className={cx("flex gap-2 [&>*:first-child]:flex-1", list ? "col-span-full sm:col-span-1 sm:col-start-3" : "mt-1")}>
         {primary}
-        <Button size="sm" icon="person_search" aria-label={`Open kinship dossier for ${p.first}`} onClick={() => onOpen(p.id)}>Details</Button>
+        <Button size="sm" icon="person_search" aria-label={t("dir.openDossier", { name: p.first })} onClick={() => onOpen(p.id)}>{t("dir.details")}</Button>
         <IconButton icon="star" iconProps={{ fill: !!p.fav, className: p.fav ? "text-gold! [button:active_&]:text-sec-on!" : "" }} aria-pressed={!!p.fav} className="size-8.5!"
           label={t(p.fav ? "fav.remove" : "fav.add", { name: p.first })} title={t(p.fav ? "fav.remove" : "fav.add", { name: p.first })} onClick={toggleFav} />
       </div>
@@ -82,11 +81,12 @@ function PersonCard({ p, selected, list, onOpen }) {
 }
 
 function Dossier({ id, onClose }) {
-  const { state, person, children, relationToMe } = useStore();
+  const { state, person, children, relationToMe, kin } = useStore();
+  const t = useT();
   const { open } = useModal();
   const toast = useToast();
   const p = person(id);
-  if (!p) return <Empty icon="badge" title="No relative selected"><p className="text-small">Choose “Details” on any card to read their kinship dossier.</p></Empty>;
+  if (!p) return <Empty icon="badge" title={t("dir.none")}><p className="text-small">{t("dir.noneHelp")}</p></Empty>;
 
   const me = person(ME);
   const mems = state.memories.filter((m) => m.tagged.includes(p.id));
@@ -95,48 +95,51 @@ function Dossier({ id, onClose }) {
 
   const downloadExtract = () => {
     const parents = p.parents.map((x) => fullName(person(x))).join(" & ") || "—";
-    const txt = `FAMILYROOTS LINEAGE EXTRACT\n\nName: ${fullName(p)}\nBorn: ${fmtDate(p.born, p.bornApprox)}${p.died ? "\nDied: " + fmtDate(p.died) : ""}\nGeneration: ${p.gen}\nParents: ${parents}\nChildren: ${children(p.id).map(fullName).join(", ") || "—"}\nRelation to Mary Mackenzie: ${relationToMe(p)}\n`;
+    const txt = t("dir.extract", {
+      name: fullName(p), born: fmtDate(p.born, p.bornApprox), died: p.died ? t("dir.extractDied", { date: fmtDate(p.died) }) : "",
+      gen: p.gen, parents, children: children(p.id).map(fullName).join(", ") || "—", rel: relationToMe(p),
+    });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob([txt], { type: "text/plain" }));
-    a.download = `${p.first}-${p.last}-lineage.txt`;
+    a.download = t("dir.extractFile", { first: p.first, last: p.last });
     a.click();
-    toast("Lineage extract downloaded", { icon: "download" });
+    toast(t("dir.extractDone"), { icon: "download" });
   };
 
   return (
     <>
-      <div className="flex items-center justify-between"><Eyebrow>Kinship Dossier</Eyebrow><IconButton icon="close" label="Close dossier" onClick={onClose} /></div>
+      <div className="flex items-center justify-between"><Eyebrow>{t("dir.dossier")}</Eyebrow><IconButton icon="close" label={t("dir.closeDossier")} onClick={onClose} /></div>
       <div className="mt-4 flex items-center gap-2.5">
         <Avatar p={p} size="lg" />
         <div>
           <h2>{fullName(p)}</h2>
-          <p className="text-small text-muted">{p.parents.length ? "Child of " + p.parents.map((x) => person(x).first).join(" & ") : p.role}</p>
+          <p className="text-small text-muted">{p.parents.length ? t("dir.childOf", { names: p.parents.map((x) => person(x).first).join(" & ") }) : kin(p.role)}</p>
         </div>
       </div>
       <Card tone="soft" as="div" className="mt-4 p-3.5!">
         <div className="flex items-center justify-between">
-          <strong className="text-small">How You Are Related</strong>
-          <Tag tone="dark">{degree ? `${degree}${degree === 1 ? "st" : degree === 2 ? "nd" : "rd"} Degree` : "Self"}</Tag>
+          <strong className="text-small">{t("dir.how")}</strong>
+          <Tag tone="dark">{degree ? t(`dir.degree.${degree}`) : t("dir.self")}</Tag>
         </div>
         <div className="my-2.5 flex items-center justify-center gap-2">
-          <span className="grid size-9 place-items-center rounded-full bg-sec text-[.7rem] font-bold text-sec-on">You</span>
+          <span className="grid size-9 place-items-center rounded-full bg-sec text-[.7rem] font-bold text-sec-on">{t("dir.youShort")}</span>
           <span className="h-0.5 w-12.5 bg-sec" />
           <span className="grid size-9 place-items-center rounded-full bg-sec-soft text-[.7rem] font-bold text-sec-ink ring-2 ring-sec">{initials(p)}</span>
         </div>
-        <p className="text-center text-xsmall text-muted">Mary (You) → {p.first} ({relationToMe(p)})</p>
+        <p className="text-center text-xsmall text-muted">{t("dir.path", { name: p.first, rel: relationToMe(p) })}</p>
       </Card>
       <div className="mt-4 rounded-[14px] bg-sec-soft p-3.5 text-small">
-        <strong><Icon name="shield" size="xs" /> Kinship Boundary: {p.minor ? "Parents & Guardians Only" : "Direct Kin Only"}</strong>
-        <p className="mt-2">Personal contact information and private audio are visible solely to verified immediate kin.</p>
+        <strong><Icon name="shield" size="xs" /> {t("dir.boundary", { who: t(p.minor ? "dir.boundaryMinor" : "dir.boundaryDirect") })}</strong>
+        <p className="mt-2">{t("dir.boundaryHelp")}</p>
         <div className="mt-2 flex items-center justify-between text-xsmall">
-          <span><Icon name="call" size="xs" /> Phone: {p.minor || p.died ? "Hidden" : "Allowed"}</span><span><Icon name="mail" size="xs" /> Email: Masked</span>
+          <span><Icon name="call" size="xs" /> {t("dir.phone", { v: t(p.minor || p.died ? "dir.hidden" : "dir.allowed") })}</span><span><Icon name="mail" size="xs" /> {t("dir.email")}</span>
         </div>
       </div>
-      <SectionTitle className="mt-4"><h3>Shared Memories &amp; Milestones</h3><Link className="text-xsmall" to={`/memories?person=${p.id}`}>View all ({mems.length})</Link></SectionTitle>
+      <SectionTitle className="mt-4"><h3>{t("dir.shared")}</h3><Link className="text-xsmall" to={`/memories?person=${p.id}`}>{t("dir.viewAll", { n: mems.length })}</Link></SectionTitle>
       <div className="grid gap-2">
         {stories.slice(0, 1).map((s) => (
           <Record key={s.id} as={Link} to="/stories" icon="mic">
-            <div className="min-w-0 flex-1"><strong className="text-small">{s.title}</strong><p className="text-xsmall text-muted">Recorded {fmtDate(s.recorded)}</p></div>
+            <div className="min-w-0 flex-1"><strong className="text-small">{s.title}</strong><p className="text-xsmall text-muted">{t("dir.recorded", { date: fmtDate(s.recorded) })}</p></div>
           </Record>
         ))}
         {mems.slice(0, 2).map((m) => (
@@ -144,11 +147,11 @@ function Dossier({ id, onClose }) {
             <div className="min-w-0 flex-1"><strong className="text-small">{m.title}</strong><p className="text-xsmall text-muted">{fmtDate(m.date, m.approx)}</p></div>
           </Record>
         ))}
-        {!mems.length && !stories.length && <p className="text-small text-muted">No memories linked yet.</p>}
+        {!mems.length && !stories.length && <p className="text-small text-muted">{t("dir.noMemories")}</p>}
       </div>
       {mems.length > 0 && (
         <>
-          <h3 className="mt-4">Tagged Heirloom Artifacts</h3>
+          <h3 className="mt-4">{t("dir.artifacts")}</h3>
           <div className="mt-2 grid grid-cols-3 gap-2">
             {mems.slice(0, 3).map((m) => <Photo key={m.id} p1={m.p1} p2={m.p2} icon={m.icon} img={m.img} alt={m.alt} aspect="aspect-square" />)}
           </div>
@@ -157,11 +160,11 @@ function Dossier({ id, onClose }) {
       <div className="mt-4 grid gap-2">
         {!p.died && (
           <Button variant="primary" block icon="forum"
-            onClick={() => open(<MessageDialog person={p} title={`Message ${p.first}`} sub="Private family message — end-to-end encrypted." label="Your message" sendLabel="Send" />)}>
-            Start Direct Family Dialogue
+            onClick={() => open(<MessageDialog person={p} title={t("dir.msgTitle", { name: p.first })} sub={t("dir.msgSub")} label={t("dir.msgLabel")} sendLabel={t("dir.send")} />)}>
+            {t("dir.dialogue")}
           </Button>
         )}
-        <Button variant="soft" block icon="download" onClick={downloadExtract}>Download {p.first}'s Lineage Extract</Button>
+        <Button variant="soft" block icon="download" onClick={downloadExtract}>{t("dir.downloadExtract", { name: p.first })}</Button>
       </div>
     </>
   );
@@ -170,13 +173,14 @@ function Dossier({ id, onClose }) {
 /** Table view: the same roster as rows and columns. Column headers sort; a row opens the dossier. */
 function PeopleTable({ list, selected, sort, onSort, onOpen }) {
   const { relationToMe } = useStore();
+  const t = useT();
   // [label, sort key for ascending, sort key for descending]
   const cols = [["Name", "nameAZ", "nameZA"], ["Kinship to you"], ["Generation", "generation"], ["Home"], ["Born", "oldestPerson", "youngestPerson"], ["Next birthday", "birthday"]];
   const ariaSort = (c) => (sort === c[1] ? "ascending" : sort === c[2] ? "descending" : undefined);
   return (
     <div className="relative overflow-x-auto rounded-[18px] border border-line bg-surface">
       <table className="w-full min-w-170 border-collapse text-left text-small">
-        <caption className="sr-only">Family roster, {list.length} relatives. Column headers with arrows can be sorted.</caption>
+        <caption className="sr-only">{t("dir.caption", { n: list.length })}</caption>
         <thead className="bg-surface-2 text-xsmall tracking-wide text-muted uppercase">
           <tr>
             {cols.map((c) => (
@@ -184,10 +188,10 @@ function PeopleTable({ list, selected, sort, onSort, onOpen }) {
                 {c[1] ? (
                   <button type="button" onClick={() => onSort(sort === c[1] && c[2] ? c[2] : c[1])}
                     className="inline-flex cursor-pointer items-center gap-1 rounded border-0 bg-transparent p-0 font-semibold tracking-wide text-inherit uppercase hover-fill">
-                    {c[0]}
+                    {t(`dir.col.${c[0]}`)}
                     <Icon size="xs" name={sort === c[1] ? "arrow_upward" : sort === c[2] ? "arrow_downward" : "unfold_more"} className={ariaSort(c) ? "text-sec-ink" : "opacity-60"} />
                   </button>
-                ) : c[0]}
+                ) : t(`dir.col.${c[0]}`)}
               </th>
             ))}
           </tr>
@@ -202,14 +206,14 @@ function PeopleTable({ list, selected, sort, onSort, onOpen }) {
                   <button type="button" onClick={(e) => { e.stopPropagation(); onOpen(p.id); }} aria-pressed={p.id === selected}
                     className="flex cursor-pointer items-center gap-2.5 rounded-lg border-0 bg-transparent p-0 text-left text-ink">
                     <Avatar p={p} className="size-8! rounded-lg! text-[.7rem]!" />
-                    <span><strong className="block font-semibold">{fullName(p)}</strong>{p.fav && <span className="text-xsmall text-gold-ink"><Icon name="star" size="xs" fill /> Starred</span>}</span>
+                    <span><strong className="block font-semibold">{fullName(p)}</strong>{p.fav && <span className="text-xsmall text-gold-ink"><Icon name="star" size="xs" fill /> {t("dir.starredTag")}</span>}</span>
                   </button>
                 </th>
                 <td className="px-3.5 py-2">{relationToMe(p)}</td>
-                <td className="px-3.5 py-2">Gen {p.gen}</td>
+                <td className="px-3.5 py-2">{t("dir.genShort", { n: p.gen })}</td>
                 <td className="px-3.5 py-2">{p.city}</td>
-                <td className="px-3.5 py-2 whitespace-nowrap">{fmtDate(p.born, p.bornApprox)}{p.died && <span className="block text-xsmall text-muted">d. {year(p.died)}</span>}</td>
-                <td className="px-3.5 py-2 whitespace-nowrap">{p.died ? <span className="text-muted"><Icon name="local_florist" size="xs" /> In memoriam</span> : days === 0 ? <strong><Icon name="cake" size="xs" /> Today!</strong> : `in ${days} day${days > 1 ? "s" : ""}`}</td>
+                <td className="px-3.5 py-2 whitespace-nowrap">{fmtDate(p.born, p.bornApprox)}{p.died && <span className="block text-xsmall text-muted">{t("dir.diedShort", { year: year(p.died) })}</span>}</td>
+                <td className="px-3.5 py-2 whitespace-nowrap">{p.died ? <span className="text-muted"><Icon name="local_florist" size="xs" /> {t("dir.inMemoriam")}</span> : days === 0 ? <strong><Icon name="cake" size="xs" /> {t("dir.today")}</strong> : days > 1 ? t("dir.inDays", { n: days }) : t("dir.inDaysOne")}</td>
               </tr>
             );
           })}
@@ -220,7 +224,7 @@ function PeopleTable({ list, selected, sort, onSort, onOpen }) {
 }
 
 export default function Directory() {
-  const { state, relationToMe } = useStore();
+  const { state, relationToMe, kin } = useStore();
   const { open } = useModal();
   const toast = useToast();
   const [params, setParams] = useSearchParams();
@@ -243,7 +247,8 @@ export default function Directory() {
   const branches = [...new Set(people.map((p) => p.branch))];
 
   const matches = (p) => {
-    const hay = [fullName(p), p.city, p.role, p.occupation, p.branch, "gen " + p.gen, ...(p.tags || [])].join(" ").toLowerCase();
+    // Matches the role in English and in the chosen language ("Granddaughter" or "Petite-fille").
+    const hay = [fullName(p), p.city, p.role, kin(p.role), p.occupation, p.branch, "gen " + p.gen, ...(p.tags || [])].join(" ").toLowerCase();
     const words = q.toLowerCase().split(/\s+/).filter(Boolean);
     return words.every((w) => hay.includes(w))
       && (f.branch === "all" || p.branch === f.branch)
@@ -261,14 +266,14 @@ export default function Directory() {
   // The roster as a spreadsheet file, in the order and filters currently shown.
   const exportCsv = () => {
     const cell = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
-    const rows = [["Name", "Kinship to you", "Generation", "Branch", "Home", "Born", "Died", "Occupation"],
+    const rows = [["Name", "Kinship to you", "Generation", "Branch", "Home", "Born", "Died", "Occupation"].map((c) => t(`dir.col.${c}`)),
       ...list.map((p) => [fullName(p), relationToMe(p), p.gen, p.branch, p.city, fmtDate(p.born, p.bornApprox), p.died ? fmtDate(p.died) : "", p.occupation])];
     // The BOM makes Excel read accented names (e.g. née) correctly.
     const blob = new Blob(["\uFEFF" + rows.map((r) => r.map(cell).join(",")).join("\r\n")], { type: "text/csv;charset=utf-8" });
-    const a = Object.assign(document.createElement("a"), { href: URL.createObjectURL(blob), download: "mackenzie-family-roster.csv" });
+    const a = Object.assign(document.createElement("a"), { href: URL.createObjectURL(blob), download: t("dir.csvFile") });
     a.click();
     URL.revokeObjectURL(a.href);
-    toast("Roster exported", { sub: `${list.length} relatives · opens in Excel, Numbers or Google Sheets`, icon: "download" });
+    toast(t("dir.exported"), { sub: t("dir.exportedSub", { n: list.length }), icon: "download" });
   };
   const clearAll = () => { setF(ALL); setQ(""); setParams({}); setFavOnly(false); };
 
@@ -276,49 +281,49 @@ export default function Directory() {
     <>
       <div className="flex flex-wrap items-center justify-between gap-2.5">
         <div className="flex items-center gap-2.5">
-          <Tag tone="sec">VERIFIED PEDIGREE {THIS_YEAR}</Tag><span className="text-small text-muted">● All {branches.length} Branches Synchronized</span>
+          <Tag tone="sec">{t("dir.verified", { year: THIS_YEAR })}</Tag><span className="text-small text-muted">{t("dir.synced", { n: branches.length })}</span>
         </div>
         <div className="flex flex-wrap items-center gap-2.5">
-          <Button icon="download" onClick={exportCsv}>Export roster (CSV)</Button>
-          <Button variant="primary" icon="person_add" onClick={() => open(<InviteDialog />)}>Invite Relative</Button>
+          <Button icon="download" onClick={exportCsv}>{t("dir.export")}</Button>
+          <Button variant="primary" icon="person_add" onClick={() => open(<InviteDialog />)}>{t("dir.invite")}</Button>
         </div>
       </div>
 
       <Hero className="mt-4 flex flex-wrap items-center gap-6">
         <div className="min-w-65 flex-1">
-          <Eyebrow icon="menu_book">The Mackenzie Roll of Kinship</Eyebrow>
+          <Eyebrow icon="menu_book">{t("dir.roll")}</Eyebrow>
           <h1 className="mt-2">{t("h1.directory")}</h1>
           <p className="mt-2 text-muted">
-            {people.length} connected relatives across {gens.length} generations in the Mackenzie Kinship Circle — documenting lineage, oral testaments, and verified archival records from 1918 to today.
+            {t("dir.intro", { n: people.length, g: gens.length })}
           </p>
         </div>
         <div className="flex gap-2.5">
-          <Stat value={living} label="Living Kin" />
-          <Stat value={people.length - living} label="In Memoriam" />
-          <Stat value="100%" label="Lineage Bound" />
+          <Stat value={living} label={t("dir.living")} />
+          <Stat value={people.length - living} label={t("dir.memorial")} />
+          <Stat value="100%" label={t("dir.bound")} />
         </div>
       </Hero>
 
-      <Card className="mt-4" aria-label="Search and filters">
+      <Card className="mt-4" aria-label={t("dir.filters")}>
         <div className="flex flex-wrap items-center gap-3">
           <form role="search" className="min-w-55 flex-1" onSubmit={(e) => e.preventDefault()}>
             <InputIcon icon="search">
-              <label className="sr-only" htmlFor="dirQ">Search relatives</label>
-              <Input id="dirQ" type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search by name, branch, generation, city (e.g. Inverness)…" />
+              <label className="sr-only" htmlFor="dirQ">{t("dir.search")}</label>
+              <Input id="dirQ" type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder={t("dir.searchPh")} />
             </InputIcon>
           </form>
-          <Tabs label="Branch" value={f.branch} onChange={(branch) => setF({ ...f, branch })}
-            items={[["all", <span key="all" className="inline-flex items-center gap-1"><Icon name="hub" size="xs" /> All Branches</span>], ...branches.map((b) => [b, `${b} Stem`])]} />
-          <Tabs label="Status" value={f.status} onChange={(status) => setF({ ...f, status })}
-            items={[["all", "Everyone"], ["living", `Living (${living})`], ["memorial", `Memorial (${people.length - living})`]]} />
-          <Tabs role="group" label="Layout" value={view} onChange={setView}
-            items={[["grid", <Icon key="grid" name="grid_view" size="sm" />, "Grid view"], ["list", <Icon key="list" name="view_list" size="sm" />, "List view"], ["table", <Icon key="table" name="table_rows" size="sm" />, "Table view"]]} />
+          <Tabs label={t("dir.branchLabel")} value={f.branch} onChange={(branch) => setF({ ...f, branch })}
+            items={[["all", <span key="all" className="inline-flex items-center gap-1"><Icon name="hub" size="xs" /> {t("dir.allBranches")}</span>], ...branches.map((b) => [b, t("dir.stem", { b })])]} />
+          <Tabs label={t("dir.statusLabel")} value={f.status} onChange={(status) => setF({ ...f, status })}
+            items={[["all", t("dir.everyone")], ["living", t("dir.livingN", { n: living })], ["memorial", t("dir.memorialN", { n: people.length - living })]]} />
+          <Tabs role="group" label={t("dir.layout")} value={view} onChange={setView}
+            items={[["grid", <Icon key="grid" name="grid_view" size="sm" />, t("dir.grid")], ["list", <Icon key="list" name="view_list" size="sm" />, t("dir.list")], ["table", <Icon key="table" name="table_rows" size="sm" />, t("dir.table")]]} />
         </div>
-        <Chips scroll className="mt-4" role="group" aria-label="Generation">
-          <Chip pressed={f.gen === "all"} count={people.length} onClick={() => setF({ ...f, gen: "all" })}>All Generations</Chip>
+        <Chips scroll className="mt-4" role="group" aria-label={t("dir.genLabel")}>
+          <Chip pressed={f.gen === "all"} count={people.length} onClick={() => setF({ ...f, gen: "all" })}>{t("dir.allGens")}</Chip>
           {gens.map((g) => (
             <Chip key={g} pressed={f.gen === String(g)} count={people.filter((p) => p.gen === g).length} onClick={() => setF({ ...f, gen: String(g) })}>
-              Gen {g} • {GEN_NAMES[g] || ""}
+              {t("dir.genChip", { n: g, name: t(`dir.gen.${g}`) })}
             </Chip>
           ))}
         </Chips>
@@ -343,11 +348,11 @@ export default function Directory() {
               )}
             </>
           ) : (
-            <Empty icon="person_off" title={`No relatives match ${q ? `“${q}”` : "these filters"}`}>
-              <p className="text-small">Try a first name, a city such as “Inverness”, or a role like “Granddaughter”.</p>
+            <Empty icon="person_off" title={q ? t("dir.noMatchQ", { q }) : t("dir.noMatch")}>
+              <p className="text-small">{t("dir.noMatchHelp")}</p>
               <div className="mt-4 flex justify-center gap-2.5">
-                <Button icon="filter_alt_off" onClick={clearAll}>Clear all filters</Button>
-                <Button variant="primary" icon="person_add" onClick={() => open(<InviteDialog />)}>Invite a relative</Button>
+                <Button icon="filter_alt_off" onClick={clearAll}>{t("dir.clearAll")}</Button>
+                <Button variant="primary" icon="person_add" onClick={() => open(<InviteDialog />)}>{t("dir.inviteOne")}</Button>
               </div>
             </Empty>
           )}
@@ -360,10 +365,10 @@ export default function Directory() {
       <Card tone="soft" className="mt-7 flex flex-wrap items-center gap-2.5">
         <IconBox icon="print" />
         <div className="min-w-0 flex-1">
-          <h3>Need an offline printed copy for the reunion?</h3>
-          <p className="text-small text-muted">Generate a printable roster with ancestral charts and birth records, suitable for physical keeping.</p>
+          <h3>{t("dir.print")}</h3>
+          <p className="text-small text-muted">{t("dir.printSub")}</p>
         </div>
-        <Button onClick={() => window.print()}>Generate Print Edition</Button>
+        <Button onClick={() => window.print()}>{t("dir.printBtn")}</Button>
       </Card>
     </>
   );
