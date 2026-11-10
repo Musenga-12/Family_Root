@@ -12,8 +12,8 @@ import {
 import { ME } from "../data";
 import AddMemoryDialog from "../dialogs/AddMemoryDialog";
 import InviteDialog from "../dialogs/InviteDialog";
-import { MONTHS, THIS_YEAR, cx, fmtDate, fmtDur } from "../lib/format";
-import { useT } from "../lib/i18n";
+import { THIS_YEAR, cx, fmtDate, fmtDur, monthName } from "../lib/format";
+import { rich, useT } from "../lib/i18n";
 import { age, daysToBirthday, fullName, useStore } from "../lib/store";
 
 const POLL_SEED = [7, 4, 9, 3];
@@ -36,7 +36,7 @@ function FamilyPoll() {
       p.votes[choice]++;
       p.mine = choice;
       s.poll = p;
-    }, "Voted in the family poll");
+    }, t("ov.pollHistory"));
     setEditing(false);
     toast(t("poll.thanks"), { icon: "how_to_vote", duration: 2500 });
   };
@@ -122,13 +122,14 @@ function MemoryShuffle() {
 }
 
 function MiniNode({ p, tag }) {
+  const t = useT();
   const navigate = useNavigate();
   return (
     <button type="button" onClick={() => navigate(`/tree?person=${p.id}`)}
       className="lift flex min-w-40 cursor-pointer items-center gap-2.5 rounded-xl border border-sec-line bg-surface px-3 py-2 text-left">
       <Avatar p={p} round />
       <span>
-        <strong className="block text-[.86rem]">{p.first}{p.id === ME && " (You)"}</strong>
+        <strong className="block text-[.86rem]">{p.first}{p.id === ME && ` (${t("common.you")})`}</strong>
         <small className="text-[.7rem] text-pine-700">{tag}</small>
       </span>
     </button>
@@ -153,17 +154,17 @@ function Reply({ r }) {
   );
 }
 
-const RSVP_TEXT = { yes: "You & Sarah are registered", maybe: "You marked maybe", no: "You declined — Sarah is registered" };
 
 function RsvpDialog({ value, onSave }) {
+  const t = useT();
   const close = useCloseModal();
   const [v, setV] = useState(value);
   return (
-    <Dialog title="Annual Summer Reunion RSVP" sub="Lake Highlands • 14 Aug • 2:00 PM"
-      footer={<><CancelButton /><Button variant="primary" onClick={() => { onSave(v); close(); }}>Save RSVP</Button></>}>
+    <Dialog title={t("ov.rsvp.title")} sub={t("ov.rsvp.when")}
+      footer={<><CancelButton /><Button variant="primary" onClick={() => { onSave(v); close(); }}>{t("ov.rsvp.save")}</Button></>}>
       <fieldset className="m-0 grid gap-2 border-0 p-0">
-        <legend className="text-small text-muted">Will you attend?</legend>
-        {[["yes", "Yes, I'll be there"], ["maybe", "Maybe"], ["no", "Can't make it this year"]].map(([k, l]) => (
+        <legend className="text-small text-muted">{t("ov.rsvp.q")}</legend>
+        {[["yes", t("ov.rsvp.optYes")], ["maybe", t("ov.rsvp.optMaybe")], ["no", t("ov.rsvp.optNo")]].map(([k, l]) => (
           <Check key={k} type="radio" name="rsvp" checked={v === k} onChange={() => setV(k)}>{l}</Check>
         ))}
       </fieldset>
@@ -172,7 +173,7 @@ function RsvpDialog({ value, onSave }) {
 }
 
 export default function Overview() {
-  const { state: st, update, person, easy } = useStore();
+  const { state: st, update, person, easy, kin } = useStore();
   const toast = useToast();
   const { open } = useModal();
   const navigate = useNavigate();
@@ -194,11 +195,11 @@ export default function Overview() {
   const postReply = (e) => {
     e.preventDefault();
     const text = reply.trim();
-    if (!text) { toast("Write a short recollection first", { error: true, sub: "Your reply can't be empty." }); document.getElementById("replyInput").focus(); return; }
-    update((s) => { s.replies.push({ by: ME, when: "Just now", text }); }, "Shared a recollection");
+    if (!text) { toast(t("ov.reply.empty"), { error: true, sub: t("ov.reply.emptySub") }); document.getElementById("replyInput").focus(); return; }
+    update((s) => { s.replies.push({ by: ME, when: t("common.justNow"), text }); }, t("ov.reply.history"));
     setReply("");
-    toast("Recollection shared with the family", {
-      sub: "Visible to the Mackenzie Kinship Circle.", action: "Undo", onAction: () => update((s) => { s.replies.pop(); }, "Removed your recollection"),
+    toast(t("ov.reply.shared"), {
+      sub: t("ov.reply.sharedSub"), action: t("common.undo"), onAction: () => update((s) => { s.replies.pop(); }, t("ov.reply.removed")),
     });
   };
 
@@ -208,28 +209,28 @@ export default function Overview() {
         <div className="flex flex-wrap items-center gap-5">
           <Avatar p={me} size="xl" round />
           <div className="min-w-0 flex-1 max-sm:basis-full">
-            <div className="flex flex-wrap items-center gap-2.5"><Tag tone="sec">MATRIARCH LINE</Tag><span className="text-small text-muted">● Living Archive Synced</span></div>
+            <div className="flex flex-wrap items-center gap-2.5"><Tag tone="sec">{t("ov.line")}</Tag><span className="text-small text-muted">{t("ov.synced")}</span></div>
             <h1 id="welcome" className="mt-2">{t(greet)}, {me.first}</h1>
             <p className="mt-1 font-serif text-[1.1rem] text-pine-700 italic">{t("h1.overview", { name: me.first })}</p>
             <p className="mt-2 text-muted">
-              4 Generations Active · {st.people.length} Relatives Connected · <span className="text-pine-700">Kinship circle in peace &amp; privacy</span>
+              {t("ov.stats", { n: st.people.length })}<span className="text-pine-700">{t("ov.peace")}</span>
             </p>
           </div>
           <div className="grid justify-items-start gap-2 sm:justify-items-end">
             <button type="button" onClick={toggleEasy}
               className="pressable inline-flex min-h-10 cursor-pointer items-center gap-1.5 rounded-full border border-sec-line bg-surface px-3.5 py-1.5 text-[.82rem] font-medium hover-fill easy:min-h-12">
-              <Icon name="visibility" size="sm" /> {easy ? "Easy-to-Read mode active (18pt)" : "Turn on Easy-to-Read (18pt)"}
+              <Icon name="visibility" size="sm" /> {easy ? t("ov.easyOn") : t("ov.easyOff")}
             </button>
-            <span className="text-small text-muted">Heritage Years: 1918 — {THIS_YEAR}</span>
+            <span className="text-small text-muted">{t("ov.years", { year: THIS_YEAR })}</span>
           </div>
         </div>
-        <div role="group" aria-label="Primary actions"
+        <div role="group" aria-label={t("ov.primary")}
           className="mt-5.5 grid grid-cols-2 gap-3 rounded-2xl border border-line bg-surface p-3 sm:grid-cols-4">
           {/* Each shortcut wears the colour of the section it leads to. */}
-          <Button variant="primary" sec="memories" size="lg" icon="add_photo_alternate" onClick={() => open(<AddMemoryDialog />)}>Add a Memory</Button>
-          <Button variant="primary" sec="stories" size="lg" icon="mic" to="/stories?record=1">Record a Story</Button>
-          <Button variant="primary" sec="tree" size="lg" icon="account_tree" to="/tree">Explore Tree</Button>
-          <Button variant="primary" sec="directory" size="lg" icon="person_add" onClick={() => open(<InviteDialog />)}>Invite Relative</Button>
+          <Button variant="primary" sec="memories" size="lg" icon="add_photo_alternate" onClick={() => open(<AddMemoryDialog />)}>{t("ov.addMemory")}</Button>
+          <Button variant="primary" sec="stories" size="lg" icon="mic" to="/stories?record=1">{t("ov.recordStory")}</Button>
+          <Button variant="primary" sec="tree" size="lg" icon="account_tree" to="/tree">{t("ov.exploreTree")}</Button>
+          <Button variant="primary" sec="directory" size="lg" icon="person_add" onClick={() => open(<InviteDialog />)}>{t("ov.invite")}</Button>
         </div>
       </Hero>
 
@@ -243,40 +244,40 @@ export default function Overview() {
         <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] content-start gap-5.5">
           <Card sec="tree" aria-labelledby="lin">
             <SectionTitle>
-              <h2 id="lin" className="flex flex-wrap items-center gap-2.5"><Icon name="account_tree" /> Direct Lineage Preview</h2>
-              <Tag tone="outline">4 Generations Preserved</Tag>
+              <h2 id="lin" className="flex flex-wrap items-center gap-2.5"><Icon name="account_tree" /> {t("ov.lineage")}</h2>
+              <Tag tone="outline">{t("ov.gens")}</Tag>
             </SectionTitle>
             <Record className="text-small">
               <Icon name="info" />
-              <span className="min-w-0 flex-1">Kinship Guide: <strong>Michael</strong> is your son • <strong>Grace</strong> is your granddaughter (Michael's daughter)</span>
-              <Eyebrow>Direct descendant</Eyebrow>
+              <span className="min-w-0 flex-1">{rich(t("ov.guide"))}</span>
+              <Eyebrow>{t("ov.descendant")}</Eyebrow>
             </Record>
             <div className="mt-3.5 overflow-x-auto rounded-2xl bg-surface-2 p-4.5">
-              <MiniRow><MiniNode p={me} tag="b. 1946 • Matriarch" /><MiniNode p={p("john")} tag="1942 — 2021" /></MiniRow>
+              <MiniRow><MiniNode p={me} tag={t("ov.tag.me")} /><MiniNode p={p("john")} tag="1942 — 2021" /></MiniRow>
               <MiniLink />
               <MiniRow>
-                <MiniNode p={p("sarah")} tag="Daughter • b. 1971" /><MiniNode p={p("michael")} tag="Son • b. 1975" /><MiniNode p={p("james")} tag="Son • b. 1980" />
+                <MiniNode p={p("sarah")} tag={t("ov.tag.daughter", { y: 1971 })} /><MiniNode p={p("michael")} tag={t("ov.tag.son", { y: 1975 })} /><MiniNode p={p("james")} tag={t("ov.tag.son", { y: 1980 })} />
               </MiniRow>
               <MiniLink />
               <MiniRow>
-                <MiniNode p={p("daniel")} tag={`Grandson (${age(p("daniel"))})`} />
-                <MiniNode p={p("anna")} tag={`Birthday in ${daysToBirthday(p("anna"))}d`} />
-                <MiniNode p={p("grace")} tag="Granddaughter" />
+                <MiniNode p={p("daniel")} tag={t("ov.tag.grandson", { age: age(p("daniel")) })} />
+                <MiniNode p={p("anna")} tag={t("ov.tag.bday", { n: daysToBirthday(p("anna")) })} />
+                <MiniNode p={p("grace")} tag={t("ov.tag.granddaughter")} />
               </MiniRow>
             </div>
             <div className="mt-4 flex flex-wrap items-center justify-between gap-2.5">
-              <span className="text-small text-muted">Tap any relative to open their lineage profile.</span>
-              <Button variant="primary" to="/tree">Open Full Interactive Tree <Icon name="arrow_forward" size="sm" /></Button>
+              <span className="text-small text-muted">{t("ov.tapRelative")}</span>
+              <Button variant="primary" to="/tree">{t("ov.openTree")} <Icon name="arrow_forward" size="sm" /></Button>
             </div>
           </Card>
 
           <Card sec="stories" aria-labelledby="oral">
             <SectionTitle>
               <div>
-                <h2 id="oral" className="flex flex-wrap items-center gap-2.5"><Icon name="record_voice_over" /> Living Oral Archive</h2>
-                <p className="mt-2 text-small text-muted">Preserved spoken words, folk tales, and family memories</p>
+                <h2 id="oral" className="flex flex-wrap items-center gap-2.5"><Icon name="record_voice_over" /> {t("ov.oral")}</h2>
+                <p className="mt-2 text-small text-muted">{t("ov.oralSub")}</p>
               </div>
-              <Button variant="primary" size="sm" icon="mic" to="/stories?record=1">Record or Dictate New Story</Button>
+              <Button variant="primary" size="sm" icon="mic" to="/stories?record=1">{t("ov.recordNew")}</Button>
             </SectionTitle>
             <Card as="article" tone="soft">
               <div className="flex items-start gap-2.5">
@@ -285,70 +286,70 @@ export default function Overview() {
                   <h3>{story.title}</h3>
                   <Tag tone="gold" className="mt-2">{story.tag}</Tag>
                   <p className="mt-2 text-small text-muted">
-                    Narrated by <strong>{fullName(p(story.by))}</strong> • Recorded on {fmtDate(story.recorded)} • {fmtDur(story.duration)}
+                    {rich(t("ov.narrated", { name: fullName(p(story.by)), date: fmtDate(story.recorded), dur: fmtDur(story.duration) }))}
                   </p>
                 </div>
               </div>
               <div className="mt-4"><AudioPlayer id={story.id} duration={story.duration} label={story.title} /></div>
               <div className="mt-4 rounded-xl bg-surface p-3.5">
-                <Eyebrow>Preserved transcript preview</Eyebrow>
+                <Eyebrow>{t("ov.transcript")}</Eyebrow>
                 <p className="mt-2 font-serif italic">“{story.transcript}”</p>
                 <div className="mt-2 flex flex-wrap items-center justify-between gap-2.5 text-small">
-                  <span className="text-muted">Archived with speech-to-text transcript backup</span><Link to="/stories">Read Full Transcript</Link>
+                  <span className="text-muted">{t("ov.transcriptNote")}</span><Link to="/stories">{t("ov.readTranscript")}</Link>
                 </div>
               </div>
             </Card>
             {recipe && (
               <Record icon="restaurant" className="mt-4">
                 <div className="min-w-0 flex-1"><strong>{recipe.title}</strong><p className="text-small text-muted">{recipe.excerpt} • {fmtDur(recipe.duration)}</p></div>
-                <Button size="sm" icon="play_arrow" to="/stories">Listen</Button>
+                <Button size="sm" icon="play_arrow" to="/stories">{t("ov.listen")}</Button>
               </Record>
             )}
           </Card>
 
           <Card sec="messages" aria-labelledby="prompt">
             <div className="flex items-center justify-between gap-2.5">
-              <Eyebrow icon="lightbulb">Prompt of the week</Eyebrow><Tag tone="outline">{st.replies.length} Kin Contributed</Tag>
+              <Eyebrow icon="lightbulb">{t("ov.prompt")}</Eyebrow><Tag tone="outline">{t("ov.contributed", { n: st.replies.length })}</Tag>
             </div>
             <Card tone="soft" className="mt-4">
-              <h3 id="prompt">“What was your favorite childhood tradition during the winter holidays?”</h3>
-              <p className="mt-2 text-small text-muted">Prompted by Sarah Mackenzie to preserve seasonal memories.</p>
+              <h3 id="prompt">{t("ov.promptQ")}</h3>
+              <p className="mt-2 text-small text-muted">{t("ov.promptBy")}</p>
             </Card>
             <div className="mt-4">{st.replies.map((r, i) => <Reply key={i} r={r} />)}</div>
             <form className="mt-4 flex items-center gap-2.5" onSubmit={postReply}>
-              <label htmlFor="replyInput" className="sr-only">Share your own recollection</label>
+              <label htmlFor="replyInput" className="sr-only">{t("ov.shareOwn")}</label>
               <Input id="replyInput" className="flex-1" value={reply} onChange={(e) => setReply(e.target.value)} maxLength={400}
-                placeholder={`Share your own recollection, ${me.first}…`} />
-              <Button variant="primary" type="submit">Post Reply</Button>
+                placeholder={t("ov.sharePh", { name: me.first })} />
+              <Button variant="primary" type="submit">{t("ov.post")}</Button>
             </form>
           </Card>
         </div>
 
         <aside className="grid min-w-0 grid-cols-[minmax(0,1fr)] content-start gap-5.5">
           <Card sec="calendar" aria-labelledby="gath">
-            <SectionTitle><h2 id="gath" className="flex items-center gap-2.5 text-[1.2rem]!"><Icon name="event" /> Kin Gatherings &amp; Milestones</h2></SectionTitle>
+            <SectionTitle><h2 id="gath" className="flex items-center gap-2.5 text-[1.2rem]!"><Icon name="event" /> {t("ov.gatherings")}</h2></SectionTitle>
             <div className="grid gap-3.5">
               <div className="flex gap-3 rounded-[14px] border border-sec-line bg-sec-soft p-3.5">
-                <DateBadge month={MONTHS[nbDate.getMonth()].toUpperCase()} day={nbDate.getDate()} />
+                <DateBadge month={monthName(nbDate.getMonth()).toUpperCase()} day={nbDate.getDate()} />
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-start justify-between gap-2.5"><strong>{nb.first}'s {age(nb) + 1}th Birthday</strong><Tag tone="rose" className="shrink-0">In {daysToBirthday(nb)} Days</Tag></div>
-                  <p className="text-small text-muted">{nb.role}</p>
+                  <div className="flex items-start justify-between gap-2.5"><strong>{t("ov.birthday", { name: nb.first, n: age(nb) + 1 })}</strong><Tag tone="rose" className="shrink-0">{t("ov.inDays", { n: daysToBirthday(nb) })}</Tag></div>
+                  <p className="text-small text-muted">{kin(nb.role)}</p>
                   <div className="mt-2 flex flex-wrap gap-2.5">
-                    <Button size="sm" icon="mic" iconSize="xs" onClick={() => navigate(`/stories?record=1&for=${encodeURIComponent(nb.first)}`)}>Send Voice Card</Button>
-                    <Button size="sm" icon="attach_file" iconSize="xs" onClick={() => open(<AddMemoryDialog />)}>Attach Memory</Button>
+                    <Button size="sm" icon="mic" iconSize="xs" onClick={() => navigate(`/stories?record=1&for=${encodeURIComponent(nb.first)}`)}>{t("ov.voiceCard")}</Button>
+                    <Button size="sm" icon="attach_file" iconSize="xs" onClick={() => open(<AddMemoryDialog />)}>{t("ov.attach")}</Button>
                   </div>
                 </div>
               </div>
               <div className="flex gap-3 rounded-[14px] border border-sec-line bg-sec-soft p-3.5">
-                <DateBadge month="AUG" day="14" mint />
+                <DateBadge month={monthName(7).toUpperCase()} day="14" mint />
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-start justify-between gap-2.5"><strong>Annual Summer Reunion</strong><Tag tone="dark" className="shrink-0">18 Attending</Tag></div>
-                  <p className="text-small text-muted">Lake Highlands • Park Veranda • 2:00 PM</p>
+                  <div className="flex items-start justify-between gap-2.5"><strong>{t("ov.reunion")}</strong><Tag tone="dark" className="shrink-0">{t("ov.attending", { n: 18 })}</Tag></div>
+                  <p className="text-small text-muted">{t("ov.reunionWhere")}</p>
                   <div className="mt-2 flex items-center justify-between gap-2.5 text-small">
-                    <span className="text-pine-700"><Icon name="check_circle" size="xs" /> {RSVP_TEXT[rsvp]}</span>
+                    <span className="text-pine-700"><Icon name="check_circle" size="xs" /> {t(`ov.rsvp.${rsvp}`)}</span>
                     <Button variant="ghost" size="sm"
-                      onClick={() => open(<RsvpDialog value={rsvp} onSave={(v) => { setRsvp(v); toast("RSVP saved", { sub: RSVP_TEXT[v] }); }} />)}>
-                      Review RSVP
+                      onClick={() => open(<RsvpDialog value={rsvp} onSave={(v) => { setRsvp(v); toast(t("ov.rsvp.saved"), { sub: t(`ov.rsvp.${v}`) }); }} />)}>
+                      {t("ov.rsvp.review")}
                     </Button>
                   </div>
                 </div>
@@ -358,21 +359,21 @@ export default function Overview() {
 
           <Card sec="memories" aria-labelledby="alb">
             <SectionTitle>
-              <h2 id="alb" className="flex items-center gap-2.5 text-[1.2rem]!"><Icon name="photo_library" /> Recent Memory Albums</h2>
-              <Link className="text-small" to="/memories">View all</Link>
+              <h2 id="alb" className="flex items-center gap-2.5 text-[1.2rem]!"><Icon name="photo_library" /> {t("ov.albums")}</h2>
+              <Link className="text-small" to="/memories">{t("ov.viewAll")}</Link>
             </SectionTitle>
             <Photo as={Link} to="/memories" p1={recentMem.p1} p2={recentMem.p2} icon={recentMem.icon} img={recentMem.img}
               aria-label={recentMem.alt} aspect="aspect-16/10">
               <PhotoOverlay>
-                <Tag tone="gold">FEATURED KEEPSAKE</Tag>
+                <Tag tone="gold">{t("ov.featured")}</Tag>
                 <strong className="mt-1.5 block font-serif text-[1.15rem]">{recentMem.title}</strong>
               </PhotoOverlay>
             </Photo>
             <div className="mt-2 flex items-center justify-between gap-2.5 text-small">
-              <span className="text-muted">14 Restored Photographs • 3 Audio Clips</span><Tag>Tagged: {recentMem.tagged.length} Relatives</Tag>
+              <span className="text-muted">{t("ov.albumStats")}</span><Tag>{t("ov.tagged", { n: recentMem.tagged.length })}</Tag>
             </div>
             <div className="mt-2 flex items-center justify-between gap-2.5 text-small">
-              <Visibility>{recentMem.visibility}</Visibility><Link to="/memories">Open Album ›</Link>
+              <Visibility>{recentMem.visibility}</Visibility><Link to="/memories">{t("ov.openAlbum")}</Link>
             </div>
           </Card>
 
@@ -380,12 +381,12 @@ export default function Overview() {
             <div className="flex items-start gap-2.5">
               <IconBox icon="shield_lock" tone="mint" />
               <div>
-                <h3 id="priv">Private Family Sanctuary</h3>
-                <p className="mt-2 text-small text-on-dark">This living archive is completely private. No public indexing, no advertising, no data brokers. You decide who sees each story, photo and record.</p>
+                <h3 id="priv">{t("ov.sanctuary")}</h3>
+                <p className="mt-2 text-small text-on-dark">{t("ov.sanctuarySub")}</p>
               </div>
             </div>
             <div className="mt-4 flex items-center justify-between gap-2.5 border-t border-white/10 pt-3 text-small">
-              <span><Icon name="lock" size="xs" /> 0 Public Access</span><span>Guardian: <strong>Sarah Mackenzie</strong></span>
+              <span><Icon name="lock" size="xs" /> {t("ov.publicAccess")}</span><span>{rich(t("ov.guardian", { name: "Sarah Mackenzie" }))}</span>
             </div>
           </Card>
         </aside>

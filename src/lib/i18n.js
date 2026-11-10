@@ -1,5 +1,5 @@
 /* Interface translations. Keys missing in a language fall back to English. Values may be strings or arrays. */
-import { useCallback } from "react";
+import { createElement, useCallback } from "react";
 import { UI } from "./i18n-ui";
 import { useStore } from "./store";
 
@@ -1302,6 +1302,18 @@ export function useT() {
   const { prefs } = useStore();
   const lang = prefs.lang;
   return useCallback((key, vars) => translate(lang, key, vars), [lang]);
+}
+
+/** A stored value shown in the interface language when a translation exists ("kin", "Son" -> "Fils"), else as stored. */
+export function translateValue(lang, group, value) {
+  const key = `${group}.${value}`;
+  const v = translate(lang, key);
+  return v === key ? value : v;
+}
+
+/** Renders <b>…</b> markers in a translated string as <strong>, so each language can put the bold words where its grammar needs them. */
+export function rich(text) {
+  return String(text).split(/<b>(.*?)<\/b>/g).map((part, i) => (i % 2 ? createElement("strong", { key: i }, part) : part));
 }
 
 export const localeOf = (lang) => LANGS.find((l) => l.code === lang)?.locale || "en-GB";

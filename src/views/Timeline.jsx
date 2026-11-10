@@ -7,7 +7,7 @@ import { useToast } from "../components/toastContext";
 import {
   Avatar, Button, Card, Check, Chip, Chips, Empty, Eyebrow, Field, Hero, Icon, IconButton, Input, PeopleChecks, Photo, PhotoOverlay, Record, Select, Stat, Tabs, Tag, Textarea,
 } from "../components/ui";
-import { MONTHS, cx, fmtDate, uid } from "../lib/format";
+import { cx, dateWord, fmtDate, monthName, uid } from "../lib/format";
 import { useT } from "../lib/i18n";
 import { useStore } from "../lib/store";
 
@@ -38,7 +38,7 @@ function Item({ t, compact }) {
         <Icon name={t.icon} className="text-[17px]!" />
       </span>
       <span className="absolute top-14 -left-16.5 hidden w-12.5 text-center text-[.62rem] font-bold tracking-[.06em] text-muted sm:block">
-        {t.approx ? "c. " + y : MONTHS[+m - 1].toUpperCase()}
+        {t.approx ? `${dateWord("approx")} ${y}` : monthName(+m - 1).toUpperCase()}
       </span>
       <article className={cx("grid min-w-0 gap-2.5 rounded-[18px] border border-line bg-surface p-4.5", t.approx && "border-dashed")}>
         <div className="flex flex-wrap items-center justify-between gap-2.5">

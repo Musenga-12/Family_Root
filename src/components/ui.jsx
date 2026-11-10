@@ -2,6 +2,7 @@
 import { Link } from "react-router-dom";
 import { ME } from "../data";
 import { cx } from "../lib/format";
+import { useT } from "../lib/i18n";
 import { fullName, initials } from "../lib/store";
 
 export function Icon({ name, size, fill, className }) {
@@ -240,7 +241,10 @@ export function PhotoOverlay({ className, children }) {
 }
 /** "Visible to: …" privacy line shown on keepsakes. */
 export function Visibility({ children }) {
-  return <span className="inline-flex items-center gap-1 text-xsmall font-semibold text-pine-700"><Icon name="lock" size="xs" /> Visible to: {children}</span>;
+  const t = useT();
+  // Stored values ("All Family Branches"…) are shown in the chosen language when a translation exists.
+  const shown = typeof children === "string" && t(`vis.${children}`) !== `vis.${children}` ? t(`vis.${children}`) : children;
+  return <span className="inline-flex items-center gap-1 text-xsmall font-semibold text-pine-700"><Icon name="lock" size="xs" /> {t("vis.label")} {shown}</span>;
 }
 
 export const PhotoCorner = ({ children }) => <span className="absolute top-2.5 left-2.5">{children}</span>;

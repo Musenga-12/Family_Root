@@ -3,6 +3,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ME, SEED } from "../data";
 import { loadAllAudio } from "./audioStore";
 import { setFeedbackPrefs } from "./feedback";
+import { setDateLang } from "./format";
+import { translateValue } from "./i18n";
 import { StoreContext } from "./store";
 
 const KEY = "familyroots-demo-v1";
@@ -46,17 +48,19 @@ function loadPrefs() {
 
 const darkQuery = () => window.matchMedia?.("(prefers-color-scheme: dark)");
 
-function kinHelpers(state) {
+function kinHelpers(state, lang) {
   const person = (id) => state.people.find((p) => p.id === id);
   const children = (id) => state.people.filter((p) => (p.parents || []).includes(id));
-  /** Human-readable relation of `p` to the signed-in user (Mary). */
+  /** A relationship or role label ("Son", "Matriarch", "Custodian") in the interface language. */
+  const kin = (label) => translateValue(lang, "kin", label);
+  /** Human-readable relation of `p` to the signed-in user (Mary), in the interface language. */
   const relationToMe = (p) => {
-    if (p.id === ME) return "You";
-    if (person(ME).spouse === p.id) return p.died ? "Late husband" : "Husband";
-    if ((p.parents || []).includes(ME)) return p.role === "Daughter" ? "Daughter" : "Son";
-    return p.role;
+    if (p.id === ME) return kin("You");
+    if (person(ME).spouse === p.id) return kin(p.died ? "Late husband" : "Husband");
+    if ((p.parents || []).includes(ME)) return kin(p.role === "Daughter" ? "Daughter" : "Son");
+    return kin(p.role);
   };
-  return { person, children, relationToMe };
+  return { person, children, relationToMe, kin };
 }
 
 export function StoreProvider({ children }) {
@@ -160,10 +164,13 @@ export function StoreProvider({ children }) {
     setPrefs({ ...DEFAULT_PREFS, tourDone: true });
   }, []);
 
+  // Dates and relationship words follow the interface language; set it before anything below renders.
+  setDateLang(prefs.lang);
+
   const value = useMemo(
     () => ({
       state, update, reset, undo, redo, past: doc.past, future: doc.future, recent, addRecent, clearRecent,
-      easy, setEasy: setEasyState, prefs, setPref, dark, audioUrl, setAudioUrl, ...kinHelpers(state),
+      easy, setEasy: setEasyState, prefs, setPref, dark, audioUrl, setAudioUrl, ...kinHelpers(state, prefs.lang),
     }),
     [state, doc.past, doc.future, update, reset, undo, redo, recent, addRecent, clearRecent, easy, prefs, setPref, dark, audioUrl, setAudioUrl],
   );

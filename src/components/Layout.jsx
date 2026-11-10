@@ -359,7 +359,7 @@ function Breadcrumbs({ route }) {
 }
 
 function Topbar({ menuOpen, onMenu, onPalette, onTour, speech }) {
-  const { easy, person, prefs } = useStore();
+  const { easy, person, prefs, kin } = useStore();
   const t = useT();
   const toggleEasy = useToggleEasy();
   const { cycleTheme, setTheme, setLang } = usePrefActions();
@@ -435,7 +435,7 @@ function Topbar({ menuOpen, onMenu, onPalette, onTour, speech }) {
           <Avatar p={me} />
           <span className="hidden md:block">
             <strong className="block text-[.9rem] font-semibold">{me.first} {me.last}</strong>
-            <small className="text-xsmall text-sec-ink">{me.role}</small>
+            <small className="text-xsmall text-sec-ink">{kin(me.role)}</small>
           </span>
           <Icon name="expand_more" size="sm" className="hidden text-muted md:inline-block" />
         </button>

@@ -1,6 +1,7 @@
 /* Conversation helpers shared by the Messages screen and the "Message" buttons on the Tree and Directory. */
 import { ME } from "../data";
-import { MONTHS, nowLocalISO, todayISO, uid } from "./format";
+import { currentLang, dateWord, dayName, dayShort, monthName, nowLocalISO, todayISO, uid } from "./format";
+import { translate, translateValue } from "./i18n";
 
 /** The one-to-one thread between the signed-in user and `personId`, if there is one. */
 export const directThread = (state, personId) =>
@@ -29,29 +30,28 @@ export function postMessage(draft, { threadId, to = [], title, text = "", replyT
 export const lastOf = (t) => [...t.messages].reverse().find((m) => !m.deleted) || t.messages[t.messages.length - 1];
 
 /** One-line description of a message, for previews and reply quotes. */
-export const snippet = (m) => (!m ? "" : m.deleted ? "This message was deleted" : m.text || (m.img ? "📷 Photo" : ""));
+export const snippet = (m) => (!m ? "" : m.deleted ? translate(currentLang(), "chat.deleted") : m.text || (m.img ? translate(currentLang(), "chat.photo") : ""));
 
-const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 const dayDiff = (iso) => Math.round((new Date(`${todayISO()}T00:00`) - new Date(`${iso.slice(0, 10)}T00:00`)) / 86400000);
 
 /** Separator label inside a conversation: "Today", "Yesterday", a weekday within the last week, else "3 Nov 2026". */
 export function dayLabel(iso) {
   const d = dayDiff(iso);
   const date = new Date(`${iso.slice(0, 10)}T00:00`);
-  if (d === 0) return "Today";
-  if (d === 1) return "Yesterday";
-  if (d > 1 && d < 7) return DAYS[date.getDay()];
-  return `${date.getDate()} ${MONTHS[date.getMonth()]} ${date.getFullYear()}`;
+  if (d === 0) return dateWord("today");
+  if (d === 1) return dateWord("yesterday");
+  if (d > 1 && d < 7) return dayName(date.getDay());
+  return `${date.getDate()} ${monthName(date.getMonth())} ${date.getFullYear()}`;
 }
 
 /** Time in the chat list: "09:30" today, "Yesterday", a weekday, else "3 Nov". */
 export function listTime(iso) {
   const d = dayDiff(iso);
   if (d === 0) return iso.slice(11, 16);
-  if (d === 1) return "Yesterday";
+  if (d === 1) return dateWord("yesterday");
   const date = new Date(`${iso.slice(0, 10)}T00:00`);
-  if (d > 1 && d < 7) return DAYS[date.getDay()].slice(0, 3);
-  return `${date.getDate()} ${MONTHS[date.getMonth()]}`;
+  if (d > 1 && d < 7) return dayShort(date.getDay());
+  return `${date.getDate()} ${monthName(date.getMonth())}`;
 }
 
 export const clock = (iso) => iso.slice(11, 16);
@@ -63,7 +63,10 @@ export const nameTone = (t, id) => NAME_TONES[Math.max(0, t.members.indexOf(id))
 /** "Daughter · Inverness, UK" for a private chat; "You, Sarah, Michael and 5 others" for a group. */
 export function chatSubtitle(t, person) {
   const others = t.members.filter((m) => m !== ME).map(person).filter(Boolean);
-  if (!t.group) return others[0] ? `${others[0].role} · ${others[0].city}` : "";
+  const lang = currentLang();
+  if (!t.group) return others[0] ? `${translateValue(lang, "kin", others[0].role)} · ${others[0].city}` : "";
   const names = others.map((p) => p.first);
-  return `You, ${names.slice(0, 3).join(", ")}${names.length > 3 ? ` and ${names.length - 3} others` : ""}`;
+  return names.length > 3
+    ? translate(lang, "chat.membersMany", { names: names.slice(0, 3).join(", "), n: names.length - 3 })
+    : translate(lang, "chat.membersFew", { names: names.join(", ") });
 }
