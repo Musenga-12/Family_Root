@@ -12,11 +12,11 @@ import { useStore } from "../lib/store";
 import { THEME_ICON, usePrefActions } from "../lib/usePrefActions";
 
 const THEME_SWATCH = {
-  light: { background: "#f2f7f4", color: "#143d30" },
-  dark: { background: "#0c1512", color: "#9fe6c6" },
-  system: { background: "linear-gradient(90deg, #f2f7f4 50%, #0c1512 50%)", color: "#3c7a63" },
+  light: { background: "#f3f6fb", color: "#102a6b" },
+  dark: { background: "#0b1120", color: "#93b6ff" },
+  system: { background: "linear-gradient(90deg, #f3f6fb 50%, #0b1120 50%)", color: "#3b6fe6" },
 };
-const ACCENTS = [["forest", "#143d30", "#9fe6c6"], ["ocean", "#143a52", "#9fd4f0"], ["plum", "#3d1f48", "#e2bdf0"], ["clay", "#4c2617", "#f6c7a6"]];
+const ACCENTS = [["blue", "#102a6b", "#93b6ff"], ["forest", "#143d30", "#9fe6c6"], ["ocean", "#143a52", "#9fd4f0"], ["plum", "#3d1f48", "#e2bdf0"], ["clay", "#4c2617", "#f6c7a6"]];
 
 function Section({ icon, title, children }) {
   return (

@@ -217,7 +217,7 @@ export default function Auth() {
       </div>
 
       <div className="mx-auto grid max-w-260 overflow-hidden rounded-[26px] bg-surface shadow-pop md:grid-cols-[minmax(0,.85fr)_minmax(0,1fr)]">
-        <div className="flex flex-col gap-5.5 bg-[radial-gradient(circle_at_20%_10%,#2a6450,var(--color-pine-900)_60%)] p-5 text-[#e8f3ee] sm:p-7">
+        <div className="flex flex-col gap-5.5 bg-[radial-gradient(circle_at_20%_10%,var(--color-pine-700),var(--color-pine-900)_60%)] p-5 text-white sm:p-7">
           <div><Tag className="bg-white/10! text-mint!">● BRANCH 04 · MACKENZIE LINE</Tag></div>
           <Photo p1="#a98a68" p2="#3c4f40" icon="family_restroom" aspect="aspect-[4/3.4]" alt="A grandfather, mother and young child looking at a family album together">
             <PhotoOverlay className="flex items-center justify-between gap-2.5">

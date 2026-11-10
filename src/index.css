@@ -9,31 +9,35 @@
    FamilyRoots – design tokens (from the Google Stitch screens)
    ========================================================== */
 @theme {
-  --color-pine-950: #0f3127;
-  --color-pine-900: #143d30;
-  --color-pine-800: #1d4d3c;
-  --color-pine-700: #2a6450;
-  --color-pine-600: #3c7a63;
-  --color-mint: #9fe6c6;
-  --color-mint-hover: #8ddcb9;
-  --color-mint-200: #c8f1dd;
-  --color-mint-100: #e3f6ec;
-  --color-bg: #f2f7f4;
+  /* One colour for the whole app: a deep, calm blue chosen to suit every age. It keeps 6.7:1 contrast with
+     white text (older eyes lose sensitivity to pale blues and violets, not to deep saturated blue), it stays
+     clear for the common red-green colour-vision differences, and people already read blue as "you can
+     click this". The names pine/mint are kept so the optional accents in Settings can re-tint the same scale. */
+  --color-pine-950: #0b1d4d;
+  --color-pine-900: #102a6b;
+  --color-pine-800: #17389a;
+  --color-pine-700: #1d4ed8;
+  --color-pine-600: #3b6fe6;
+  --color-mint: #93b6ff;
+  --color-mint-hover: #7fa7ff;
+  --color-mint-200: #cddcff;
+  --color-mint-100: #e7eeff;
+  --color-bg: #f3f6fb;
   --color-surface: #ffffff;
-  --color-surface-2: #eef4f0;
-  --color-surface-3: #e5eee9;
-  --color-line: #dde8e2;
-  --color-ink: #17241f;
-  --color-muted: #5d6d66;
-  --color-faint: #8a9993;
-  --color-on-dark: #b7d2c7;
+  --color-surface-2: #edf1f8;
+  --color-surface-3: #e3e9f3;
+  --color-line: #d8e0ec;
+  --color-ink: #141c2e;
+  --color-muted: #56617a;
+  --color-faint: #858fa5;
+  --color-on-dark: #c1cfeb;
   --color-gold: #b9862b;
   --color-gold-100: #fbefd6;
   --color-gold-ink: #7d5715;
   --color-rose: #b4473f;
   --color-rose-100: #fbe1de;
   --color-rec: #d63c33;
-  --color-focus: #1f8a63;
+  --color-focus: #1d4ed8;
 
   --font-serif: "Playfair Display", Georgia, "Times New Roman", serif;
   --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -134,13 +138,14 @@ html[data-text="sm"] { font-size: 15px; }
 html[data-text="lg"] { font-size: 17.5px; }
 
 /* ==========================================================
-   Category colours: every section of the archive has its own colour, so people of every age can tell
-   where they are at a glance (sidebar, page header, cards, buttons). Colour is always paired with an
-   icon and a label, never used alone. Each strong colour has at least 4.5:1 contrast with white text.
-   Set data-sec="tree" (etc.) on any element; bg-sec, text-sec-ink, bg-sec-soft, border-sec-line follow it.
+   The app colour. Every page uses the same one, so nothing changes colour as you move between sections:
+   where you are is shown by the highlighted menu item, the page title and its icon instead.
+   --sec follows the brand colour (blue unless another accent is chosen in Settings); bg-sec, text-sec-ink,
+   bg-sec-soft, border-sec-line, the hover/press states and the primary button all derive from it.
+   data-sec attributes in the markup are kept as hooks but no longer change the colour.
    ========================================================== */
 :root, [data-sec] {
-  --sec: var(--color-pine-800);
+  --sec: var(--color-pine-700);
   --sec-soft: color-mix(in oklab, var(--sec) 11%, var(--color-surface));
   --sec-line: color-mix(in oklab, var(--sec) 32%, var(--color-surface));
   --sec-ink: color-mix(in oklab, var(--sec) 78%, #000);
@@ -149,26 +154,8 @@ html[data-text="lg"] { font-size: 17.5px; }
   --sec-on: #fff;
   --stripe: var(--sec);
 }
-[data-sec="overview"]  { --sec: var(--color-pine-800); --sec-soft: var(--color-mint-100); --sec-line: var(--color-mint-200); --stripe: var(--rainbow); }
-/* The family's colours together: the Overview header stripe and the quick-add button, which lead to every section. */
-:root { --rainbow: linear-gradient(90deg, #2e7d32, #0b6e99, #b45309, #1e40af, #0f766e, #2563eb, #c2410c); }
-html.dark { --rainbow: linear-gradient(90deg, #86d993, #7cc8ef, #f6b65c, #7c9cff, #6fd6c8, #93b6ff, #ffa37a); }
-[data-sec="tree"]      { --sec: #2e7d32; }
-[data-sec="directory"] { --sec: #0b6e99; }
-[data-sec="memories"]  { --sec: #b45309; }
-[data-sec="stories"]   { --sec: #1e40af; }
-[data-sec="timeline"]  { --sec: #0f766e; }
-[data-sec="legacy"]    { --sec: #8a5a2b; }
-[data-sec="messages"]  { --sec: #2563eb; }
-[data-sec="calendar"]  { --sec: #c2410c; }
-[data-sec="admin"]     { --sec: #3b5275; }
-[data-sec="privacy"]   { --sec: #1d4ed8; }
-[data-sec="settings"]  { --sec: #1d4ed8; }
-[data-sec="auth"]      { --sec: #be185d; }
-/* The Easy-to-Read switch is always blue, whatever page it sits on. */
-[data-sec="easy"]      { --sec: #1d4ed8; }
 
-/* Dark theme: lighter versions of the same hues, with dark text on top. */
+/* Dark theme: the light version of the same colour, with dark text on top. */
 html.dark :is(:root, [data-sec]) {
   --sec: var(--color-mint);
   --sec-soft: color-mix(in oklab, var(--sec) 14%, var(--color-surface));
@@ -176,31 +163,21 @@ html.dark :is(:root, [data-sec]) {
   --sec-ink: color-mix(in oklab, var(--sec) 82%, #fff);
   --sec-hover: color-mix(in oklab, var(--sec) 26%, var(--color-surface));
   --sec-press: color-mix(in oklab, var(--sec) 55%, #fff);
-  --sec-on: #0c1512;
+  --sec-on: #0b1120;
 }
-html.dark [data-sec="overview"]  { --sec: var(--color-mint); }
-html.dark [data-sec="tree"]      { --sec: #86d993; }
-html.dark [data-sec="directory"] { --sec: #7cc8ef; }
-html.dark [data-sec="memories"]  { --sec: #f6b65c; }
-html.dark [data-sec="stories"]   { --sec: #7c9cff; }
-html.dark [data-sec="timeline"]  { --sec: #6fd6c8; }
-html.dark [data-sec="legacy"]    { --sec: #e0b583; }
-html.dark [data-sec="messages"]  { --sec: #93b6ff; }
-html.dark [data-sec="calendar"]  { --sec: #ffa37a; }
-html.dark [data-sec="admin"]     { --sec: #a9bfe3; }
-html.dark [data-sec="privacy"]   { --sec: #93b6ff; }
-html.dark [data-sec="settings"]  { --sec: #93b6ff; }
-html.dark [data-sec="auth"]      { --sec: #f59ac6; }
-html.dark [data-sec="easy"]      { --sec: #93b6ff; }
-
-/* Easy-to-Read: deeper tints and borders, so the colour coding is even easier to see. */
+/* Easy-to-Read: deeper tints and borders, so highlights are even easier to see. */
 html.easy :is(:root, [data-sec]) {
   --sec-soft: color-mix(in oklab, var(--sec) 16%, var(--color-surface));
   --sec-hover: color-mix(in oklab, var(--sec) 28%, var(--color-surface));
   --sec-line: color-mix(in oklab, var(--sec) 50%, var(--color-surface));
 }
 
-/* Accent colour preference: re-tints the pine/mint scale used for buttons, highlights and focus rings. */
+/* Accent colour preference: re-tints the pine/mint scale used for buttons, highlights and focus rings.
+   Blue (above) is the default; these are optional. */
+html[data-accent="forest"] {
+  --color-pine-950: #0f3127; --color-pine-900: #143d30; --color-pine-800: #1d4d3c; --color-pine-700: #2a6450; --color-pine-600: #3c7a63;
+  --color-mint: #9fe6c6; --color-mint-hover: #8ddcb9; --color-mint-200: #c8f1dd; --color-mint-100: #e3f6ec; --color-focus: #1f8a63;
+}
 html[data-accent="ocean"] {
   --color-pine-950: #0f2a3d; --color-pine-900: #143a52; --color-pine-800: #1d4c6a; --color-pine-700: #2a6283; --color-pine-600: #3c7899;
   --color-mint: #9fd4f0; --color-mint-hover: #8bc7e8; --color-mint-200: #c9e7f7; --color-mint-100: #e3f2fb; --color-focus: #1f74a8;
@@ -221,20 +198,20 @@ html:not(.dark) { color-scheme: light; }
 /* Dark theme tokens. Tints derive from the active accent, so every accent works in both themes. */
 html.dark {
   color-scheme: dark;
-  --color-bg: #0c1512;
-  --color-surface: #131e1a;
-  --color-surface-2: #192722;
-  --color-surface-3: #20312a;
-  --color-line: #2b3d36;
-  --color-ink: #e4eee9;
-  --color-muted: #a2b4ac;
-  --color-faint: #7b8d86;
+  --color-bg: #0b1120;
+  --color-surface: #111a2c;
+  --color-surface-2: #172235;
+  --color-surface-3: #1e2b42;
+  --color-line: #2a3852;
+  --color-ink: #e6ecf7;
+  --color-muted: #a5b2c8;
+  --color-faint: #7c899f;
   --color-gold-100: #3a2e16;
   --color-gold-ink: #f1d08f;
   --color-rose: #e8746a;
   --color-rose-100: #3e1f1c;
-  --color-mint-100: color-mix(in oklab, var(--color-mint) 14%, #131e1a);
-  --color-mint-200: color-mix(in oklab, var(--color-mint) 28%, #131e1a);
+  --color-mint-100: color-mix(in oklab, var(--color-mint) 14%, #111a2c);
+  --color-mint-200: color-mix(in oklab, var(--color-mint) 28%, #111a2c);
   --color-focus: var(--color-mint);
   --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3), 0 4px 18px rgba(0, 0, 0, 0.25);
   --shadow-pop: 0 10px 40px rgba(0, 0, 0, 0.5);
@@ -247,14 +224,14 @@ html.dark :is(.text-pine-600, .text-pine-700, .text-pine-800, .text-pine-900):no
 /* Easy-to-Read: ≈18pt base text, stronger contrast. Everything is rem-based, so it all scales. */
 html.easy {
   font-size: 18px;
-  --color-muted: #34443d;
-  --color-faint: #4f5f58;
-  --color-line: #b9cbc1;
+  --color-muted: #2e384c;
+  --color-faint: #485369;
+  --color-line: #b3bfd3;
 }
 html.dark.easy {
-  --color-muted: #c6d5ce;
-  --color-faint: #a9bab3;
-  --color-line: #405750;
+  --color-muted: #c8d2e3;
+  --color-faint: #a9b5ca;
+  --color-line: #3e4d6a;
 }
 
 @layer base {

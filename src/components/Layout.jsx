@@ -63,9 +63,7 @@ function Sidebar({ open, onClose }) {
                         "group relative -ml-3.5 flex min-h-11 items-center gap-3.5 rounded-r-full py-1.5 pr-3 pl-6 text-[.92rem] no-underline transition-[background-color,box-shadow,color] duration-200",
                         compact && "md:ml-0 md:justify-center md:rounded-full md:px-0",
                         isActive
-                          ? cx("font-bold text-sec-on",
-                            // Overview leads to every section, so it shows all the family's colours (like its header stripe).
-                            id === "overview" ? "bg-(image:--rainbow)" : "bg-[linear-gradient(110deg,var(--sec)_0%,var(--sec)_45%,var(--sec-ink)_100%)]",
+                          ? cx("bg-[linear-gradient(110deg,var(--sec)_0%,var(--sec)_45%,var(--sec-ink)_100%)] font-bold text-sec-on",
                             "shadow-[0_6px_18px_-6px_var(--sec),inset_0_1px_0_rgb(255_255_255/.25)] hover:brightness-110 dark:hover:brightness-105")
                           : "text-ink hover:bg-[color-mix(in_oklab,var(--sec)_15%,var(--color-surface))] hover:text-sec-ink active:bg-[color-mix(in_oklab,var(--sec)_32%,var(--color-surface))]",
                       )}>
@@ -548,9 +546,9 @@ function QuickActions() {
       )}
       <button type="button" data-tour="fab" aria-expanded={expanded} aria-controls="quickActions" aria-label={t("fab.label")} title={t("fab.label")}
         onClick={() => setExpanded((x) => !x)}
-        className={cx("grid size-15 cursor-pointer place-items-center rounded-full border-0 text-white shadow-[0_10px_28px_-8px_rgb(30_64_175/.55)]",
-          "bg-[linear-gradient(135deg,#2e7d32,#0b6e99_35%,#1e40af_70%,#c2410c)] bg-size-[200%_200%] bg-left transition-[background-position,transform,box-shadow] duration-500",
-          "hover:scale-105 hover:bg-right hover:ring-4 hover:ring-[#1e40af]/35 active:scale-95 active:ring-[#1e40af]/60", expanded && "bg-right ring-4 ring-[#1e40af]/35")}>
+        className={cx("grid size-15 cursor-pointer place-items-center rounded-full border-0 text-sec-on shadow-[0_10px_28px_-8px_var(--sec)]",
+          "bg-[linear-gradient(135deg,var(--sec),var(--sec-ink))] transition-[transform,box-shadow] duration-300",
+          "hover:scale-105 hover:ring-4 hover:ring-sec-line active:scale-95 active:ring-sec", expanded && "ring-4 ring-sec-line")}>
         <Icon name="add" className={cx("text-[30px]! transition-transform", expanded && "rotate-45")} />
       </button>
     </div>
