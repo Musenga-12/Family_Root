@@ -65,6 +65,7 @@ const ALL = { type: "all", q: "", person: "all", from: 1918 };
 
 function MemoryCard({ m }) {
   const { person, update } = useStore();
+  const t = useT();
   const { confirm } = useModal();
   const toast = useToast();
   const moreRef = useRef(null);
@@ -72,20 +73,19 @@ function MemoryCard({ m }) {
   const copyLink = () => {
     const url = `${location.href.split("#")[0]}#/memories?q=${encodeURIComponent(m.title)}`;
     navigator.clipboard?.writeText(url).then(
-      () => toast("Link copied", { sub: "Only signed-in relatives can open it.", icon: "link", duration: 2500 }),
-      () => toast("Couldn't copy the link", { error: true, sub: url }),
+      () => toast(t("mem.linkCopied"), { sub: t("mem.linkCopiedSub"), icon: "link", duration: 2500 }),
+      () => toast(t("mem.linkFailed"), { error: true, sub: url }),
     );
   };
 
   const toggleFav = () => {
-    update((s) => { const x = s.memories.find((y) => y.id === m.id); x.fav = !x.fav; }, `${m.fav ? "Unfavourited" : "Favourited"} “${m.title}”`);
-    toast(m.fav ? "Removed from favourites" : "Added to favourites", { icon: "favorite", duration: 2500 });
+    update((s) => { const x = s.memories.find((y) => y.id === m.id); x.fav = !x.fav; }, t(m.fav ? "mem.unfavHistory" : "mem.favHistory", { title: m.title }));
+    toast(t(m.fav ? "mem.favRemoved" : "mem.favAdded"), { icon: "favorite", duration: 2500 });
   };
-  const remove = () => confirm("Remove this keepsake?",
-    `“${m.title}” will be removed from the vault for everyone in the family. You can undo straight after.`, "Remove", () => {
+  const remove = () => confirm(t("mem.removeQ"), t("mem.removeMsg", { title: m.title }), t("mem.remove"), () => {
       let index = 0;
-      update((s) => { index = s.memories.findIndex((x) => x.id === m.id); s.memories.splice(index, 1); }, `Removed “${m.title}”`);
-      toast("Keepsake removed", { sub: m.title, action: "Undo", icon: "delete", onAction: () => update((s) => { s.memories.splice(index, 0, m); }, `Restored “${m.title}”`) });
+      update((s) => { index = s.memories.findIndex((x) => x.id === m.id); s.memories.splice(index, 1); }, t("mem.removedHistory", { title: m.title }));
+      toast(t("mem.removed"), { sub: m.title, action: t("common.undo"), icon: "delete", onAction: () => update((s) => { s.memories.splice(index, 0, m); }, t("mem.restoredHistory", { title: m.title })) });
     });
 
   return (
@@ -94,33 +94,33 @@ function MemoryCard({ m }) {
       className="lift group/photo flex flex-col overflow-hidden rounded-[18px] border border-line bg-surface">
       <Photo p1={m.p1} p2={m.p2} icon={m.icon} img={m.img} alt={m.alt} aspect="aspect-[4/3.3]" flush>
         <PhotoCorner><Tag tone="glass" icon={m.type === "document" ? "description" : "photo_camera"}>{m.label}</Tag></PhotoCorner>
-        {m.audio && <PhotoOverlay className="text-xsmall"><Icon name="graphic_eq" size="xs" /> Oral clip by Mary · “Crossing the Atlantic in ’68”</PhotoOverlay>}
+        {m.audio && <PhotoOverlay className="text-xsmall"><Icon name="graphic_eq" size="xs" /> {t("mem.oralClip", { name: "Mary", title: "Crossing the Atlantic in ’68" })}</PhotoOverlay>}
       </Photo>
       <div className="grid flex-1 content-start gap-2 p-3.5">
         <div className="flex items-center justify-between gap-2.5 text-xsmall text-muted">
           <span><Icon name="location_on" size="xs" /> {m.place}</span>
-          <span>{m.approx ? <Tag tone="rose" title="Approximate / remembered date">{fmtDate(m.date, true)} · approx.</Tag> : fmtDate(m.date)}</span>
+          <span>{m.approx ? <Tag tone="rose" title={t("mem.approxDate")}>{fmtDate(m.date, true)} · {t("mem.approx")}</Tag> : fmtDate(m.date)}</span>
         </div>
         <h3>{m.title}</h3>
         <p className="text-small text-muted">{m.caption}</p>
-        <Visibility>{m.visibility} · Added by {person(m.owner || "mary")?.first}</Visibility>
+        <Visibility>{t("mem.addedBy", { vis: t(`vis.${m.visibility}`) === `vis.${m.visibility}` ? m.visibility : t(`vis.${m.visibility}`), name: person(m.owner || "mary")?.first })}</Visibility>
       </div>
       <div className="flex flex-wrap items-center gap-1.5 border-t border-line px-3.5 py-2.5">
         <span className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
-          <span className="text-xsmall text-muted">TAGGED:</span>
+          <span className="text-xsmall text-muted">{t("mem.tagged")}</span>
           {m.tagged.slice(0, 3).map((id) => <Tag key={id} tone="outline">{person(id)?.first || "?"}</Tag>)}
           {m.tagged.length > 3 && <Tag tone="outline">+{m.tagged.length - 3}</Tag>}
         </span>
         <IconButton icon="favorite" iconProps={{ fill: !!m.fav, className: m.fav ? "text-rose! [button:active_&]:text-sec-on!" : "" }} aria-pressed={!!m.fav}
-          label={`${m.fav ? "Remove from" : "Add to"} favourites`} title={`${m.fav ? "Remove from" : "Add to"} favourites`} onClick={toggleFav} />
-        <Menu label={`Actions for ${m.title}`} trigger={(p) => (
-          <IconButton ref={moreRef} icon="more_vert" label={`More actions for ${m.title}`} title="More actions (or right-click the card)" {...p} />
+          label={t(m.fav ? "mem.favRemove" : "mem.favAdd")} title={t(m.fav ? "mem.favRemove" : "mem.favAdd")} onClick={toggleFav} />
+        <Menu label={t("mem.actions", { title: m.title })} trigger={(p) => (
+          <IconButton ref={moreRef} icon="more_vert" label={t("mem.moreFor", { title: m.title })} title={t("mem.moreHint")} {...p} />
         )}>
-          <MenuItem icon="favorite" onClick={toggleFav}>{m.fav ? "Remove from favourites" : "Add to favourites"}</MenuItem>
-          {canSpeak && <MenuItem icon={speaking ? "stop_circle" : "volume_up"} onClick={() => toggleSpeech(`${m.title}. ${m.caption}. ${m.alt || ""}`)}>{speaking ? "Stop reading" : "Read caption aloud"}</MenuItem>}
-          <MenuItem icon="link" onClick={copyLink}>Copy link</MenuItem>
+          <MenuItem icon="favorite" onClick={toggleFav}>{t(m.fav ? "mem.favRemove" : "mem.favAdd")}</MenuItem>
+          {canSpeak && <MenuItem icon={speaking ? "stop_circle" : "volume_up"} onClick={() => toggleSpeech(`${m.title}. ${m.caption}. ${m.alt || ""}`)}>{speaking ? t("read.stop") : t("mem.readAloud")}</MenuItem>}
+          <MenuItem icon="link" onClick={copyLink}>{t("mem.copyLink")}</MenuItem>
           <MenuDivider />
-          <MenuItem icon="delete" onClick={remove}>Remove…</MenuItem>
+          <MenuItem icon="delete" onClick={remove}>{t("mem.removeMenu")}</MenuItem>
         </Menu>
       </div>
     </article>
@@ -130,6 +130,8 @@ function MemoryCard({ m }) {
 /** One album: its keepsakes as a grid, a slideshow, and a picker to choose what belongs in it. */
 function AlbumDialog({ id }) {
   const { state, update } = useStore();
+  const t = useT();
+  const count = (n) => (n === 1 ? t("mem.keepsakesOne") : t("mem.keepsakesMany", { n }));
   const { open } = useModal();
   const toast = useToast();
   const a = state.albums.find((x) => x.id === id);
@@ -139,18 +141,18 @@ function AlbumDialog({ id }) {
   if (!a) return null;
   const inAlbum = state.memories.filter((m) => items.includes(m.id));
   const save = () => {
-    update((s) => { s.albums.find((x) => x.id === id).items = picked; }, `Updated album “${a.title}”`);
-    toast("Album updated", { sub: `${a.title} · ${picked.length} keepsake${picked.length === 1 ? "" : "s"}`, icon: "photo_album" });
+    update((s) => { s.albums.find((x) => x.id === id).items = picked; }, t("mem.albumHistory", { title: a.title }));
+    toast(t("mem.albumUpdated"), { sub: `${a.title} · ${count(picked.length)}`, icon: "photo_album" });
     setEditing(false);
   };
   return (
-    <Dialog wide title={a.title} sub={`${a.tag} · ${items.length} keepsake${items.length === 1 ? "" : "s"} in this album`}
+    <Dialog wide title={a.title} sub={t("mem.inAlbum", { tag: a.tag, count: count(items.length) })}
       footer={editing
-        ? <><Button variant="soft" onClick={() => { setPicked(items); setEditing(false); }} disabled={!items.length}>Cancel</Button><Button variant="primary" icon="check" onClick={save}>Save album</Button></>
-        : <><Button icon="edit" onClick={() => setEditing(true)}>Choose keepsakes</Button><Button variant="primary" icon="slideshow" disabled={!inAlbum.length} onClick={() => open(<Slideshow list={inAlbum} />)}>Play slideshow</Button></>}>
+        ? <><Button variant="soft" onClick={() => { setPicked(items); setEditing(false); }} disabled={!items.length}>{t("common.cancel")}</Button><Button variant="primary" icon="check" onClick={save}>{t("mem.saveAlbum")}</Button></>
+        : <><Button icon="edit" onClick={() => setEditing(true)}>{t("mem.choose")}</Button><Button variant="primary" icon="slideshow" disabled={!inAlbum.length} onClick={() => open(<Slideshow list={inAlbum} />)}>{t("mem.play")}</Button></>}>
       {editing ? (
         <fieldset className="m-0 border-0 p-0">
-          <legend className="mb-2 text-small font-semibold">Tick the keepsakes that belong in this album ({picked.length} chosen)</legend>
+          <legend className="mb-2 text-small font-semibold">{t("mem.tick", { n: picked.length })}</legend>
           <div className="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-2.5">
             {state.memories.map((m) => {
               const on = picked.includes(m.id);
@@ -186,19 +188,20 @@ function CreateAlbumDialog() {
   const close = useCloseModal();
   const [title, setTitle] = useState("");
   const [invalid, setInvalid] = useState(false);
+  const t = useT();
   const create = () => {
-    const t = title.trim();
-    if (!t) { setInvalid(true); toast("Give the album a name", { error: true }); return; }
+    const name = title.trim();
+    if (!name) { setInvalid(true); toast(t("mem.albumName"), { error: true }); return; }
     const id = uid("a");
-    update((s) => { s.albums.unshift({ id, items: [], title: t, tag: "New Album", meta: "0 Items", note: "Just created", p1: "#7fa894", p2: "#2a5140", icon: "photo_album" }); }, `Created album “${t}”`);
-    toast("Album created", { sub: `${t} · now choose its keepsakes`, icon: "photo_album" });
+    update((s) => { s.albums.unshift({ id, items: [], title: name, tag: t("mem.newAlbumTag"), meta: t("mem.newAlbumMeta"), note: t("mem.justCreated"), p1: "#7fa894", p2: "#2a5140", icon: "photo_album" }); }, t("mem.createdHistory", { title: name }));
+    toast(t("mem.created"), { sub: t("mem.createdSub", { title: name }), icon: "photo_album" });
     close();
     open(<AlbumDialog id={id} />);
   };
   return (
-    <Dialog title="Create a family album" footer={<><CancelButton /><Button variant="primary" onClick={create}>Create</Button></>}>
-      <Field id="alT" label="Album name">
-        <Input id="alT" value={title} onChange={(e) => setTitle(e.target.value)} invalid={invalid} placeholder="e.g. Christmas at Rose Cottage" />
+    <Dialog title={t("mem.createTitle")} footer={<><CancelButton /><Button variant="primary" onClick={create}>{t("mem.create")}</Button></>}>
+      <Field id="alT" label={t("mem.albumLabel")}>
+        <Input id="alT" value={title} onChange={(e) => setTitle(e.target.value)} invalid={invalid} placeholder={t("mem.albumPh")} />
       </Field>
     </Dialog>
   );
@@ -219,7 +222,8 @@ export default function Memories() {
   if (urlQ !== prevQ) { setPrevQ(urlQ); setF((x) => ({ ...x, q: urlQ })); }
   const strip = useRef(null);
 
-  const counts = (t) => st.memories.filter((m) => t === "all" || m.type === t).length;
+  const counts = (type) => st.memories.filter((m) => type === "all" || m.type === type).length;
+  const keepsakes = (n) => (n === 1 ? t("mem.keepsakesOne") : t("mem.keepsakesMany", { n }));
   const matches = (m) => {
     const q = f.q.toLowerCase();
     const hay = [m.title, m.caption, m.place, m.label, ...m.tagged.map((id) => fullName(st.people.find((p) => p.id === id)))].join(" ").toLowerCase();
@@ -241,48 +245,48 @@ export default function Memories() {
     <>
       <Hero className="flex flex-wrap items-center gap-6">
         <div className="min-w-65 flex-1">
-          <Tag tone="sec">AUTHENTICATED KINSHIP VAULT · 11 Decades Digitised</Tag>
+          <Tag tone="sec">{t("mem.vault")}</Tag>
           <h1 className="mt-4">{t("h1.memories")}</h1>
-          <p className="mt-2 text-muted">Restored photographs, home cine-films and heirloom keepsakes across 11 decades of the Mackenzie family lineage — each with a caption, date, owner, and who can see it.</p>
+          <p className="mt-2 text-muted">{t("mem.intro")}</p>
           <div className="mt-4 flex flex-wrap gap-2.5">
-            {[["photo", "280 Restored Prints"], ["mic", "42 Voice Oral Tapes"], ["mail", "20 Letters & Parchments"], ["face", `${st.people.length} Relatives Identified`]].map(([i, t]) => (
-              <Tag key={t} tone="outline" icon={i}>{t}</Tag>
+            {[["photo", t("mem.stat.prints")], ["mic", t("mem.stat.tapes")], ["mail", t("mem.stat.letters")], ["face", t("mem.stat.people", { n: st.people.length })]].map(([i, label]) => (
+              <Tag key={i} tone="outline" icon={i}>{label}</Tag>
             ))}
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2.5">
           <Button variant="primary" icon="cloud_upload" className="px-4.5! py-3.5!" onClick={() => open(<AddMemoryDialog />)}>
-            <span className="text-left">+ Upload New Memory<br /><small className="font-normal opacity-75">Drag photos or scans</small></span>
+            <span className="text-left">{t("mem.upload")}<br /><small className="font-normal opacity-75">{t("mem.uploadSub")}</small></span>
           </Button>
-          <Button icon="create_new_folder" onClick={() => open(<CreateAlbumDialog />)}>Create Family Album</Button>
+          <Button icon="create_new_folder" onClick={() => open(<CreateAlbumDialog />)}>{t("mem.createAlbum")}</Button>
         </div>
       </Hero>
 
       <Card tone="soft" className="mt-4 flex flex-wrap items-center gap-2.5">
         <IconBox icon="shield" tone="dark" />
         <div className="min-w-0 flex-1">
-          <strong>Permanent Archival Redundancy Active</strong> <Tag tone="mint">CERTIFIED ZERO LOSS</Tag>
-          <p className="text-xsmall text-muted">Uncompressed copies preserved across 3 family custodians (Edinburgh, Vancouver, Melbourne) with end-to-end encryption.</p>
+          <strong>{t("mem.redundancy")}</strong> <Tag tone="mint">{t("mem.zeroLoss")}</Tag>
+          <p className="text-xsmall text-muted">{t("mem.redundancySub")}</p>
         </div>
-        <Tag tone="outline">Node Health (100%)</Tag>
+        <Tag tone="outline">{t("mem.health")}</Tag>
       </Card>
 
       <section className="mt-7" aria-labelledby="albumsH">
         <SectionTitle>
-          <div><Eyebrow icon="auto_stories">Heirloom portfolios</Eyebrow><h2 id="albumsH">Curated Family Albums</h2></div>
+          <div><Eyebrow icon="auto_stories">{t("mem.portfolios")}</Eyebrow><h2 id="albumsH">{t("mem.albums")}</h2></div>
           <div className="flex gap-2.5">
-            <IconButton icon="chevron_left" label="Previous albums" onClick={() => scrollAlbums(-1)} />
-            <IconButton icon="chevron_right" label="Next albums" onClick={() => scrollAlbums(1)} />
+            <IconButton icon="chevron_left" label={t("mem.prevAlbums")} onClick={() => scrollAlbums(-1)} />
+            <IconButton icon="chevron_right" label={t("mem.nextAlbums")} onClick={() => scrollAlbums(1)} />
           </div>
         </SectionTitle>
         <div ref={strip} className="grid snap-x snap-mandatory auto-cols-[minmax(200px,1fr)] grid-flow-col gap-3.5 overflow-x-auto scroll-smooth pb-1.5">
           {st.albums.map((a) => (
             <button key={a.id} type="button"
-              aria-label={`Open album: ${a.title}`} onClick={() => open(<AlbumDialog id={a.id} />)}
+              aria-label={t("mem.openAlbum", { title: a.title })} onClick={() => open(<AlbumDialog id={a.id} />)}
               className="lift group/photo flex cursor-pointer snap-start flex-col overflow-hidden rounded-2xl border border-line bg-surface p-0 text-left">
               <Photo as="span" p1={a.p1} p2={a.p2} icon={a.icon} aspect="aspect-[4/3.2]" flush>
                 <PhotoCorner><Tag tone="glass">{a.tag}</Tag></PhotoCorner>
-                <PhotoOverlay className="text-xsmall">{a.items ? `${a.items.length} keepsake${a.items.length === 1 ? "" : "s"}` : a.meta}</PhotoOverlay>
+                <PhotoOverlay className="text-xsmall">{a.items ? keepsakes(a.items.length) : a.meta}</PhotoOverlay>
               </Photo>
               <span className="grid gap-1.5 p-3">
                 <h3 className="text-base!">{a.title}</h3>
@@ -293,43 +297,43 @@ export default function Memories() {
         </div>
       </section>
 
-      <Card className="mt-7" aria-label="Filters">
+      <Card className="mt-7" aria-label={t("mem.filters")}>
         <div className="flex flex-wrap items-center gap-3">
-          <Tabs label="Type" value={f.type} onChange={(type) => setF({ ...f, type })}
-            items={[["all", "All Items"], ["photo", "Photos"], ["document", "Documents & Letters"]].map(([k, l]) => [k, `${l} (${counts(k)})`])} />
+          <Tabs label={t("mem.type")} value={f.type} onChange={(type) => setF({ ...f, type })}
+            items={["all", "photo", "document"].map((k) => [k, t(`mem.type.${k}`, { n: counts(k) })])} />
           <InputIcon icon="search" className="min-w-55 flex-1">
-            <label className="sr-only" htmlFor="memQ">Search captions and tags</label>
-            <Input id="memQ" type="search" value={f.q} onChange={(e) => setF({ ...f, q: e.target.value })} placeholder="Search caption, place, or tagged relative…" />
+            <label className="sr-only" htmlFor="memQ">{t("mem.searchLabel")}</label>
+            <Input id="memQ" type="search" value={f.q} onChange={(e) => setF({ ...f, q: e.target.value })} placeholder={t("mem.searchPh")} />
           </InputIcon>
         </div>
         <div className="mt-4 flex flex-wrap items-center gap-4.5">
-          <Field id="memPerson" label={<><Icon name="person" size="xs" /> Filter by kinsperson</>} className="min-w-55">
+          <Field id="memPerson" label={<><Icon name="person" size="xs" /> {t("mem.byPerson")}</>} className="min-w-55">
             <Select id="memPerson" value={f.person} onChange={(e) => setF({ ...f, person: e.target.value })}>
-              <option value="all">All Mackenzie Relatives</option>
+              <option value="all">{t("mem.allRelatives")}</option>
               {st.people.map((p) => <option key={p.id} value={p.id}>{fullName(p)}</option>)}
             </Select>
           </Field>
-          <Field id="memEra" label={<><Icon name="history" size="xs" /> Historic era span</>} hint={`${f.from} — ${NOW}`} className="min-w-0 flex-1 basis-60">
+          <Field id="memEra" label={<><Icon name="history" size="xs" /> {t("mem.era")}</>} hint={`${f.from} — ${NOW}`} className="min-w-0 flex-1 basis-60">
             <div className="flex flex-wrap items-center gap-3.5">
               <span className="text-xsmall text-muted">1918</span>
-              <input type="range" id="memEra" min="1918" max="2026" step="1" value={f.from} aria-valuetext={`From ${f.from}`}
+              <input type="range" id="memEra" min="1918" max="2026" step="1" value={f.from} aria-valuetext={t("mem.from", { year: f.from })}
                 onChange={(e) => setF({ ...f, from: +e.target.value })} className="min-w-40 flex-1" />
-              <span className="text-xsmall text-muted">Today</span>
+              <span className="text-xsmall text-muted">{t("mem.today")}</span>
             </div>
           </Field>
         </div>
         {decadeKeys.length > 1 && (
           <div className="mt-4 border-t border-line pt-4">
             <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
-              <strong className="text-[.8rem]"><Icon name="bar_chart" size="xs" /> Keepsakes by decade</strong>
-              <span className="text-xsmall text-muted">Pick a bar to start from that decade{f.from > 1918 && <> · <button type="button" onClick={() => setF({ ...f, from: 1918 })} className="cursor-pointer border-0 bg-transparent p-0 font-semibold text-sec-ink hover-fill">show all</button></>}</span>
+              <strong className="text-[.8rem]"><Icon name="bar_chart" size="xs" /> {t("mem.byDecade")}</strong>
+              <span className="text-xsmall text-muted">{t("mem.pickBar")}{f.from > 1918 && <> · <button type="button" onClick={() => setF({ ...f, from: 1918 })} className="cursor-pointer border-0 bg-transparent p-0 font-semibold text-sec-ink hover-fill">{t("mem.showAll")}</button></>}</span>
             </div>
-            <div role="group" aria-label="Keepsakes by decade" className="flex h-28 items-end gap-1.5">
+            <div role="group" aria-label={t("mem.byDecade")} className="flex h-28 items-end gap-1.5">
               {decadeKeys.map((d) => {
                 const on = d + 9 >= f.from;
                 return (
                   <button key={d} type="button" aria-pressed={f.from === d} onClick={() => setF({ ...f, from: d })}
-                    aria-label={`${d}s: ${decades[d]} keepsake${decades[d] > 1 ? "s" : ""}. Show from ${d}.`} title={`${d}s · ${decades[d]}`}
+                    aria-label={t("mem.decadeLabel", { d, count: keepsakes(decades[d]) })} title={`${d}s · ${decades[d]}`}
                     className="group flex h-full min-w-0 flex-1 cursor-pointer flex-col items-center justify-end gap-1 border-0 bg-transparent p-0">
                     <span className="text-[.68rem] font-semibold text-muted">{decades[d]}</span>
                     <span className={cx("w-full max-w-12 rounded-t-md transition-colors", on ? "bg-sec group-hover:brightness-110" : "bg-surface-3 group-hover:bg-sec/60")}
@@ -345,7 +349,7 @@ export default function Memories() {
 
       <section className="mt-7" aria-labelledby="artH">
         <SectionTitle>
-          <div><Eyebrow icon="inventory_2">Historical folio</Eyebrow><h2 id="artH">Preserved Family Artifacts</h2></div>
+          <div><Eyebrow icon="inventory_2">{t("mem.folio")}</Eyebrow><h2 id="artH">{t("mem.artifacts")}</h2></div>
           <div className="flex flex-wrap items-center gap-2.5">
             <Chip icon="favorite" pressed={favOnly} count={st.memories.filter((m) => m.fav).length} onClick={() => setFavOnly(!favOnly)}>{t("filter.favOnly")}</Chip>
             <label className="sr-only" htmlFor="memSort">{t("sort.label")}</label>
@@ -359,13 +363,13 @@ export default function Memories() {
         </SectionTitle>
         {list.length ? (
           <>
-            <p className="mb-2.5 text-small text-muted" aria-live="polite">Showing {list.length} keepsake{list.length > 1 ? "s" : ""}</p>
+            <p className="mb-2.5 text-small text-muted" aria-live="polite">{t("mem.showing", { count: keepsakes(list.length) })}</p>
             <div className={cx("grid gap-4.5", size === "small" && "[&_p]:hidden")} style={{ gridTemplateColumns: `repeat(auto-fill,${SIZES[size]})` }}>{list.map((m) => <MemoryCard key={m.id} m={m} />)}</div>
           </>
         ) : (
-          <Empty icon="image_search" title="No keepsakes match">
-            <p className="text-small">Try another relative, widen the era range, or clear the search.</p>
-            <Button className="mt-4" onClick={() => { setF(ALL); setFavOnly(false); }}>Clear filters</Button>
+          <Empty icon="image_search" title={t("mem.none")}>
+            <p className="text-small">{t("mem.noneHelp")}</p>
+            <Button className="mt-4" onClick={() => { setF(ALL); setFavOnly(false); }}>{t("mem.clear")}</Button>
           </Empty>
         )}
       </section>
