@@ -151,12 +151,12 @@ html[data-text="lg"] { font-size: 17.5px; }
 }
 [data-sec="overview"]  { --sec: var(--color-pine-800); --sec-soft: var(--color-mint-100); --sec-line: var(--color-mint-200); --stripe: var(--rainbow); }
 /* The family's colours together: the Overview header stripe and the quick-add button, which lead to every section. */
-:root { --rainbow: linear-gradient(90deg, #2e7d32, #0b6e99, #b45309, #7c3aed, #0f766e, #2563eb, #c2410c); }
-html.dark { --rainbow: linear-gradient(90deg, #86d993, #7cc8ef, #f6b65c, #c4a5ff, #6fd6c8, #93b6ff, #ffa37a); }
+:root { --rainbow: linear-gradient(90deg, #2e7d32, #0b6e99, #b45309, #1e40af, #0f766e, #2563eb, #c2410c); }
+html.dark { --rainbow: linear-gradient(90deg, #86d993, #7cc8ef, #f6b65c, #7c9cff, #6fd6c8, #93b6ff, #ffa37a); }
 [data-sec="tree"]      { --sec: #2e7d32; }
 [data-sec="directory"] { --sec: #0b6e99; }
 [data-sec="memories"]  { --sec: #b45309; }
-[data-sec="stories"]   { --sec: #7c3aed; }
+[data-sec="stories"]   { --sec: #1e40af; }
 [data-sec="timeline"]  { --sec: #0f766e; }
 [data-sec="legacy"]    { --sec: #8a5a2b; }
 [data-sec="messages"]  { --sec: #2563eb; }
@@ -165,6 +165,8 @@ html.dark { --rainbow: linear-gradient(90deg, #86d993, #7cc8ef, #f6b65c, #c4a5ff
 [data-sec="privacy"]   { --sec: #4338ca; }
 [data-sec="settings"]  { --sec: #a21caf; }
 [data-sec="auth"]      { --sec: #be185d; }
+/* The Easy-to-Read switch is always blue, whatever page it sits on. */
+[data-sec="easy"]      { --sec: #1d4ed8; }
 
 /* Dark theme: lighter versions of the same hues, with dark text on top. */
 html.dark :is(:root, [data-sec]) {
@@ -180,7 +182,7 @@ html.dark [data-sec="overview"]  { --sec: var(--color-mint); }
 html.dark [data-sec="tree"]      { --sec: #86d993; }
 html.dark [data-sec="directory"] { --sec: #7cc8ef; }
 html.dark [data-sec="memories"]  { --sec: #f6b65c; }
-html.dark [data-sec="stories"]   { --sec: #c4a5ff; }
+html.dark [data-sec="stories"]   { --sec: #7c9cff; }
 html.dark [data-sec="timeline"]  { --sec: #6fd6c8; }
 html.dark [data-sec="legacy"]    { --sec: #e0b583; }
 html.dark [data-sec="messages"]  { --sec: #93b6ff; }
@@ -189,6 +191,7 @@ html.dark [data-sec="admin"]     { --sec: #a9bfe3; }
 html.dark [data-sec="privacy"]   { --sec: #aab0ff; }
 html.dark [data-sec="settings"]  { --sec: #f0a6f5; }
 html.dark [data-sec="auth"]      { --sec: #f59ac6; }
+html.dark [data-sec="easy"]      { --sec: #93b6ff; }
 
 /* Easy-to-Read: deeper tints and borders, so the colour coding is even easier to see. */
 html.easy :is(:root, [data-sec]) {

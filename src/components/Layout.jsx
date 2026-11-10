@@ -401,7 +401,7 @@ function Topbar({ menuOpen, onMenu, onPalette, onTour, speech }) {
         </button>
       </form>
       <UndoControls />
-      <button type="button" data-tour="easy" aria-pressed={easy} title={t("top.easyTitle")} onClick={toggleEasy}
+      <button type="button" data-tour="easy" data-sec="easy" aria-pressed={easy} title={t("top.easyTitle")} onClick={toggleEasy}
         className={cx("pressable inline-flex min-h-11 cursor-pointer items-center gap-1.5 rounded-xl border px-3 py-2 text-small font-medium easy:min-h-12",
           easy ? "border-transparent bg-[linear-gradient(135deg,var(--sec),var(--sec-ink))] text-sec-on shadow-[0_4px_12px_-6px_var(--sec)] hover:ring-4 hover:ring-sec-line"
             : "hover-fill border-sec-line bg-sec-soft text-sec-ink")}>
@@ -548,9 +548,9 @@ function QuickActions() {
       )}
       <button type="button" data-tour="fab" aria-expanded={expanded} aria-controls="quickActions" aria-label={t("fab.label")} title={t("fab.label")}
         onClick={() => setExpanded((x) => !x)}
-        className={cx("grid size-15 cursor-pointer place-items-center rounded-full border-0 text-white shadow-[0_10px_28px_-8px_rgb(124_58_237/.55)]",
-          "bg-[linear-gradient(135deg,#2e7d32,#0b6e99_35%,#7c3aed_70%,#c2410c)] bg-size-[200%_200%] bg-left transition-[background-position,transform,box-shadow] duration-500",
-          "hover:scale-105 hover:bg-right hover:ring-4 hover:ring-[#7c3aed]/35 active:scale-95 active:ring-[#7c3aed]/60", expanded && "bg-right ring-4 ring-[#7c3aed]/35")}>
+        className={cx("grid size-15 cursor-pointer place-items-center rounded-full border-0 text-white shadow-[0_10px_28px_-8px_rgb(30_64_175/.55)]",
+          "bg-[linear-gradient(135deg,#2e7d32,#0b6e99_35%,#1e40af_70%,#c2410c)] bg-size-[200%_200%] bg-left transition-[background-position,transform,box-shadow] duration-500",
+          "hover:scale-105 hover:bg-right hover:ring-4 hover:ring-[#1e40af]/35 active:scale-95 active:ring-[#1e40af]/60", expanded && "bg-right ring-4 ring-[#1e40af]/35")}>
         <Icon name="add" className={cx("text-[30px]! transition-transform", expanded && "rotate-45")} />
       </button>
     </div>

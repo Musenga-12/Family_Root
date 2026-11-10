@@ -61,7 +61,7 @@ export default function RecordingStudio({ promptIdx, setPromptIdx, forName }) {
     if (!c) return;
     const g = c.getContext("2d"), w = c.width, h = c.height;
     g.clearRect(0, 0, w, h);
-    g.fillStyle = getComputedStyle(c).getPropertyValue("--sec").trim() || "#7c3aed";
+    g.fillStyle = getComputedStyle(c).getPropertyValue("--sec").trim() || "#1e40af";
     const r = rec.current, live = statusRef.current === "recording";
     let data = null;
     if (r?.analyser) { data = new Uint8Array(r.analyser.frequencyBinCount); r.analyser.getByteFrequencyData(data); }
