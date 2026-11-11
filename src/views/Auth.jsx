@@ -4,14 +4,11 @@ import { Link, useNavigate } from "react-router-dom";
 import { useToast } from "../components/toastContext";
 import { Button, Card, Check, ErrorText, Eyebrow, Field, Icon, IconBox, Input, InputIcon, Photo, PhotoOverlay, Tabs, Tag } from "../components/ui";
 import { cx, emailOk } from "../lib/format";
+import { rich, useT } from "../lib/i18n";
 import { useStore } from "../lib/store";
 
-const ROLES = [
-  ["elder", "elderly", "Elder / Matriarch", "Primary oral narrator"],
-  ["parent", "family_restroom", "Parent / Adult Kin", "Family archivist"],
-  ["youth", "sentiment_satisfied", "Youth / Grandchild", "Age 13+ descendant"],
-];
-const STRENGTH_LABEL = ["Too short", "Too short — keep going", "Fair — almost there", "Good passphrase", "Strong passphrase"];
+// Titles and subtitles are au.role.<key> and au.role.<key>Sub.
+const ROLES = [["elder", "elderly"], ["parent", "family_restroom"], ["youth", "sentiment_satisfied"]];
 const STRENGTH_COLOR = ["", "bg-rose", "bg-gold", "bg-pine-600", "bg-pine-800"];
 
 function passStrength(v) {
@@ -25,10 +22,11 @@ function passStrength(v) {
 
 function RoleGrid({ role, onPick }) {
   const refs = useRef([]);
+  const t = useT();
   const pick = (i) => { onPick(ROLES[i][0]); refs.current[i].focus(); };
   return (
-    <div role="radiogroup" aria-label="Generational role" className="grid gap-2.5 sm:grid-cols-3">
-      {ROLES.map(([k, icon, title, sub], i) => {
+    <div role="radiogroup" aria-label={t("au.roleGroup")} className="grid gap-2.5 sm:grid-cols-3">
+      {ROLES.map(([k, icon], i) => {
         const on = role === k;
         return (
           <button key={k} ref={(el) => (refs.current[i] = el)} type="button" role="radio" aria-checked={on} tabIndex={on ? 0 : -1}
@@ -39,8 +37,8 @@ function RoleGrid({ role, onPick }) {
             }}
             className={cx("relative grid cursor-pointer gap-1 rounded-[14px] border-2 p-3 text-left", on ? "border-sec bg-sec-soft shadow-[0_6px_18px_-10px_var(--sec)]" : "lift border-line bg-surface")}>
             <Icon name={icon} />
-            <strong className="text-[.92rem]">{title}</strong>
-            <small className="text-[.7rem] text-muted">{sub}</small>
+            <strong className="text-[.92rem]">{t(`au.role.${k}`)}</strong>
+            <small className="text-[.7rem] text-muted">{t(`au.role.${k}Sub`)}</small>
             {on && <Icon name="check_circle" size="sm" className="absolute top-2 right-2 text-pine-700" />}
           </button>
         );
@@ -51,6 +49,7 @@ function RoleGrid({ role, onPick }) {
 
 function CreateAccount({ onEnter, setTab }) {
   const { setEasy } = useStore();
+  const t = useT();
   const [f, setF] = useState({ name: "", email: "", pass: "", easy: true, trust: false });
   const [role, setRole] = useState("elder");
   const [show, setShow] = useState(false);
@@ -61,218 +60,215 @@ function CreateAccount({ onEnter, setTab }) {
   const submit = () => {
     const name = f.name.trim(), email = f.email.trim();
     const e = {
-      name: name ? "" : "Please enter your name so relatives can recognise you.",
-      email: !email ? "Please enter your email — we use it only for sign-in and account recovery."
-        : emailOk(email) ? "" : "That email looks incomplete. It should look like name@example.com.",
-      pass: f.pass.length >= 10 ? "" : `Your passphrase needs at least 10 characters (you have ${f.pass.length}). Try a short sentence like “rose cottage summers”.`,
-      trust: f.trust ? "" : "Please accept the Family Privacy Trust to continue.",
+      name: name ? "" : t("au.errName"),
+      email: !email ? t("au.errEmailEmpty") : emailOk(email) ? "" : t("au.errEmail"),
+      pass: f.pass.length >= 10 ? "" : t("au.errPass", { n: f.pass.length }),
+      trust: f.trust ? "" : t("au.errTrust"),
     };
     setErrors(e);
     const bad = ["name", "email", "pass", "trust"].find((k) => e[k]);
     if (bad) { document.getElementById("ca-" + bad).focus(); return; }
     setEasy(f.easy);
-    onEnter(name.split(" ")[0], "Your request was sent to custodian Sarah Mackenzie. You can explore the archive while it's confirmed.");
+    onEnter(name.split(" ")[0], t("au.requestSent"));
   };
 
   return (
     <form className="grid gap-4" noValidate onSubmit={(e) => { e.preventDefault(); submit(); }}>
-      <div><h2>Join the Living Family Archive</h2><p className="mt-2 text-small text-muted">Step into your branch with a verified lineage profile. We only ask for what we need.</p></div>
+      <div><h2>{t("au.joinTitle")}</h2><p className="mt-2 text-small text-muted">{t("au.joinSub")}</p></div>
       <div className="grid items-start gap-3 sm:grid-cols-2">
-        <Field id="ca-name" label="Full or chosen name" hint="Required" help="Shown to relatives so they recognise you." error={errors.name}>
-          <InputIcon icon="badge"><Input id="ca-name" autoComplete="name" value={f.name} onChange={set("name")} invalid={!!errors.name} placeholder="e.g. Sarah Mackenzie" /></InputIcon>
+        <Field id="ca-name" label={t("au.name")} hint={t("common.required")} help={t("au.nameHelp")} error={errors.name}>
+          <InputIcon icon="badge"><Input id="ca-name" autoComplete="name" value={f.name} onChange={set("name")} invalid={!!errors.name} placeholder={t("au.namePh")} /></InputIcon>
         </Field>
-        <Field id="ca-email" label="Email address" hint="For sign-in & recovery" help="Never shown publicly or shared." error={errors.email}>
+        <Field id="ca-email" label={t("au.email")} hint={t("au.emailHint")} help={t("au.emailHelp")} error={errors.email}>
           <InputIcon icon="mail"><Input id="ca-email" type="email" autoComplete="email" value={f.email} onChange={set("email")} invalid={!!errors.email} placeholder="sarah@example.com" /></InputIcon>
         </Field>
       </div>
       <div className="grid gap-1.5">
         <label htmlFor="ca-pass" className="flex items-center justify-between gap-2 text-[.8rem] font-semibold">
-          Sanctuary passphrase
-          <Button variant="ghost" size="sm" icon={show ? "visibility_off" : "visibility"} iconSize="xs" aria-pressed={show} onClick={() => setShow(!show)}>{show ? "Hide" : "Show"}</Button>
+          {t("au.pass")}
+          <Button variant="ghost" size="sm" icon={show ? "visibility_off" : "visibility"} iconSize="xs" aria-pressed={show} onClick={() => setShow(!show)}>{show ? t("au.hide") : t("au.show")}</Button>
         </label>
         <InputIcon icon="key">
           <Input id="ca-pass" type={show ? "text" : "password"} autoComplete="new-password" value={f.pass} onChange={set("pass")} invalid={!!errors.pass}
-            placeholder="Create a memorable phrase" aria-describedby="caPassHelp" />
+            placeholder={t("au.passPh")} aria-describedby="caPassHelp" />
         </InputIcon>
         <div className="grid grid-cols-4 gap-1" aria-hidden="true">
           {[1, 2, 3, 4].map((i) => <i key={i} className={cx("h-1.25 rounded", f.pass && i <= Math.max(1, s) ? STRENGTH_COLOR[Math.max(1, s)] : "bg-surface-3")} />)}
         </div>
         <span id="caPassHelp" className="text-[.74rem] text-muted">
-          {f.pass ? `${STRENGTH_LABEL[s]} (${f.pass.length} characters)` : "Use at least 10 characters — a short sentence is easiest to remember."}
+          {f.pass ? t("au.passLen", { label: t("au.strength")[s], n: f.pass.length }) : t("au.passHelp")}
         </span>
         <ErrorText id="ca-passErr">{errors.pass}</ErrorText>
       </div>
       <fieldset className="m-0 border-0 p-0">
         <legend className="mb-2 flex w-full items-center justify-between text-small font-semibold">
-          Select your generational role <span className="text-xsmall font-medium text-pine-700">Tailors accessibility</span>
+          {t("au.selectRole")} <span className="text-xsmall font-medium text-pine-700">{t("au.tailors")}</span>
         </legend>
         <RoleGrid role={role} onPick={(r) => { setRole(r); setF((x) => ({ ...x, easy: r === "elder" })); }} />
       </fieldset>
       <div className="flex items-center gap-3 rounded-[14px] bg-surface-2 p-3">
         <IconBox icon="key" tone="dark" />
-        <div className="min-w-0 flex-1"><strong className="text-small">Mackenzie Family Token</strong><p className="text-xsmall text-muted">Joining through active invite: <strong>MCK-8294</strong></p></div>
-        <Button variant="ghost" size="sm" onClick={() => setTab("code")}>Change Family Code</Button>
+        <div className="min-w-0 flex-1"><strong className="text-small">{t("au.token")}</strong><p className="text-xsmall text-muted">{rich(t("au.invite", { code: "MCK-8294" }))}</p></div>
+        <Button variant="ghost" size="sm" onClick={() => setTab("code")}>{t("au.changeCode")}</Button>
       </div>
       <Check checked={f.easy} onChange={set("easy")}>
-        <strong>Enable Easy-to-Read mode by default</strong><br />
-        <span className="text-xsmall text-muted">Larger text, higher contrast, and bigger buttons. You can change this anytime.</span>
+        <strong>{t("au.easy")}</strong><br />
+        <span className="text-xsmall text-muted">{t("au.easyHelp")}</span>
       </Check>
       <div className="grid gap-1.5">
         <Check id="ca-trust" checked={f.trust} onChange={set("trust")} aria-invalid={!!errors.trust || undefined}>
-          <strong>I accept the Family Privacy Trust</strong><br />
-          <span className="text-xsmall text-muted">No advertising or data sales. Stories and photos are only visible to approved relatives. <Link to="/privacy">Read the charter</Link></span>
+          <strong>{t("au.trust")}</strong><br />
+          <span className="text-xsmall text-muted">{t("au.trustHelp")} <Link to="/privacy">{t("au.charter")}</Link></span>
         </Check>
         <ErrorText>{errors.trust}</ErrorText>
       </div>
-      <Button variant="primary" size="lg" block type="submit">Create Account &amp; Enter Family Sanctuary <Icon name="arrow_forward" size="sm" /></Button>
+      <Button variant="primary" size="lg" block type="submit">{t("au.create")} <Icon name="arrow_forward" size="sm" /></Button>
     </form>
   );
 }
 
 function SignIn({ onEnter }) {
   const toast = useToast();
+  const t = useT();
   const [email, setEmail] = useState("");
   const [pass, setPass] = useState("");
   const [show, setShow] = useState(false);
   const [errors, setErrors] = useState({});
   const submit = () => {
-    const e = { email: emailOk(email.trim()) ? "" : "Enter the email you joined with, e.g. name@example.com.", pass: pass ? "" : "Enter your passphrase." };
+    const e = { email: emailOk(email.trim()) ? "" : t("au.errSiEmail"), pass: pass ? "" : t("au.errSiPass") };
     setErrors(e);
     if (e.email || e.pass) { document.getElementById(e.email ? "siEmail" : "siPass").focus(); return; }
-    onEnter("back", "Signed in to The Mackenzie Family archive.");
+    onEnter(null, t("au.signedIn"));
   };
   return (
     <form className="grid gap-4" noValidate onSubmit={(e) => { e.preventDefault(); submit(); }}>
-      <div><h2>Welcome back</h2><p className="mt-2 text-small text-muted">Sign in to your family's private archive.</p></div>
-      <Field id="siEmail" label="Email address" error={errors.email}>
+      <div><h2>{t("au.welcomeBack")}</h2><p className="mt-2 text-small text-muted">{t("au.welcomeBackSub")}</p></div>
+      <Field id="siEmail" label={t("au.email")} error={errors.email}>
         <InputIcon icon="mail"><Input id="siEmail" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} invalid={!!errors.email} placeholder="you@example.com" /></InputIcon>
       </Field>
-      <Field id="siPass" label="Passphrase" error={errors.pass}>
+      <Field id="siPass" label={t("au.passphrase")} error={errors.pass}>
         <InputIcon icon="key"><Input id="siPass" type={show ? "text" : "password"} autoComplete="current-password" value={pass} onChange={(e) => setPass(e.target.value)} invalid={!!errors.pass} /></InputIcon>
       </Field>
       <div className="flex items-center justify-between gap-2.5 text-small">
-        <Check checked={show} onChange={(e) => setShow(e.target.checked)}>Show passphrase</Check>
-        <a href="#/auth" onClick={(e) => { e.preventDefault(); toast("Recovery link sent", { sub: "If that email is registered, a custodian-approved reset link is on its way.", icon: "mail" }); }}>
-          Forgot passphrase?
+        <Check checked={show} onChange={(e) => setShow(e.target.checked)}>{t("au.showPass")}</Check>
+        <a href="#/auth" onClick={(e) => { e.preventDefault(); toast(t("au.recovery"), { sub: t("au.recoverySub"), icon: "mail" }); }}>
+          {t("au.forgot")}
         </a>
       </div>
-      <Button variant="primary" size="lg" block type="submit">Sign in <Icon name="arrow_forward" size="sm" /></Button>
+      <Button variant="primary" size="lg" block type="submit">{t("au.signIn")} <Icon name="arrow_forward" size="sm" /></Button>
     </form>
   );
 }
 
 function FamilyCode({ onAccepted }) {
   const toast = useToast();
+  const t = useT();
   const [code, setCode] = useState("");
   const [error, setError] = useState("");
   const submit = () => {
     const c = code.trim().toUpperCase();
-    const err = !/^[A-Z]{3}-?\d{4}$/.test(c) ? "Family codes have 3 letters and 4 numbers, like MCK-8294."
-      : c.replace("-", "") !== "MCK8294" ? "We couldn't find that code. Check with the relative who invited you — codes can expire after 14 days." : "";
+    const err = !/^[A-Z]{3}-?\d{4}$/.test(c) ? t("au.errCodeFormat")
+      : c.replace("-", "") !== "MCK8294" ? t("au.errCodeUnknown") : "";
     setError(err);
     if (err) { document.getElementById("fcCode").focus(); return; }
-    toast("Code accepted — The Mackenzie Family", { sub: "Now create your account to finish joining.", icon: "verified" });
+    toast(t("au.codeOk"), { sub: t("au.codeOkSub"), icon: "verified" });
     onAccepted();
   };
   return (
     <form className="grid gap-4" noValidate onSubmit={(e) => { e.preventDefault(); submit(); }}>
       <div>
-        <h2>Join with a Family Code</h2>
-        <p className="mt-2 text-small text-muted">A relative can give you a code from their “Invite Relative” screen. It links you to the right branch — a custodian still approves you.</p>
+        <h2>{t("au.codeTitle")}</h2>
+        <p className="mt-2 text-small text-muted">{t("au.codeSub")}</p>
       </div>
-      <Field id="fcCode" label="Family code" hint="Format: ABC-1234" help="It's in your invitation email, or ask the relative who invited you." error={error}>
+      <Field id="fcCode" label={t("au.code")} hint={t("au.codeHint")} help={t("au.codeHelp")} error={error}>
         <Input id="fcCode" value={code} onChange={(e) => setCode(e.target.value)} invalid={!!error} placeholder="MCK-8294" autoComplete="off" maxLength={8}
           className="text-center text-[1.3rem] tracking-[.15em] uppercase" />
       </Field>
-      <Button variant="primary" size="lg" block type="submit">Check code <Icon name="arrow_forward" size="sm" /></Button>
+      <Button variant="primary" size="lg" block type="submit">{t("au.checkCode")} <Icon name="arrow_forward" size="sm" /></Button>
     </form>
   );
 }
 
-const STEPS = [
-  ["badge", "Step 01", "Kinship Identity", "Submit your basic descent line or enter the invitation code handed down by an active family archivist.", "Instant encryption seal"],
-  ["verified", "Step 02", "Custodian Approval", "Family custodians (Mary or Sarah Mackenzie) receive a prompt to confirm your lineage branch access.", "Guaranteed kinship verification"],
-  ["account_tree", "Step 03", "Living Tree Unlocked", "Explore 4 generations of oral recordings, ancestral portraits, handwritten recipes, and interactive milestones.", "Full vault access"],
-];
+// Text for each step is au.step<n>, au.step<n>d and au.step<n>f.
+const STEPS = [["badge", 1], ["verified", 2], ["account_tree", 3]];
 
 export default function Auth() {
   const toast = useToast();
   const navigate = useNavigate();
+  const t = useT();
   const [tab, setTabState] = useState("create");
-  const setTab = (t) => {
-    setTabState(t);
+  const setTab = (v) => {
+    setTabState(v);
     setTimeout(() => document.querySelector("#authPanel input")?.focus());
   };
   const enter = (name, sub) => {
-    toast(`Welcome, ${name}!`, { sub, icon: "celebration", duration: 6000 });
+    toast(name ? t("au.welcome", { name }) : t("au.welcomeAgain"), { sub, icon: "celebration", duration: 6000 });
     navigate("/overview");
   };
 
   return (
     <>
       <div className="mb-6.5 grid justify-items-center gap-2.5 text-center">
-        <Tag tone="sec" icon="shield">PRIVATE FAMILY HAVEN</Tag>
-        <h1>Every generation has a story.<br />Keep yours connected.</h1>
-        <p className="max-w-140 text-muted">Join the private living archive for the Mackenzie lineage — a dignified space kept away from public web trackers, data brokers and commercial noise.</p>
+        <Tag tone="sec" icon="shield">{t("au.haven")}</Tag>
+        <h1>{t("au.h1a")}<br />{t("au.h1b")}</h1>
+        <p className="max-w-140 text-muted">{t("au.intro")}</p>
       </div>
 
       <div className="mx-auto grid max-w-260 overflow-hidden rounded-[26px] bg-surface shadow-pop md:grid-cols-[minmax(0,.85fr)_minmax(0,1fr)]">
         <div className="flex flex-col gap-5.5 bg-[radial-gradient(circle_at_20%_10%,var(--color-pine-700),var(--color-pine-900)_60%)] p-5 text-white sm:p-7">
-          <div><Tag className="bg-white/10! text-mint!">● BRANCH 04 · MACKENZIE LINE</Tag></div>
-          <Photo p1="#a98a68" p2="#3c4f40" icon="family_restroom" aspect="aspect-[4/3.4]" alt="A grandfather, mother and young child looking at a family album together">
+          <div><Tag className="bg-white/10! text-mint!">{t("au.branch")}</Tag></div>
+          <Photo p1="#a98a68" p2="#3c4f40" icon="family_restroom" aspect="aspect-[4/3.4]" alt={t("au.photoAlt")}>
             <PhotoOverlay className="flex items-center justify-between gap-2.5">
-              <strong>The Mackenzie Folio</strong><Tag className="bg-white/20! text-white!">142 Memories</Tag>
+              <strong>{t("land.folio")}</strong><Tag className="bg-white/20! text-white!">{t("au.memories", { n: 142 })}</Tag>
             </PhotoOverlay>
           </Photo>
           <blockquote className="m-0 font-serif text-[1.25rem] leading-[1.45] text-white italic">
-            “A private sanctuary for our stories, safe from commercial social media and preserved for generations unborn.”
-            <footer className="mt-2.5 font-sans text-small text-on-dark not-italic">— Mary Mackenzie, Family Matriarch</footer>
+            {t("au.quote")}
+            <footer className="mt-2.5 font-sans text-small text-on-dark not-italic">{t("au.quoteBy")}</footer>
           </blockquote>
           <div className="mt-auto grid gap-2">
-            {[["lock", "End-to-End Kinship Encryption", "Only approved descendants can open the archive"],
-              ["block", "Zero Advertising & Commercialisation", "Never tracked, indexed by search engines, or sold"],
-              ["accessibility_new", "Built to WCAG 2.2 guidelines", "Large targets & easy audio reading for elders"]].map(([i, t, s]) => (
-              <div key={t} className="flex gap-2.5 rounded-xl bg-white/10 px-3 py-2.5 text-[.8rem]">
-                <Icon name={i} /><span><strong className="block text-white">{t}</strong><small className="text-on-dark">{s}</small></span>
+            {[["lock", "au.f1"], ["block", "au.f2"], ["accessibility_new", "au.f3"]].map(([i, k]) => (
+              <div key={k} className="flex gap-2.5 rounded-xl bg-white/10 px-3 py-2.5 text-[.8rem]">
+                <Icon name={i} /><span><strong className="block text-white">{t(k)}</strong><small className="text-on-dark">{t(`${k}d`)}</small></span>
               </div>
             ))}
           </div>
         </div>
 
         <div className="grid content-start gap-4 p-5 sm:p-7.5">
-          <Tabs label="Account options" value={tab} onChange={setTab} className="grid! grid-cols-3"
-            items={[["signin", "Sign In"], ["create", "Create Account"], ["code", "Family Code"]]} />
+          <Tabs label={t("au.options")} value={tab} onChange={setTab} className="grid! grid-cols-3"
+            items={[["signin", t("au.tabSignIn")], ["create", t("au.tabCreate")], ["code", t("au.tabCode")]]} />
           <div id="authPanel" role="tabpanel">
             {tab === "signin" && <SignIn onEnter={enter} />}
             {tab === "create" && <CreateAccount onEnter={enter} setTab={setTab} />}
             {tab === "code" && <FamilyCode onAccepted={() => setTab("create")} />}
           </div>
-          <p className="flex items-center gap-2.5 text-xsmall text-muted"><Icon name="support_agent" size="sm" /> Need help joining? Ask your family custodian, or call Kinship Care on HELP-ROOTS-24.</p>
+          <p className="flex items-center gap-2.5 text-xsmall text-muted"><Icon name="support_agent" size="sm" /> {t("au.help")}</p>
         </div>
       </div>
 
       <section className="mt-7 text-center">
-        <Eyebrow>Kinship verification flow</Eyebrow>
-        <h2 className="mt-2">How Family Security Protects Our Circle</h2>
-        <p className="mt-2 text-muted">Accounts are approved by trusted lineage guardians so sacred stories remain uncompromised.</p>
+        <Eyebrow>{t("au.flow")}</Eyebrow>
+        <h2 className="mt-2">{t("au.flowTitle")}</h2>
+        <p className="mt-2 text-muted">{t("au.flowSub")}</p>
       </section>
       <div className="mt-4 grid gap-4.5 md:grid-cols-3">
-        {STEPS.map(([i, s, t, d, f]) => (
-          <div key={s} className="grid content-start gap-2.5 rounded-[18px] border border-line bg-surface p-5">
+        {STEPS.map(([i, n]) => (
+          <div key={n} className="grid content-start gap-2.5 rounded-[18px] border border-line bg-surface p-5">
             <span className="grid size-10 place-items-center rounded-[10px] bg-surface-2 text-pine-800"><Icon name={i} /></span>
-            <div className="flex items-center gap-2.5"><Tag tone="mint">{s}</Tag><h3>{t}</h3></div>
-            <p className="text-small text-muted">{d}</p>
-            <span className="text-xsmall text-pine-700"><Icon name="check" size="xs" /> {f}</span>
+            <div className="flex items-center gap-2.5"><Tag tone="mint">{t("au.step", { n: String(n).padStart(2, "0") })}</Tag><h3>{t(`au.step${n}`)}</h3></div>
+            <p className="text-small text-muted">{t(`au.step${n}d`)}</p>
+            <span className="text-xsmall text-pine-700"><Icon name="check" size="xs" /> {t(`au.step${n}f`)}</span>
           </div>
         ))}
       </div>
       <Card tone="soft" className="mt-7 flex flex-wrap items-center gap-2.5">
         <IconBox icon="handshake" tone="gold" />
         <div className="min-w-0 flex-1">
-          <h3>Family Trust Guarantee</h3>
-          <p className="text-small text-muted">Audio narrations, photographs, and records belong to your family. They are never used to train commercial AI models or added to external indexes.</p>
+          <h3>{t("au.guarantee")}</h3>
+          <p className="text-small text-muted">{t("au.guaranteeText")}</p>
         </div>
-        <Button to="/privacy">Read Archival Trust Charter</Button>
+        <Button to="/privacy">{t("au.readCharter")}</Button>
       </Card>
     </>
   );
