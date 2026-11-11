@@ -13,10 +13,10 @@ import { useStore } from "../lib/store";
 
 const TYPES = [["Births", "child_care"], ["Weddings", "favorite"], ["Journeys", "sailing"], ["Memorials", "local_florist"], ["Milestones", "celebration"]];
 const ERAS = [
-  { id: "era2020", from: 2020, to: 9999, badge: "20s", label: "2020s: Present Day & Legacy Matriarchy" },
-  { id: "era2000", from: 2000, to: 2019, badge: "00s", label: "2000s–2010s: The Grandchildren & 4th Generation" },
-  { id: "era1960", from: 1960, to: 1999, badge: "60s", label: "1960s–1990s: The New Generation" },
-  { id: "era1900", from: 1900, to: 1959, badge: "1900", label: "1900s–1950s: Early Roots" },
+  { id: "era2020", from: 2020, to: 9999, badge: "20s" },
+  { id: "era2000", from: 2000, to: 2019, badge: "00s" },
+  { id: "era1960", from: 1960, to: 1999, badge: "60s" },
+  { id: "era1900", from: 1900, to: 1959, badge: "1900" },
 ];
 const NOW = new Date().getFullYear();
 
@@ -42,7 +42,7 @@ function Item({ t, compact }) {
       </span>
       <article className={cx("grid min-w-0 gap-2.5 rounded-[18px] border border-line bg-surface p-4.5", t.approx && "border-dashed")}>
         <div className="flex flex-wrap items-center justify-between gap-2.5">
-          <div className="flex flex-wrap items-center gap-1.5"><Tag tone="sec" icon={t.icon}>{t.type}</Tag><Tag tone="outline">{t.place}</Tag></div>
+          <div className="flex flex-wrap items-center gap-1.5"><Tag tone="sec" icon={t.icon}>{tr(`mtype.${t.type}`)}</Tag><Tag tone="outline">{t.place}</Tag></div>
           <time className="text-small" dateTime={t.date}>{fmtDate(t.date, t.approx)}</time>
         </div>
         <div className="flex items-start justify-between gap-2">
@@ -53,17 +53,17 @@ function Item({ t, compact }) {
         {details && <p className="animate-fade text-small text-muted">{t.text}</p>}
         {details && t.hasPhoto && (
           <>
-            <Photo p1={t.p1} p2={t.p2} icon="groups" alt="Family members gathered at the celebration" aspect="aspect-16/8" className="max-h-70 w-full">
-              <PhotoOverlay className="text-xsmall"><Icon name="photo_camera" size="xs" /> 28 Family Members in Attendance</PhotoOverlay>
+            <Photo p1={t.p1} p2={t.p2} icon="groups" alt={tr("tl.photoAlt")} aspect="aspect-16/8" className="max-h-70 w-full">
+              <PhotoOverlay className="text-xsmall"><Icon name="photo_camera" size="xs" /> {tr("tl.attendance", { n: 28 })}</PhotoOverlay>
             </Photo>
-            <AudioPlayer id={"tl-" + t.id} duration={286} label="Grandma Mary's 80th reflection" />
+            <AudioPlayer id={"tl-" + t.id} duration={286} label={tr("tl.reflection")} />
           </>
         )}
         {details && <div className="flex flex-wrap items-center justify-between gap-2.5">
           <div className="flex items-center gap-1">{t.people.map(person).filter(Boolean).map((p) => <Avatar key={p.id} p={p} round />)}</div>
-          {t.approx ? <Tag tone="rose" icon="help" title="Date is approximate">Approximate — remembered or estimated</Tag>
-            : t.verified ? <Tag icon="verified">Confirmed by record{t.source ? ": " + t.source : ""}</Tag>
-            : <Tag tone="outline" icon="person">Family-reported</Tag>}
+          {t.approx ? <Tag tone="rose" icon="help" title={tr("tl.approxTitle")}>{tr("tl.approxTag")}</Tag>
+            : t.verified ? <Tag icon="verified">{t.source ? tr("tl.confirmedBy", { source: t.source }) : tr("tl.confirmedTag")}</Tag>
+            : <Tag tone="outline" icon="person">{tr("tl.reported")}</Tag>}
         </div>}
       </article>
     </li>
@@ -74,14 +74,15 @@ function AddMilestoneDialog() {
   const { state, update } = useStore();
   const toast = useToast();
   const close = useCloseModal();
+  const t = useT();
   const [f, setF] = useState({ title: "", type: "Births", date: "", cert: "confirmed", source: "", place: "", text: "", people: [] });
   const [errors, setErrors] = useState({});
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
 
   const save = () => {
     const e = {
-      title: f.title.trim() ? "" : "Please describe the milestone in a few words.",
-      date: f.date ? "" : "Pick a date. If you're unsure, choose your best guess and mark it approximate.",
+      title: f.title.trim() ? "" : t("tl.errTitle"),
+      date: f.date ? "" : t("tl.errDate"),
     };
     setErrors(e);
     if (e.title || e.date) { document.getElementById(e.title ? "msT" : "msD").focus(); return; }
@@ -90,40 +91,40 @@ function AddMilestoneDialog() {
       id: uid("t"), type: f.type, icon: TYPES.find((x) => x[0] === f.type)[1], title: f.title.trim(), date: f.date, approx, verified: !approx,
       source: f.source.trim(), place: f.place.trim() || "—", text: f.text.trim(), people: f.people,
     };
-    update((s) => { s.milestones.push(m); }, `Added milestone “${m.title}”`);
-    toast("Milestone added to the chronicle", {
+    update((s) => { s.milestones.push(m); }, t("tl.historyAdd", { title: m.title }));
+    toast(t("tl.added"), {
       sub: `${m.title} · ${fmtDate(m.date, m.approx)}`, icon: "event_available",
-      action: "Undo", onAction: () => update((s) => { s.milestones = s.milestones.filter((x) => x.id !== m.id); }, `Removed milestone “${m.title}”`),
+      action: t("common.undo"), onAction: () => update((s) => { s.milestones = s.milestones.filter((x) => x.id !== m.id); }, t("tl.historyRemove", { title: m.title })),
     });
     close();
   };
 
   return (
-    <Dialog wide title="Add a milestone" sub="Births, weddings, journeys, achievements — anything worth remembering."
-      footer={<><CancelButton /><Button variant="primary" icon="add" onClick={save}>Add to timeline</Button></>}>
-      <Field id="msT" label="What happened?" hint="Required" error={errors.title}>
-        <Input id="msT" value={f.title} onChange={set("title")} invalid={!!errors.title} placeholder="e.g. Grace's first school concert" />
+    <Dialog wide title={t("tl.dlgTitle")} sub={t("tl.dlgSub")}
+      footer={<><CancelButton /><Button variant="primary" icon="add" onClick={save}>{t("tl.addTo")}</Button></>}>
+      <Field id="msT" label={t("tl.what")} hint={t("common.required")} error={errors.title}>
+        <Input id="msT" value={f.title} onChange={set("title")} invalid={!!errors.title} placeholder={t("tl.whatPh")} />
       </Field>
       <div className="grid items-start gap-3 sm:grid-cols-2">
-        <Field id="msType" label="Type">
-          <Select id="msType" value={f.type} onChange={set("type")}>{TYPES.map(([t]) => <option key={t}>{t}</option>)}</Select>
+        <Field id="msType" label={t("tl.type")}>
+          <Select id="msType" value={f.type} onChange={set("type")}>{TYPES.map(([k]) => <option key={k} value={k}>{t(`mtype.${k}`)}</option>)}</Select>
         </Field>
-        <Field id="msD" label="Date" hint="Required" error={errors.date}>
+        <Field id="msD" label={t("tl.date")} hint={t("common.required")} error={errors.date}>
           <Input id="msD" type="date" value={f.date} onChange={set("date")} invalid={!!errors.date} />
         </Field>
       </div>
       <fieldset className="m-0 grid gap-1.5 border-0 p-0">
-        <legend className="mb-1.5 text-small font-semibold">How sure are we about this date?</legend>
-        <Check type="radio" name="cert" checked={f.cert === "confirmed"} onChange={() => setF({ ...f, cert: "confirmed" })}>Confirmed — from a certificate, register or document</Check>
-        <Check type="radio" name="cert" checked={f.cert === "approx"} onChange={() => setF({ ...f, cert: "approx" })}>Approximate — remembered or estimated (shown as “c. year”)</Check>
+        <legend className="mb-1.5 text-small font-semibold">{t("tl.sure")}</legend>
+        <Check type="radio" name="cert" checked={f.cert === "confirmed"} onChange={() => setF({ ...f, cert: "confirmed" })}>{t("tl.certConfirmed")}</Check>
+        <Check type="radio" name="cert" checked={f.cert === "approx"} onChange={() => setF({ ...f, cert: "approx" })}>{t("tl.certApprox")}</Check>
       </fieldset>
-      <Field id="msSrc" label="Source" hint="Optional">
-        <Input id="msSrc" value={f.source} onChange={set("source")} placeholder="e.g. Birth certificate, parish record, Gran's diary" />
+      <Field id="msSrc" label={t("tl.source")} hint={t("common.optional")}>
+        <Input id="msSrc" value={f.source} onChange={set("source")} placeholder={t("tl.sourcePh")} />
       </Field>
-      <Field id="msP" label="Place"><Input id="msP" value={f.place} onChange={set("place")} placeholder="e.g. Edinburgh" /></Field>
-      <Field id="msX" label="Description"><Textarea id="msX" rows={3} value={f.text} onChange={set("text")} /></Field>
+      <Field id="msP" label={t("tl.place")}><Input id="msP" value={f.place} onChange={set("place")} placeholder={t("tl.placePh")} /></Field>
+      <Field id="msX" label={t("tl.description")}><Textarea id="msX" rows={3} value={f.text} onChange={set("text")} /></Field>
       <fieldset className="m-0 grid gap-1.5 border-0 p-0">
-        <legend className="mb-1.5 text-small font-semibold">Who was involved?</legend>
+        <legend className="mb-1.5 text-small font-semibold">{t("tl.who")}</legend>
         <PeopleChecks people={state.people} value={f.people} onChange={(people) => setF({ ...f, people })} />
       </fieldset>
     </Dialog>
@@ -154,7 +155,7 @@ export default function Timeline() {
   const jump = (id) => {
     const el = document.getElementById(id);
     if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-    else toast("No milestones in that era with the current filters", { icon: "info" });
+    else toast(tr("tl.noEra"), { icon: "info" });
   };
 
   return (
@@ -162,40 +163,40 @@ export default function Timeline() {
       <Hero>
         <div className="flex flex-wrap items-start justify-between gap-5">
           <div className="max-w-140">
-            <Tag tone="sec">LIVING CHRONICLE · 1918 — {NOW}</Tag>
+            <Tag tone="sec">{tr("tl.chronicle", { now: NOW })}</Tag>
             <h1 className="mt-4">{tr("h1.timeline")}</h1>
-            <p className="mt-2 text-muted">Tracing our lineage through {span} years of weddings, births, voyages, achievements, and family gatherings — with confirmed records clearly separated from remembered dates.</p>
+            <p className="mt-2 text-muted">{tr("tl.sub", { span })}</p>
           </div>
           <div className="flex flex-wrap items-center gap-2.5">
-            <label className="sr-only" htmlFor="tlBranch">Filter by branch</label>
+            <label className="sr-only" htmlFor="tlBranch">{tr("tl.filterBranch")}</label>
             <Select id="tlBranch" className="w-auto!" value={f.branch} onChange={(e) => setF({ ...f, branch: e.target.value })}>
-              <option value="all">Filter by Branch: All Lineages</option>
-              {branches.map((b) => <option key={b} value={b}>{b} branch</option>)}
+              <option value="all">{tr("tl.allLineages")}</option>
+              {branches.map((b) => <option key={b} value={b}>{tr("tl.branch", { b })}</option>)}
             </Select>
-            <Button icon="print" onClick={() => window.print()}>Print Lineage Chronicle</Button>
-            <Button variant="primary" icon="add" onClick={() => open(<AddMilestoneDialog />)}>Add Milestone</Button>
+            <Button icon="print" onClick={() => window.print()}>{tr("tl.print")}</Button>
+            <Button variant="primary" icon="add" onClick={() => open(<AddMilestoneDialog />)}>{tr("tl.add")}</Button>
           </div>
         </div>
         <div className="mt-4 flex flex-wrap gap-2.5">
-          <Stat value={ms.length} label="Total milestones" />
-          <Stat value={4} label="Generations" />
-          {TYPES.map(([t]) => <Stat key={t} value={n(t)} label={t} />)}
+          <Stat value={ms.length} label={tr("tl.total")} />
+          <Stat value={4} label={tr("tl.gens")} />
+          {TYPES.map(([t]) => <Stat key={t} value={n(t)} label={tr(`mtype.${t}`)} />)}
         </div>
       </Hero>
 
       <Card className="mt-4 p-3.5!">
-        <FilterRow label="ERA JUMPS:">
-          <Chips>{ERAS.map((e) => <Chip key={e.id} onClick={() => jump(e.id)}>{e.label.split(":")[0]}</Chip>)}</Chips>
+        <FilterRow label={tr("tl.eraJumps")}>
+          <Chips>{ERAS.map((e) => <Chip key={e.id} onClick={() => jump(e.id)}>{tr(`tl.era.${e.id}`).split(":")[0].trim()}</Chip>)}</Chips>
         </FilterRow>
-        <FilterRow label="FILTER TYPE:">
-          <Chips role="group" aria-label="Milestone type">
-            <Chip pressed={f.type === "all"} count={ms.length} onClick={() => setF({ ...f, type: "all" })}>All Events</Chip>
-            {TYPES.map(([t, i]) => <Chip key={t} icon={i} pressed={f.type === t} count={n(t)} onClick={() => setF({ ...f, type: t })}>{t}</Chip>)}
+        <FilterRow label={tr("tl.filterType")}>
+          <Chips role="group" aria-label={tr("tl.typeLabel")}>
+            <Chip pressed={f.type === "all"} count={ms.length} onClick={() => setF({ ...f, type: "all" })}>{tr("tl.allEvents")}</Chip>
+            {TYPES.map(([t, i]) => <Chip key={t} icon={i} pressed={f.type === t} count={n(t)} onClick={() => setF({ ...f, type: t })}>{tr(`mtype.${t}`)}</Chip>)}
           </Chips>
         </FilterRow>
-        <FilterRow label="CERTAINTY:">
-          <Chips role="group" aria-label="Date certainty">
-            {[["all", "All dates"], ["confirmed", "Confirmed dates"], ["approx", "Approximate dates"]].map(([k, l]) => (
+        <FilterRow label={tr("tl.certainty")}>
+          <Chips role="group" aria-label={tr("tl.certaintyLabel")}>
+            {[["all", tr("tl.allDates")], ["confirmed", tr("tl.confirmedDates")], ["approx", tr("tl.approxDates")]].map(([k, l]) => (
               <Chip key={k} pressed={f.certainty === k} onClick={() => setF({ ...f, certainty: k })}>{l}</Chip>
             ))}
           </Chips>
@@ -203,7 +204,7 @@ export default function Timeline() {
         <FilterRow label={tr("tl.order").toUpperCase() + ":"}>
           <Tabs role="radiogroup" label={tr("tl.order")} value={order} onChange={setOrder}
             items={[["newest", <span key="n" className="inline-flex items-center gap-1"><Icon name="arrow_downward" size="xs" />{tr("sort.newest")}</span>], ["oldest", <span key="o" className="inline-flex items-center gap-1"><Icon name="arrow_upward" size="xs" />{tr("sort.oldest")}</span>]]} />
-          <Tabs role="radiogroup" label="Density" value={compact ? "compact" : "detailed"} onChange={(v) => setCompact(v === "compact")}
+          <Tabs role="radiogroup" label={tr("tl.density")} value={compact ? "compact" : "detailed"} onChange={(v) => setCompact(v === "compact")}
             items={[["detailed", <span key="d" className="inline-flex items-center gap-1"><Icon name="view_agenda" size="xs" />{tr("view.detailed")}</span>], ["compact", <span key="c" className="inline-flex items-center gap-1"><Icon name="density_small" size="xs" />{tr("view.compact")}</span>]]} />
         </FilterRow>
       </Card>
@@ -221,8 +222,8 @@ export default function Timeline() {
                       <span className="absolute -top-1 -left-13 grid size-10 place-items-center rounded-[14px] bg-sec font-serif text-[.75rem] font-bold text-sec-on sm:-left-17.5 sm:size-14 sm:text-[.95rem]">
                         {e.badge}
                       </span>
-                      <Eyebrow>Era chapter</Eyebrow>
-                      <h2 id={`${e.id}-h`}>{e.label}</h2>
+                      <Eyebrow>{tr("tl.eraChapter")}</Eyebrow>
+                      <h2 id={`${e.id}-h`}>{tr(`tl.era.${e.id}`)}</h2>
                     </section>
                     <ol className="m-0 list-none p-0">{items.map((t) => <Item key={t.id} t={t} compact={compact} />)}</ol>
                   </div>
@@ -230,43 +231,43 @@ export default function Timeline() {
               })}
             </div>
           ) : (
-            <Empty icon="event_busy" title="No milestones match these filters"><p className="text-small">Try “All” types or another branch.</p></Empty>
+            <Empty icon="event_busy" title={tr("tl.none")}><p className="text-small">{tr("tl.noneHelp")}</p></Empty>
           )}
         </div>
 
         <aside className="grid content-start gap-3.5 lg:sticky lg:top-21">
           <Card>
-            <div className="flex items-center justify-between gap-2.5"><Eyebrow>Lineage custodian</Eyebrow><Tag tone="mint">Verified Circle</Tag></div>
-            <h3 className="mt-2">The Mackenzie Lineage Archive</h3>
-            <p className="mt-2 text-small text-muted">Covers four generations spanning Scotland, Atlantic crossings, and {span} years of documented history.</p>
+            <div className="flex items-center justify-between gap-2.5"><Eyebrow>{tr("tl.custodian")}</Eyebrow><Tag tone="mint">{tr("tl.verifiedCircle")}</Tag></div>
+            <h3 className="mt-2">{tr("tl.archive")}</h3>
+            <p className="mt-2 text-small text-muted">{tr("tl.covers", { span })}</p>
             <div className="mt-4 flex items-center gap-2.5">
               <div className="grid size-17.5 shrink-0 place-items-center rounded-full"
                 style={{ background: `conic-gradient(var(--sec) 0 ${confirmedPct}%, var(--color-surface-3) 0)` }}>
                 <span className="grid size-13 place-items-center rounded-full bg-surface text-[.8rem] font-bold">{confirmedPct}%</span>
               </div>
               <div>
-                <strong className="text-small">Records confirmed</strong>
-                <p className="text-xsmall text-muted">{ms.filter((t) => t.approx).length} approximate date(s) awaiting proof</p>
+                <strong className="text-small">{tr("tl.recordsConfirmed")}</strong>
+                <p className="text-xsmall text-muted">{tr("tl.awaiting", { n: ms.filter((t) => t.approx).length })}</p>
               </div>
             </div>
-            <Eyebrow className="mt-4 text-muted!">Branch focus</Eyebrow>
+            <Eyebrow className="mt-4 text-muted!">{tr("tl.branchFocus")}</Eyebrow>
             <div className="mt-2 grid gap-2">
               {branches.map((b) => (
                 <Record key={b} className="text-small">
-                  <span className="min-w-0 flex-1">{b} branch</span><Tag tone="outline">{state.people.filter((p) => p.branch === b).length}</Tag>
+                  <span className="min-w-0 flex-1">{tr("tl.branch", { b })}</span><Tag tone="outline">{state.people.filter((p) => p.branch === b).length}</Tag>
                 </Record>
               ))}
             </div>
           </Card>
           <Card tone="dark">
-            <Eyebrow className="text-mint!"><Icon name="mic" size="xs" /> Oral history spotlight</Eyebrow>
+            <Eyebrow className="text-mint!"><Icon name="mic" size="xs" /> {tr("tl.spotlight")}</Eyebrow>
             <h3 className="mt-2">Crossing the Atlantic (1968)</h3>
-            <p className="mt-2 text-small text-on-dark">Mary recalls the rolling waves of the Grand Banks and John serenading the passengers with his highland bagpipes on the sundeck.</p>
-            <Button variant="mint" block to="/stories" className="mt-4">Open All Oral Recordings</Button>
+            <p className="mt-2 text-small text-on-dark">{tr("tl.spotlightText")}</p>
+            <Button variant="mint" block to="/stories" className="mt-4">{tr("tl.openRecordings")}</Button>
           </Card>
           <Card tone="soft" className="text-small">
-            <strong><Icon name="workspace_premium" size="sm" /> Chronicle Verification Seal</strong>
-            <p className="mt-2 text-xsmall text-muted">Dates marked “Confirmed by record” are cross-referenced against official registers. Dashed cards are remembered or estimated dates and can be corrected by any family member.</p>
+            <strong><Icon name="workspace_premium" size="sm" /> {tr("tl.seal")}</strong>
+            <p className="mt-2 text-xsmall text-muted">{tr("tl.sealText")}</p>
           </Card>
         </aside>
       </div>
