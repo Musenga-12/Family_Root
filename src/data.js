@@ -214,10 +214,11 @@ export const SEED = {
     { id: "k5", person: "emma", item: "Wedding photos (2012)", kind: "Photo", status: "withdrawn", date: "2025-06-11" },
   ],
   accessLog: [
-    { id: "l1", who: "daniel", what: "listened to “Crossing the Atlantic in 1968”", at: "2026-11-09T20:14" },
-    { id: "l2", who: "james", what: "viewed your profile", at: "2026-11-08T07:51" },
-    { id: "l3", who: "anna", what: "downloaded “Grandma Mary's 80th Milestone Gathering”", at: "2026-11-07T17:30" },
-    { id: "l4", who: "sarah", what: "asked to open “Mary's will and letter of wishes” (declined: private)", at: "2026-11-03T11:02" },
+    // `action` picks the sentence (pv.log.<action>) in the interface language; `title` is the item's own name.
+    { id: "l1", who: "daniel", action: "listened", title: "Crossing the Atlantic in 1968", at: "2026-11-09T20:14" },
+    { id: "l2", who: "james", action: "viewedProfile", at: "2026-11-08T07:51" },
+    { id: "l3", who: "anna", action: "downloaded", title: "Grandma Mary's 80th Milestone Gathering", at: "2026-11-07T17:30" },
+    { id: "l4", who: "sarah", action: "askedDeclined", title: "Mary's will and letter of wishes", at: "2026-11-03T11:02" },
   ],
 
   replies: [
