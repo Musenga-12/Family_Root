@@ -227,10 +227,3 @@ export const SEED = {
   ],
 };
 
-export const PROMPTS = [
-  "Tell us about the kitchen table in your childhood home, and what Sunday dinners were like.",
-  "How did you and John first meet in Edinburgh?",
-  "The afternoon Sarah took her first steps — what do you remember?",
-  "What advice would you give your 18-year-old self?",
-  "What was your favorite childhood tradition during the winter holidays?",
-];
