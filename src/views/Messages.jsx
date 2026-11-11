@@ -15,7 +15,8 @@ import { fullName, useStore } from "../lib/store";
 import Chat from "./messages/Chat";
 import { ChatAvatar, NewChatDialog } from "./messages/parts";
 
-const FILTERS = [["all", "All", "forum"], ["unread", "Unread", "mark_chat_unread"], ["groups", "Groups", "groups"], ["private", "Private", "person"], ["starred", "Starred", "star"]];
+// Labels are msg.f.<key>.
+const FILTERS = [["all", "forum"], ["unread", "mark_chat_unread"], ["groups", "groups"], ["private", "person"], ["starred", "star"]];
 
 /**
  * Hover (or keyboard-focus) preview of a chat: its latest messages in full, so a long message can be read
@@ -23,6 +24,7 @@ const FILTERS = [["all", "All", "forum"], ["unread", "Unread", "mark_chat_unread
  */
 function ChatPreview({ x, anchor }) {
   const { person } = useStore();
+  const t = useT();
   const r = anchor.getBoundingClientRect();
   const W = 340;
   // Beside the row when there is room; otherwise just below it (narrow windows).
@@ -41,25 +43,25 @@ function ChatPreview({ x, anchor }) {
           <small className="block truncate text-xsmall text-muted">{chatSubtitle(x, person)}</small>
         </span>
       </div>
-      {x.unread > 0 && <span className="justify-self-start rounded-full bg-sec px-2 py-0.5 text-[.7rem] font-bold text-sec-on">{x.unread} unread</span>}
+      {x.unread > 0 && <span className="justify-self-start rounded-full bg-sec px-2 py-0.5 text-[.7rem] font-bold text-sec-on">{t("msg.unreadN", { n: x.unread })}</span>}
       <ol className="m-0 grid list-none gap-2 p-0">
         {recent.map((m) => {
           const quoted = m.replyTo && x.messages.find((y) => y.id === m.replyTo);
           return (
             <li key={m.id} className={cx("rounded-xl px-3 py-2 text-small", m.by === ME ? "ml-6 bg-sec-soft" : "mr-6 bg-surface-2")}>
               <span className="flex items-baseline justify-between gap-2 text-xsmall">
-                <strong>{m.by === ME ? "You" : person(m.by)?.first}</strong>
+                <strong>{m.by === ME ? t("msg.you") : person(m.by)?.first}</strong>
                 <span className="text-muted tabular-nums">{dayLabel(m.at)}, {clock(m.at)}</span>
               </span>
-              {quoted && <span className="mt-1 block truncate border-l-2 border-sec pl-2 text-xsmall text-muted">↩ {quoted.by === ME ? "You" : person(quoted.by)?.first}: {snippet(quoted)}</span>}
+              {quoted && <span className="mt-1 block truncate border-l-2 border-sec pl-2 text-xsmall text-muted">↩ {quoted.by === ME ? t("msg.you") : person(quoted.by)?.first}: {snippet(quoted)}</span>}
               <span className="mt-0.5 block whitespace-pre-wrap [overflow-wrap:anywhere]">{snippet(m)}</span>
               {m.reactions && Object.keys(m.reactions).length > 0 && <span className="mt-1 block text-xsmall">{Object.values(m.reactions).join(" ")}</span>}
             </li>
           );
         })}
-        {!recent.length && <li className="text-small text-muted">No messages yet.</li>}
+        {!recent.length && <li className="text-small text-muted">{t("msg.noMessages")}</li>}
       </ol>
-      <small className="text-xsmall text-muted">{x.messages.length > 3 ? `Latest 3 of ${x.messages.length} messages · ` : ""}Click to open the chat</small>
+      <small className="text-xsmall text-muted">{x.messages.length > 3 ? t("msg.latest3", { n: x.messages.length }) : ""}{t("msg.clickOpen")}</small>
     </div>,
     document.body,
   );
@@ -68,6 +70,7 @@ function ChatPreview({ x, anchor }) {
 function ChatRow({ x, active, onOpen }) {
   const { person, update } = useStore();
   const toast = useToast();
+  const t = useT();
   const last = lastOf(x);
   const rowRef = useRef(null);
   const timer = useRef(null);
@@ -85,13 +88,13 @@ function ChatRow({ x, active, onOpen }) {
     return () => { window.removeEventListener("scroll", close, true); window.removeEventListener("keydown", onKey); };
   }, [preview]);
   const set = (k, v, msg) => { update((s) => { s.threads.find((y) => y.id === x.id)[k] = v; }, null); toast(msg, { icon: "check_circle", duration: 2000 }); };
-  const who = last ? (last.by === ME ? "You" : x.group ? person(last.by)?.first : null) : null;
+  const who = last ? (last.by === ME ? t("msg.you") : x.group ? person(last.by)?.first : null) : null;
   return (
     <li className="group/row relative" onContextMenu={(e) => { e.preventDefault(); e.currentTarget.querySelector("[data-row-menu]")?.click(); }}>
       <button ref={rowRef} type="button" aria-current={active ? "true" : undefined} onClick={() => { hide(); onOpen(x.id); }}
         onMouseEnter={() => show(450)} onMouseLeave={hide} onFocus={(e) => e.currentTarget.matches(":focus-visible") && show(150)} onBlur={hide}
         aria-describedby={preview ? `preview-${x.id}` : undefined}
-        aria-label={`${x.title}${x.unread ? `, ${x.unread} unread` : ""}${x.pinned ? ", pinned" : ""}. ${who ? who + ": " : ""}${snippet(last)}`}
+        aria-label={`${x.title}${x.unread ? t("msg.aUnread", { n: x.unread }) : ""}${x.pinned ? t("msg.aPinned") : ""}. ${who ? who + ": " : ""}${snippet(last)}`}
         className={cx("flex w-full cursor-pointer items-center gap-3 border-0 border-b border-line/60 px-3 py-2.5 pr-10 text-left text-ink",
           active ? "bg-sec-soft shadow-[inset_4px_0_0_var(--sec)]" : "hover-tint bg-transparent hover:shadow-[inset_4px_0_0_var(--sec-hover-line)]")}>
         <ChatAvatar t={x} />
@@ -103,9 +106,9 @@ function ChatRow({ x, active, onOpen }) {
           <span className="mt-0.5 flex items-center gap-1.5">
             {last?.by === ME && !last.deleted && <Icon name="done_all" className={cx("text-[15px]!", last.status === "read" ? "text-sec-ink" : "text-faint")} />}
             <span className={cx("min-w-0 flex-1 truncate text-small", x.unread ? "text-ink" : "text-muted", last?.deleted && "italic")}>
-              {who && <span className="font-medium">{who}: </span>}{last ? snippet(last) : "No messages yet"}
+              {who && <span className="font-medium">{who}: </span>}{last ? snippet(last) : t("msg.noMessages")}
             </span>
-            {x.muted && <Icon name="notifications_off" size="xs" className="text-faint" title="Muted" />}
+            {x.muted && <Icon name="notifications_off" size="xs" className="text-faint" title={t("msg.muted")} />}
             {x.pinned && <Icon name="push_pin" size="xs" className="text-faint" />}
             {x.unread > 0 && (
               <span className={cx("grid h-5 min-w-5 shrink-0 place-items-center rounded-full px-1.5 text-[.66rem] font-bold", x.muted ? "bg-surface-3 text-muted" : "bg-sec text-sec-on")}>{x.unread}</span>
@@ -116,12 +119,12 @@ function ChatRow({ x, active, onOpen }) {
       {preview && <ChatPreview x={x} anchor={preview} />}
       {/* Row options: on hover, focus or right-click. */}
       <div className="absolute top-1/2 right-1.5 -translate-y-1/2 opacity-0 transition-opacity group-focus-within/row:opacity-100 group-hover/row:opacity-100 max-md:opacity-100">
-        <Menu label={`Options for ${x.title}`} trigger={(p) => <IconButton {...p} data-row-menu icon="more_vert" label={`Options for ${x.title}`} className="size-8! border-0! bg-transparent! hover:bg-sec-hover! hover:text-sec-ink! active:bg-sec! active:text-sec-on!" />}>
-          <MenuItem icon="push_pin" onClick={() => set("pinned", !x.pinned, x.pinned ? "Unpinned" : "Pinned to the top")}>{x.pinned ? "Unpin" : "Pin to the top"}</MenuItem>
-          <MenuItem icon={x.unread ? "mark_chat_read" : "mark_chat_unread"} onClick={() => set("unread", x.unread ? 0 : 1, x.unread ? "Marked as read" : "Marked as unread")}>
-            {x.unread ? "Mark as read" : "Mark as unread"}
+        <Menu label={t("msg.optionsFor", { title: x.title })} trigger={(p) => <IconButton {...p} data-row-menu icon="more_vert" label={t("msg.optionsFor", { title: x.title })} className="size-8! border-0! bg-transparent! hover:bg-sec-hover! hover:text-sec-ink! active:bg-sec! active:text-sec-on!" />}>
+          <MenuItem icon="push_pin" onClick={() => set("pinned", !x.pinned, t(x.pinned ? "msg.unpinned" : "msg.pinnedTop"))}>{t(x.pinned ? "msg.unpin" : "msg.pinTop")}</MenuItem>
+          <MenuItem icon={x.unread ? "mark_chat_read" : "mark_chat_unread"} onClick={() => set("unread", x.unread ? 0 : 1, t(x.unread ? "msg.markedRead" : "msg.markedUnread"))}>
+            {t(x.unread ? "msg.markRead" : "msg.markUnread")}
           </MenuItem>
-          <MenuItem icon={x.muted ? "notifications_active" : "notifications_off"} onClick={() => set("muted", !x.muted, x.muted ? "Notifications on" : "Muted")}>{x.muted ? "Unmute" : "Mute"}</MenuItem>
+          <MenuItem icon={x.muted ? "notifications_active" : "notifications_off"} onClick={() => set("muted", !x.muted, t(x.muted ? "msg.notifOn" : "msg.muted"))}>{t(x.muted ? "msg.unmute" : "msg.mute")}</MenuItem>
         </Menu>
       </div>
     </li>
@@ -131,22 +134,27 @@ function ChatRow({ x, active, onOpen }) {
 /** Every starred message, newest first; choosing one opens its chat at that message. */
 function StarredList({ threads, onOpen }) {
   const { person } = useStore();
+  const t = useT();
   const items = threads.flatMap((x) => x.messages.filter((m) => m.starred && !m.deleted).map((m) => ({ x, m }))).sort((a, b) => b.m.at.localeCompare(a.m.at));
-  if (!items.length) return <Empty icon="star" title="No starred messages" className="m-3"><p className="text-small">Open a message's menu and choose Star to keep it here.</p></Empty>;
+  if (!items.length) return <Empty icon="star" title={t("msg.noStarred")} className="m-3"><p className="text-small">{t("msg.noStarredHelp")}</p></Empty>;
   return (
     <ul className="m-0 min-h-0 flex-1 list-none overflow-y-auto p-0">
-      {items.map(({ x, m }) => (
+      {items.map(({ x, m }) => {
+        // The name sits where each language puts it in "{name} in {title}".
+        const [before, after] = t("msg.inChat", { title: x.title }).split("{name}");
+        return (
         <li key={m.id}>
           <button type="button" onClick={() => onOpen(x.id, m.id)}
             className="grid w-full cursor-pointer gap-1 border-0 border-b border-line/60 bg-transparent px-4 py-3 text-left text-ink hover-tint">
             <span className="flex items-center justify-between gap-2 text-xsmall text-muted">
-              <span className="truncate"><strong className="text-ink">{m.by === ME ? "You" : person(m.by)?.first}</strong> in {x.title}</span>
+              <span className="truncate">{before}<strong className="text-ink">{m.by === ME ? t("msg.you") : person(m.by)?.first}</strong>{after}</span>
               <span className="shrink-0">{dayLabel(m.at)}, {clock(m.at)}</span>
             </span>
             <span className="flex items-start gap-2 text-small"><Icon name="star" fill size="xs" className="mt-0.5 text-gold" /><span className="line-clamp-2">{snippet(m)}</span></span>
           </button>
         </li>
-      ))}
+        );
+      })}
     </ul>
   );
 }
@@ -178,7 +186,7 @@ export default function Messages() {
     .sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0) || (lastOf(b)?.at || "").localeCompare(lastOf(a)?.at || ""));
   const markAllRead = () => {
     update((s) => { s.threads.forEach((x) => { x.unread = 0; }); }, null);
-    toast("All chats marked as read", { icon: "mark_chat_read", duration: 2000 });
+    toast(t("msg.allRead"), { icon: "mark_chat_read", duration: 2000 });
   };
 
   return (
@@ -190,31 +198,31 @@ export default function Messages() {
         <div>
           <h1 className="text-[clamp(1.6rem,2.4vw,2.1rem)]!">{t("nav.messages")}</h1>
           <p className="mt-1 text-small text-muted" aria-live="polite">
-            {unread ? <><strong className="text-ink">{unread} unread</strong> in {unreadChats.length} chat{unreadChats.length > 1 ? "s" : ""} · </> : "You're all caught up · "}
-            {threads.length} conversations
+            {unread ? <><strong className="text-ink">{t("msg.unreadN", { n: unread })}</strong> {unreadChats.length > 1 ? t("msg.inChatsN", { n: unreadChats.length }) : t("msg.inChats1")} · </> : `${t("msg.caughtUp")} · `}
+            {t("msg.conversations", { n: threads.length })}
           </p>
         </div>
         <div className="flex gap-2">
-          <Button icon="mark_chat_read" disabled={!unread} onClick={markAllRead}><span className="max-sm:sr-only">Mark all read</span></Button>
-          <Button variant="primary" icon="edit_square" onClick={() => open(<NewChatDialog onCreated={(id) => { setFilter("all"); select(id); }} />)}>New chat</Button>
+          <Button icon="mark_chat_read" disabled={!unread} onClick={markAllRead}><span className="max-sm:sr-only">{t("msg.markAllRead")}</span></Button>
+          <Button variant="primary" icon="edit_square" onClick={() => open(<NewChatDialog onCreated={(id) => { setFilter("all"); select(id); }} />)}>{t("msg.newChat")}</Button>
         </div>
       </header>
 
       <div className="flex min-h-0 flex-1 overflow-hidden rounded-card border border-line bg-surface shadow-card">
-        <aside aria-label="Chats" className={cx("flex w-full min-w-0 flex-col md:w-90 md:shrink-0 md:border-r md:border-line", active && "max-md:hidden")}>
+        <aside aria-label={t("msg.chats")} className={cx("flex w-full min-w-0 flex-col md:w-90 md:shrink-0 md:border-r md:border-line", active && "max-md:hidden")}>
           <div className="grid gap-2.5 border-b border-line p-3">
             <InputIcon icon="search">
-              <label htmlFor="msgQ" className="sr-only">Search chats and messages</label>
-              <Input id="msgQ" type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search chats and messages" className="rounded-full!" />
+              <label htmlFor="msgQ" className="sr-only">{t("msg.search")}</label>
+              <Input id="msgQ" type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder={t("msg.search")} className="rounded-full!" />
             </InputIcon>
-            <div role="tablist" aria-label="Show" className="flex flex-wrap gap-1.5">
-              {FILTERS.map(([k, label, icon]) => {
+            <div role="tablist" aria-label={t("msg.show")} className="flex flex-wrap gap-1.5">
+              {FILTERS.map(([k, icon]) => {
                 const on = filter === k;
                 return (
                   <button key={k} type="button" role="tab" aria-selected={on} onClick={() => setFilter(k)}
                     className={cx("pressable inline-flex min-h-10 shrink-0 cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1.5 text-[.82rem] font-semibold easy:min-h-12",
                       on ? "border-transparent bg-sec text-sec-on shadow-[0_4px_12px_-6px_var(--sec)]" : "hover-fill border-sec-line bg-surface text-ink")}>
-                    <Icon name={icon} size="xs" />{label}
+                    <Icon name={icon} size="xs" />{t(`msg.f.${k}`)}
                     {counts[k] > 0 && <span className={cx("rounded-full px-1.5 text-[.68rem]", on ? "bg-sec-on/25" : k === "unread" ? "bg-sec text-sec-on" : "bg-surface-3")}>{counts[k]}</span>}
                   </button>
                 );
@@ -222,13 +230,13 @@ export default function Messages() {
             </div>
           </div>
           {filter === "starred" ? <StarredList threads={threads} onOpen={select} /> : list.length ? (
-            <ul aria-label={`${FILTERS.find(([k]) => k === filter)[1]} chats`} className="m-0 min-h-0 flex-1 list-none overflow-y-auto p-0">
+            <ul aria-label={t(`msg.f.${filter}`)} className="m-0 min-h-0 flex-1 list-none overflow-y-auto p-0">
               {list.map((x) => <ChatRow key={x.id} x={x} active={x.id === activeId} onOpen={(id) => select(id)} />)}
             </ul>
           ) : (
-            <Empty icon={filter === "unread" ? "mark_chat_read" : "forum"} title={filter === "unread" && !ql ? "No unread messages" : "No chats match"} className="m-3">
-              <p className="text-small">{filter === "unread" && !ql ? "You've read everything. Nice." : "Try another name or word, or show all chats."}</p>
-              {(ql || filter !== "all") && <Button className="mt-3" onClick={() => { setQ(""); setFilter("all"); }}>Show all chats</Button>}
+            <Empty icon={filter === "unread" ? "mark_chat_read" : "forum"} title={t(filter === "unread" && !ql ? "msg.noUnread" : "msg.noMatch")} className="m-3">
+              <p className="text-small">{t(filter === "unread" && !ql ? "msg.noUnreadHelp" : "msg.noMatchHelp")}</p>
+              {(ql || filter !== "all") && <Button className="mt-3" onClick={() => { setQ(""); setFilter("all"); }}>{t("msg.showAll")}</Button>}
             </Empty>
           )}
         </aside>
@@ -237,8 +245,8 @@ export default function Messages() {
           <div className="hidden flex-1 place-items-center bg-surface-2 p-6 text-center text-muted md:grid">
             <div className="grid justify-items-center gap-2">
               <span className="grid size-16 place-items-center rounded-full bg-sec-soft text-sec-ink"><Icon name="forum" className="text-[34px]!" /></span>
-              <h2 className="text-ink">Your family conversations</h2>
-              <p className="max-w-80 text-small">Choose a chat on the left, or start a new one with any relative.</p>
+              <h2 className="text-ink">{t("msg.emptyTitle")}</h2>
+              <p className="max-w-80 text-small">{t("msg.emptySub")}</p>
             </div>
           </div>
         )}

@@ -7,6 +7,7 @@ import { useToast } from "../../components/toastContext";
 import { Avatar, Chip, Chips, Icon, IconButton, Spinner } from "../../components/ui";
 import { ME } from "../../data";
 import { cx, fmtDate } from "../../lib/format";
+import { useT } from "../../lib/i18n";
 import { shrinkImage } from "../../lib/images";
 import { chatSubtitle, clock, dayLabel, nameTone, postMessage, snippet } from "../../lib/messages";
 import { canSpeak, useSpeech, useVoiceInput } from "../../lib/speech";
@@ -16,7 +17,6 @@ import { ChatAvatar, ChatInfoDialog } from "./parts";
 
 const REACTIONS = ["❤️", "👍", "😂", "😮", "😢", "🙏"];
 const EMOJI = ["😀", "😂", "🥰", "😍", "😊", "😉", "🤗", "😢", "😮", "🙏", "👍", "👏", "🎉", "❤️", "💐", "🎂", "🍪", "☕", "🏴", "🌧️", "🌳", "📷", "🎻", "✈️"];
-const QUICK = ["Thank you! ❤️", "Lovely to hear from you", "I'll call you later", "Can't wait to see you"];
 /** Messages from the same person within 5 minutes are grouped: one name and one bubble tail. */
 const GROUP_GAP = 5 * 60 * 1000;
 const sameGroup = (a, b) => a && b && a.by === b.by && a.at.slice(0, 10) === b.at.slice(0, 10) && new Date(b.at) - new Date(a.at) < GROUP_GAP;
@@ -31,10 +31,11 @@ function Highlight({ text, q }) {
 /** Delivery ticks, always with words for screen readers. "read" only when a relative has opened it. */
 function Ticks({ status }) {
   const read = status === "read";
+  const tr = useT();
   return (
-    <span className="inline-flex" title={read ? "Read" : "Delivered"}>
+    <span className="inline-flex" title={tr(read ? "msg.read" : "msg.delivered")}>
       <Icon name={status === "sent" ? "check" : "done_all"} className={cx("text-[15px]!", read ? "text-sec-on" : "opacity-70")} />
-      <span className="sr-only">{read ? "Read" : "Delivered"}</span>
+      <span className="sr-only">{tr(read ? "msg.read" : "msg.delivered")}</span>
     </span>
   );
 }
@@ -42,7 +43,8 @@ function Ticks({ status }) {
 /** The quoted message inside a reply (and above the composer). Tapping it jumps to the original. */
 function Quote({ t, m, mine, onClick, onClose }) {
   const { person } = useStore();
-  const who = m.by === ME ? "You" : person(m.by)?.first;
+  const tr = useT();
+  const who = m.by === ME ? tr("msg.you") : person(m.by)?.first;
   const Tag = onClick ? "button" : "div";
   return (
     <Tag type={onClick ? "button" : undefined} onClick={onClick}
@@ -50,18 +52,19 @@ function Quote({ t, m, mine, onClick, onClose }) {
         mine ? "bg-white/12 text-white" : "bg-surface-2 text-ink", onClick && "cursor-pointer hover:brightness-95")}>
       <span aria-hidden="true" className={cx("w-1 shrink-0", mine ? "bg-sec-on/70" : "bg-sec")} />
       <span className="min-w-0 flex-1 py-1.5 pr-2">
-        <strong className={cx("block text-xsmall", mine ? "text-sec-on" : nameTone(t, m.by))}>{onClose ? `Replying to ${who}` : who}</strong>
+        <strong className={cx("block text-xsmall", mine ? "text-sec-on" : nameTone(t, m.by))}>{onClose ? tr("msg.replyingTo", { name: who }) : who}</strong>
         <span className={cx("line-clamp-2 text-small", mine ? "text-white/85" : "text-muted")}>{m.img && !m.deleted && <Icon name="photo_camera" size="xs" />} {snippet(m)}</span>
       </span>
       {m.img && !m.deleted && <img src={m.img} alt="" className="size-12 shrink-0 object-cover" />}
-      {onClose && <IconButton icon="close" label="Cancel reply" className="m-1 size-8! self-center border-0! bg-transparent! hover:bg-sec-hover! hover:text-sec-ink! active:bg-sec! active:text-sec-on!" onClick={onClose} />}
+      {onClose && <IconButton icon="close" label={tr("msg.cancelReply")} className="m-1 size-8! self-center border-0! bg-transparent! hover:bg-sec-hover! hover:text-sec-ink! active:bg-sec! active:text-sec-on!" onClick={onClose} />}
     </Tag>
   );
 }
 
 function Bubble({ t, m, prev, next, q, flash, onReply, onJump, onOpenImage, setRef }) {
-  const { person, update } = useStore();
+  const { person, update, kin } = useStore();
   const toast = useToast();
+  const tr = useT();
   const { toggle, speaking } = useSpeech();
   const [picker, setPicker] = useState(false);
   const [dx, setDx] = useState(0);
@@ -86,11 +89,11 @@ function Bubble({ t, m, prev, next, q, flash, onReply, onJump, onOpenImage, setR
 
   const change = (fn) => update((s) => { fn(s.threads.find((x) => x.id === t.id).messages.find((x) => x.id === m.id)); }, null);
   const react = (emoji) => { change((x) => { x.reactions ||= {}; if (x.reactions[ME] === emoji) delete x.reactions[ME]; else x.reactions[ME] = emoji; }); setPicker(false); };
-  const star = () => { change((x) => { x.starred = !x.starred; }); toast(m.starred ? "Unstarred" : "Starred", { sub: "Find starred messages under the Starred tab.", icon: "star", duration: 2500 }); };
-  const copy = () => navigator.clipboard?.writeText(m.text).then(() => toast("Copied", { icon: "content_copy", duration: 1800 }), () => toast("Couldn't copy", { error: true, sub: "Select the text and copy it instead." }));
+  const star = () => { change((x) => { x.starred = !x.starred; }); toast(tr(m.starred ? "msg.unstarred" : "msg.starredT"), { sub: tr("msg.starredSub"), icon: "star", duration: 2500 }); };
+  const copy = () => navigator.clipboard?.writeText(m.text).then(() => toast(tr("msg.copied"), { icon: "content_copy", duration: 1800 }), () => toast(tr("msg.copyFail"), { error: true, sub: tr("msg.copyFailSub") }));
   const remove = () => {
-    update((s) => { const x = s.threads.find((y) => y.id === t.id).messages.find((y) => y.id === m.id); x.deleted = true; }, `Deleted a message in ${t.title}`);
-    toast("Message deleted", { icon: "delete", action: "Undo", onAction: () => update((s) => { delete s.threads.find((y) => y.id === t.id).messages.find((y) => y.id === m.id).deleted; }, "Restored a message") });
+    update((s) => { const x = s.threads.find((y) => y.id === t.id).messages.find((y) => y.id === m.id); x.deleted = true; }, tr("msg.hDeleted", { title: t.title }));
+    toast(tr("msg.deletedT"), { icon: "delete", action: tr("common.undo"), onAction: () => update((s) => { delete s.threads.find((y) => y.id === t.id).messages.find((y) => y.id === m.id).deleted; }, tr("msg.hRestored")) });
   };
 
   // Swipe right on a touch screen to reply.
@@ -103,7 +106,7 @@ function Bubble({ t, m, prev, next, q, flash, onReply, onJump, onOpenImage, setR
   };
   const onPointerUp = () => { if (dx > 60) onReply(m); start.current = null; setDx(0); };
 
-  const label = `${mine ? "You" : fullName(who)}, ${dayLabel(m.at)} ${clock(m.at)}: ${snippet(m)}`;
+  const label = `${mine ? tr("msg.you") : fullName(who)}, ${dayLabel(m.at)} ${clock(m.at)}: ${snippet(m)}`;
   return (
     <li ref={setRef} className={cx("flex flex-col", mine ? "items-end" : "items-start", first ? "mt-2.5" : "mt-0.5", reactions.length && "mb-3")}>
       <div className={cx("group/msg relative flex max-w-[min(85%,560px)] items-end gap-2", mine && "flex-row-reverse")}>
@@ -121,15 +124,15 @@ function Bubble({ t, m, prev, next, q, flash, onReply, onJump, onOpenImage, setR
             first && (mine ? "rounded-tr-sm" : "rounded-tl-sm"),
             flash && "ring-4 ring-gold/60")}>
           {dx > 20 && <Icon name="reply" className="absolute top-1/2 -left-8 -translate-y-1/2 text-muted" />}
-          {t.group && !mine && first && <strong className={cx("mb-0.5 block text-xsmall", nameTone(t, m.by))}>{who?.first} <span className="font-normal text-muted">· {who?.role}</span></strong>}
+          {t.group && !mine && first && <strong className={cx("mb-0.5 block text-xsmall", nameTone(t, m.by))}>{who?.first} <span className="font-normal text-muted">· {who && kin(who.role)}</span></strong>}
           {m.deleted ? (
-            <p className={cx("flex items-center gap-1.5 pr-14 italic", mine ? "text-white/70" : "text-muted")}><Icon name="block" size="sm" /> {mine ? "You deleted this message" : "This message was deleted"}</p>
+            <p className={cx("flex items-center gap-1.5 pr-14 italic", mine ? "text-white/70" : "text-muted")}><Icon name="block" size="sm" /> {tr(mine ? "msg.youDeleted" : "chat.deleted")}</p>
           ) : (
             <>
               {quoted && <div className="mb-1.5"><Quote t={t} m={quoted} mine={mine} onClick={() => onJump(quoted.id)} /></div>}
               {m.img && (
                 <button type="button" onClick={() => onOpenImage(m)} className="mb-1 block cursor-zoom-in overflow-hidden rounded-xl border-0 p-0">
-                  <img src={m.img} alt={m.text ? `Photo: ${m.text}` : `Photo from ${mine ? "you" : who?.first}`} className="max-h-72 w-full max-w-72 object-cover" />
+                  <img src={m.img} alt={m.text ? tr("msg.photoCaption", { text: m.text }) : tr("msg.photoFrom", { name: mine ? tr("msg.youLower") : who?.first })} className="max-h-72 w-full max-w-72 object-cover" />
                 </button>
               )}
               {/* The invisible spacer keeps the last line of text clear of the time stamp, as in most chat apps. */}
@@ -146,27 +149,27 @@ function Bubble({ t, m, prev, next, q, flash, onReply, onJump, onOpenImage, setR
         {/* Hover / focus actions: reply, react, more. */}
         {!m.deleted && (
           <div className={cx("flex shrink-0 items-center gap-0.5 self-center opacity-0 transition-opacity group-focus-within/msg:opacity-100 group-hover/msg:opacity-100 max-md:hidden max-md:group-focus-within/msg:flex", picker && "opacity-100 max-md:flex")}>
-            <IconButton icon="reply" label="Reply" title="Reply (R)" className="size-8! border-0! bg-transparent! text-muted! hover:bg-sec-hover! hover:text-sec-ink! active:bg-sec! active:text-sec-on!" onClick={() => onReply(m)} />
+            <IconButton icon="reply" label={tr("msg.reply")} title={tr("msg.replyR")} className="size-8! border-0! bg-transparent! text-muted! hover:bg-sec-hover! hover:text-sec-ink! active:bg-sec! active:text-sec-on!" onClick={() => onReply(m)} />
             <div ref={pickerRef} className="relative">
-              <IconButton icon="add_reaction" label="React" title="React" aria-expanded={picker} className="size-8! border-0! bg-transparent! text-muted! hover:bg-sec-hover! hover:text-sec-ink! active:bg-sec! active:text-sec-on!" onClick={() => setPicker(!picker)} />
+              <IconButton icon="add_reaction" label={tr("msg.react")} title={tr("msg.react")} aria-expanded={picker} className="size-8! border-0! bg-transparent! text-muted! hover:bg-sec-hover! hover:text-sec-ink! active:bg-sec! active:text-sec-on!" onClick={() => setPicker(!picker)} />
               {picker && (
-                <div role="group" aria-label="Reactions" className={cx("absolute bottom-full z-20 mb-1 flex animate-pop gap-0.5 rounded-full border border-line bg-surface p-1 shadow-pop", mine ? "right-0" : "left-0")}>
+                <div role="group" aria-label={tr("msg.reactions")} className={cx("absolute bottom-full z-20 mb-1 flex animate-pop gap-0.5 rounded-full border border-line bg-surface p-1 shadow-pop", mine ? "right-0" : "left-0")}>
                   {REACTIONS.map((e) => (
-                    <button key={e} type="button" aria-pressed={m.reactions?.[ME] === e} aria-label={`React with ${e}`} onClick={() => react(e)}
+                    <button key={e} type="button" aria-pressed={m.reactions?.[ME] === e} aria-label={tr("msg.reactWith", { e })} onClick={() => react(e)}
                       className={cx("grid size-9 cursor-pointer place-items-center rounded-full border-0 text-[1.25rem] transition-transform hover:scale-125", m.reactions?.[ME] === e ? "bg-sec-line" : "bg-transparent")}>{e}</button>
                   ))}
                 </div>
               )}
             </div>
-            <Menu label="Message actions" align={mine ? "right" : "left"} trigger={(p) => (
-              <IconButton {...p} data-more icon="more_vert" label="More actions" title="More actions (or right-click the message)" className="size-8! border-0! bg-transparent! text-muted! hover:bg-sec-hover! hover:text-sec-ink! active:bg-sec! active:text-sec-on!" />
+            <Menu label={tr("msg.actions")} align={mine ? "right" : "left"} trigger={(p) => (
+              <IconButton {...p} data-more icon="more_vert" label={tr("msg.more")} title={tr("msg.moreTitle")} className="size-8! border-0! bg-transparent! text-muted! hover:bg-sec-hover! hover:text-sec-ink! active:bg-sec! active:text-sec-on!" />
             )}>
-              <MenuItem icon="reply" hint="R" onClick={() => onReply(m)}>Reply</MenuItem>
-              <MenuItem icon="add_reaction" onClick={() => setPicker(true)}>React…</MenuItem>
-              {m.text && <MenuItem icon="content_copy" onClick={copy}>Copy text</MenuItem>}
-              <MenuItem icon="star" onClick={star}>{m.starred ? "Unstar" : "Star"}</MenuItem>
-              {canSpeak && m.text && <MenuItem icon={speaking ? "stop_circle" : "volume_up"} onClick={() => toggle(`${mine ? "You" : who?.first} said: ${m.text}`)}>{speaking ? "Stop reading" : "Read aloud"}</MenuItem>}
-              {mine && <><MenuDivider /><MenuItem icon="delete" onClick={remove}>Delete for everyone</MenuItem></>}
+              <MenuItem icon="reply" hint="R" onClick={() => onReply(m)}>{tr("msg.reply")}</MenuItem>
+              <MenuItem icon="add_reaction" onClick={() => setPicker(true)}>{tr("msg.reactMenu")}</MenuItem>
+              {m.text && <MenuItem icon="content_copy" onClick={copy}>{tr("msg.copyText")}</MenuItem>}
+              <MenuItem icon="star" onClick={star}>{tr(m.starred ? "msg.unstar" : "msg.star")}</MenuItem>
+              {canSpeak && m.text && <MenuItem icon={speaking ? "stop_circle" : "volume_up"} onClick={() => toggle(tr("msg.said", { name: mine ? tr("msg.you") : who?.first, text: m.text }))}>{tr(speaking ? "read.stop" : "msg.readAloud")}</MenuItem>}
+              {mine && <><MenuDivider /><MenuItem icon="delete" onClick={remove}>{tr("msg.deleteAll")}</MenuItem></>}
             </Menu>
           </div>
         )}
@@ -177,8 +180,8 @@ function Bubble({ t, m, prev, next, q, flash, onReply, onJump, onOpenImage, setR
         <div className={cx("relative z-1 -mt-2 flex gap-1", mine ? "mr-3" : t.group ? "ml-12" : "ml-3")}>
           {Object.entries(grouped).map(([e, ids]) => (
             <button key={e} type="button" onClick={() => react(e)} aria-pressed={ids.includes(ME)}
-              title={ids.map((id) => (id === ME ? "You" : person(id)?.first)).join(", ")}
-              aria-label={`${e} ${ids.length}: ${ids.map((id) => (id === ME ? "you" : person(id)?.first)).join(", ")}${ids.includes(ME) ? ". Tap to remove yours." : ""}`}
+              title={ids.map((id) => (id === ME ? tr("msg.you") : person(id)?.first)).join(", ")}
+              aria-label={tr("msg.reactLabel", { e, n: ids.length, names: ids.map((id) => (id === ME ? tr("msg.youLower") : person(id)?.first)).join(", ") }) + (ids.includes(ME) ? tr("msg.tapRemove") : "")}
               className={cx("flex cursor-pointer items-center gap-0.5 rounded-full border px-1.5 py-px text-[.8rem] shadow-card", ids.includes(ME) ? "border-sec bg-sec-soft" : "border-line bg-surface")}>
               {e}{ids.length > 1 && <span className="text-[.68rem] font-semibold text-muted">{ids.length}</span>}
             </button>
@@ -192,6 +195,7 @@ function Bubble({ t, m, prev, next, q, flash, onReply, onJump, onOpenImage, setR
 function Composer({ t, replyTo, setReplyTo, boxRef }) {
   const { update, person } = useStore();
   const toast = useToast();
+  const tr = useT();
   const [draft, setDraft, d] = useDraft(`chat-${t.id}`, { text: "" });
   const [img, setImg] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -219,7 +223,7 @@ function Composer({ t, replyTo, setReplyTo, boxRef }) {
   const send = (body = text) => {
     const msg = body.trim();
     if (!msg && !img) return;
-    update((s) => { postMessage(s, { threadId: t.id, text: msg, replyTo: replyTo?.id, img }); }, `Sent a message to ${t.title}`);
+    update((s) => { postMessage(s, { threadId: t.id, text: msg, replyTo: replyTo?.id, img }); }, tr("msg.hSent", { title: t.title }));
     if (body === text) { setText(""); d.clear(); }
     setImg(null);
     setReplyTo(null);
@@ -233,11 +237,11 @@ function Composer({ t, replyTo, setReplyTo, boxRef }) {
   };
   const attach = async (file) => {
     if (!file) return;
-    if (!file.type.startsWith("image/")) { toast("Only photos can be attached here", { error: true, sub: "Choose a JPG, PNG or similar image." }); return; }
+    if (!file.type.startsWith("image/")) { toast(tr("msg.onlyPhotos"), { error: true, sub: tr("msg.onlyPhotosSub") }); return; }
     setBusy(true);
     const url = await shrinkImage(file, 1000, 0.75);
     setBusy(false);
-    if (!url) { toast("That photo couldn't be opened", { error: true, sub: "Try another image." }); return; }
+    if (!url) { toast(tr("msg.photoFail"), { error: true, sub: tr("msg.photoFailSub") }); return; }
     setImg(url);
     boxRef.current?.focus();
   };
@@ -248,49 +252,49 @@ function Composer({ t, replyTo, setReplyTo, boxRef }) {
       {replyTo && <div className="mb-2"><Quote t={t} m={replyTo} onClose={() => setReplyTo(null)} /></div>}
       {(img || busy) && (
         <div className="mb-2 flex items-center gap-3 rounded-xl bg-surface-2 p-2">
-          {busy ? <span className="flex items-center gap-2 text-small"><Spinner /> Preparing photo…</span> : (
+          {busy ? <span className="flex items-center gap-2 text-small"><Spinner /> {tr("msg.preparing")}</span> : (
             <>
-              <img src={img} alt="Photo to send" className="size-16 rounded-lg object-cover" />
-              <span className="flex-1 text-small text-muted">Add a caption, or send the photo on its own.</span>
-              <IconButton icon="close" label="Remove photo" onClick={() => setImg(null)} />
+              <img src={img} alt={tr("msg.photoToSend")} className="size-16 rounded-lg object-cover" />
+              <span className="flex-1 text-small text-muted">{tr("msg.captionHint")}</span>
+              <IconButton icon="close" label={tr("msg.removePhoto")} onClick={() => setImg(null)} />
             </>
           )}
         </div>
       )}
       {!text && !img && !replyTo && (
-        <Chips scroll className="no-scrollbar mb-2" role="group" aria-label="Quick replies">
-          {QUICK.map((qr) => <Chip key={qr} onClick={() => send(qr)}>{qr}</Chip>)}
+        <Chips scroll className="no-scrollbar mb-2" role="group" aria-label={tr("msg.quick")}>
+          {tr("msg.quickList").map((qr) => <Chip key={qr} onClick={() => send(qr)}>{qr}</Chip>)}
         </Chips>
       )}
       <form className="flex items-end gap-1.5" onSubmit={(e) => { e.preventDefault(); send(); }}>
         <div className="flex min-w-0 flex-1 items-end gap-0.5 rounded-3xl border border-line bg-surface-2 px-1.5 focus-within:border-sec focus-within:bg-surface">
           <div ref={emojiRef} className="relative">
-            <IconButton icon="mood" label="Emoji" title="Emoji" aria-expanded={emoji} className="my-1 size-9! border-0! bg-transparent! text-muted! hover:bg-sec-hover! hover:text-sec-ink! active:bg-sec! active:text-sec-on!" onClick={() => setEmoji(!emoji)} />
+            <IconButton icon="mood" label={tr("msg.emoji")} title={tr("msg.emoji")} aria-expanded={emoji} className="my-1 size-9! border-0! bg-transparent! text-muted! hover:bg-sec-hover! hover:text-sec-ink! active:bg-sec! active:text-sec-on!" onClick={() => setEmoji(!emoji)} />
             {emoji && (
-              <div role="group" aria-label="Emoji" className="absolute bottom-full left-0 z-30 mb-2 grid w-72 animate-pop grid-cols-8 gap-0.5 rounded-2xl border border-line bg-surface p-2 shadow-pop">
+              <div role="group" aria-label={tr("msg.emoji")} className="absolute bottom-full left-0 z-30 mb-2 grid w-72 animate-pop grid-cols-8 gap-0.5 rounded-2xl border border-line bg-surface p-2 shadow-pop">
                 {EMOJI.map((e) => <button key={e} type="button" aria-label={e} onClick={() => insert(e)} className="grid size-8 cursor-pointer place-items-center rounded-lg border-0 bg-transparent text-[1.2rem] transition-transform hover:scale-125 hover-tint">{e}</button>)}
               </div>
             )}
           </div>
-          <label htmlFor="msgBox" className="sr-only">Message {t.title}</label>
+          <label htmlFor="msgBox" className="sr-only">{tr("msg.messageTo", { title: t.title })}</label>
           <textarea id="msgBox" ref={boxRef} rows={1} value={text} onChange={(e) => setText(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
               if (e.key === "Escape" && replyTo) { e.stopPropagation(); setReplyTo(null); }
             }}
-            placeholder={replyTo ? `Reply to ${replyTo.by === ME ? "yourself" : person(replyTo.by)?.first}…` : "Message"}
+            placeholder={replyTo ? tr("msg.replyPh", { name: replyTo.by === ME ? tr("msg.yourself") : person(replyTo.by)?.first }) : tr("msg.ph")}
             className="max-h-40 min-w-0 flex-1 resize-none border-0 bg-transparent py-2.5 leading-normal text-ink outline-0 placeholder:text-faint" />
-          <IconButton icon="attach_file" label="Attach a photo" title="Attach a photo" className="my-1 size-9! border-0! bg-transparent! text-muted! hover:bg-sec-hover! hover:text-sec-ink! active:bg-sec! active:text-sec-on!" onClick={() => fileRef.current.click()} />
-          <input ref={fileRef} type="file" accept="image/*" className="sr-only" tabIndex={-1} aria-hidden="true" aria-label="Attach a photo" onChange={(e) => { attach(e.target.files[0]); e.target.value = ""; }} />
+          <IconButton icon="attach_file" label={tr("msg.attach")} title={tr("msg.attach")} className="my-1 size-9! border-0! bg-transparent! text-muted! hover:bg-sec-hover! hover:text-sec-ink! active:bg-sec! active:text-sec-on!" onClick={() => fileRef.current.click()} />
+          <input ref={fileRef} type="file" accept="image/*" className="sr-only" tabIndex={-1} aria-hidden="true" aria-label={tr("msg.attach")} onChange={(e) => { attach(e.target.files[0]); e.target.value = ""; }} />
         </div>
         {/* Send when there is something to send; otherwise the same spot dictates by voice. */}
         {canSend || !voice.supported ? (
-          <button type="submit" disabled={!canSend} aria-label="Send" title="Send (Enter)"
+          <button type="submit" disabled={!canSend} aria-label={tr("msg.send")} title={tr("msg.sendTitle")}
             className="grid size-12 shrink-0 cursor-pointer place-items-center rounded-full border-0 bg-sec text-sec-on shadow-card transition hover:brightness-110 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50">
             <Icon name="send" />
           </button>
         ) : (
-          <button type="button" aria-pressed={voice.listening} aria-label={voice.listening ? "Stop dictating" : "Dictate a message"} title={voice.listening ? "Stop dictating" : "Dictate a message"}
+          <button type="button" aria-pressed={voice.listening} aria-label={tr(voice.listening ? "msg.stopDictate" : "msg.dictate")} title={tr(voice.listening ? "msg.stopDictate" : "msg.dictate")}
             onClick={() => (voice.listening ? voice.stop() : voice.start())}
             className={cx("grid size-12 shrink-0 cursor-pointer place-items-center rounded-full border-0 shadow-card transition active:scale-95",
               voice.listening ? "animate-rec-pulse bg-rec text-white" : "bg-sec text-sec-on hover:brightness-110")}>
@@ -298,7 +302,7 @@ function Composer({ t, replyTo, setReplyTo, boxRef }) {
           </button>
         )}
       </form>
-      <p className="mt-1.5 px-2 text-[.68rem] text-faint max-sm:hidden">Enter to send · Shift+Enter for a new line · R on a message to reply · double-click to ❤️</p>
+      <p className="mt-1.5 px-2 text-[.68rem] text-faint max-sm:hidden">{tr("msg.keys")}</p>
     </div>
   );
 }
@@ -308,6 +312,7 @@ export default function Chat({ t, focusId, onBack }) {
   const { open, confirm } = useModal();
   const { toggle: toggleSpeech, speaking } = useSpeech();
   const toast = useToast();
+  const tr = useT();
   const [replyTo, setReplyTo] = useState(null);
   const [searching, setSearching] = useState(false);
   const [q, setQ] = useState("");
@@ -358,8 +363,8 @@ export default function Chat({ t, focusId, onBack }) {
     return acc;
   }, []);
   const openImage = (m) => open(
-    <Dialog wide title={m.by === ME ? "Your photo" : `Photo from ${person(m.by)?.first}`} sub={`${dayLabel(m.at)}, ${clock(m.at)}${m.text ? ` · ${m.text}` : ""}`}>
-      <img src={m.img} alt={m.text || "Photo"} className="max-h-[70vh] w-full rounded-xl object-contain" />
+    <Dialog wide title={m.by === ME ? tr("msg.yourPhoto") : tr("msg.photoFrom", { name: person(m.by)?.first })} sub={`${dayLabel(m.at)}, ${clock(m.at)}${m.text ? ` · ${m.text}` : ""}`}>
+      <img src={m.img} alt={m.text || tr("msg.photo")} className="max-h-[70vh] w-full rounded-xl object-contain" />
     </Dialog>,
   );
   const set = (k, v, msg) => { update((s) => { s.threads.find((x) => x.id === t.id)[k] = v; }, null); if (msg) toast(msg, { icon: "check_circle", duration: 2000 }); };
@@ -368,46 +373,44 @@ export default function Chat({ t, focusId, onBack }) {
   const info = () => open(<ChatInfoDialog id={t.id} onJump={jump} />);
   const toggleSearch = () => { setSearching(!searching); setQ(""); };
   const latest = [...t.messages].reverse().find((m) => !m.deleted && m.text);
-  const readLatest = () => latest && toggleSpeech(`${latest.by === ME ? "You" : person(latest.by)?.first} said: ${latest.text}`);
+  const readLatest = () => latest && toggleSpeech(tr("msg.said", { name: latest.by === ME ? tr("msg.you") : person(latest.by)?.first, text: latest.text }));
   const exportChat = () => {
     // A plain-text transcript that opens anywhere: "[8 Nov 2026, 18:02] Sarah: …"
-    const lines = t.messages.map((m) => `[${fmtDate(m.at.slice(0, 10))}, ${clock(m.at)}] ${m.by === ME ? "You" : fullName(person(m.by))}: ${m.deleted ? "(deleted)" : `${m.img ? "[photo] " : ""}${m.text}`}`);
+    const lines = t.messages.map((m) => `[${fmtDate(m.at.slice(0, 10))}, ${clock(m.at)}] ${m.by === ME ? tr("msg.you") : fullName(person(m.by))}: ${m.deleted ? tr("msg.exDeleted") : `${m.img ? tr("msg.exPhoto") : ""}${m.text}`}`);
     const blob = new Blob([`${t.title}\n${chatSubtitle(t, person)}\n\n${lines.join("\n")}\n`], { type: "text/plain;charset=utf-8" });
     const a = Object.assign(document.createElement("a"), { href: URL.createObjectURL(blob), download: `${t.title.replace(/[^\w -]+/g, "").trim() || "chat"}.txt` });
     a.click();
     URL.revokeObjectURL(a.href);
-    toast("Chat exported", { sub: `${t.messages.length} messages saved as a text file`, icon: "download" });
+    toast(tr("msg.exported"), { sub: tr("msg.exportedSub", { n: t.messages.length }), icon: "download" });
   };
-  const clearChat = () => confirm("Clear all messages?", `Every message in “${t.title}” will be removed from this chat. You can undo straight after.`, "Clear messages", () => {
+  const clearChat = () => confirm(tr("msg.clearQ"), tr("msg.clearBody", { title: t.title }), tr("msg.clearBtn"), () => {
     const before = t.messages;
-    update((s) => { s.threads.find((x) => x.id === t.id).messages = []; }, `Cleared the chat with ${t.title}`);
-    toast("Chat cleared", { sub: t.title, icon: "delete_sweep", action: "Undo", onAction: () => update((s) => { s.threads.find((x) => x.id === t.id).messages = before; }, `Restored the chat with ${t.title}`) });
+    update((s) => { s.threads.find((x) => x.id === t.id).messages = []; }, tr("msg.hCleared", { title: t.title }));
+    toast(tr("msg.cleared"), { sub: t.title, icon: "delete_sweep", action: tr("common.undo"), onAction: () => update((s) => { s.threads.find((x) => x.id === t.id).messages = before; }, tr("msg.hRestoredChat", { title: t.title })) });
   });
   const removeChat = () => {
     const leaving = t.group;
-    confirm(leaving ? `Leave “${t.title}”?` : `Delete the chat with ${t.title}?`,
-      leaving ? "You'll stop receiving its messages and it will leave your chat list. You can undo straight after."
-        : "The conversation will be removed from your chat list. You can undo straight after.",
-      leaving ? "Leave group" : "Delete chat", () => {
+    confirm(tr(leaving ? "msg.leaveQ" : "msg.deleteQ", { title: t.title }), tr(leaving ? "msg.leaveBody" : "msg.deleteBody"),
+      tr(leaving ? "msg.leaveBtn" : "msg.deleteBtn"), () => {
         const index = state.threads.findIndex((x) => x.id === t.id);
         const copy = t;
-        update((s) => { s.threads = s.threads.filter((x) => x.id !== t.id); }, leaving ? `Left ${t.title}` : `Deleted the chat with ${t.title}`);
+        update((s) => { s.threads = s.threads.filter((x) => x.id !== t.id); }, tr(leaving ? "msg.hLeft" : "msg.hDeletedChat", { title: t.title }));
         onBack();
-        toast(leaving ? "You left the group" : "Chat deleted", { sub: t.title, icon: leaving ? "logout" : "delete", action: "Undo",
-          onAction: () => update((s) => { s.threads.splice(index, 0, copy); }, `Restored ${t.title}`) });
+        toast(tr(leaving ? "msg.left" : "msg.chatDeleted"), { sub: t.title, icon: leaving ? "logout" : "delete", action: tr("common.undo"),
+          onAction: () => update((s) => { s.threads.splice(index, 0, copy); }, tr("msg.hRestoredT", { title: t.title })) });
       });
   };
   const tool = "border-0! text-muted! hover:text-ink!";
   return (
-    <section aria-label={`Chat with ${t.title}`} className="flex min-h-0 min-w-0 flex-1 flex-col"
+    <section aria-label={tr("msg.chatWith", { title: t.title })} className="flex min-h-0 min-w-0 flex-1 flex-col"
       onKeyDown={(e) => {
         if (e.key === "Escape" && searching) { setSearching(false); setQ(""); }
         if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "f") { e.preventDefault(); setSearching(true); }
       }}>
       {/* Chat header: who you're talking to, and tools for this chat. */}
       <header className="flex items-center gap-2 border-b border-line bg-surface px-2.5 py-2 sm:px-4">
-        <IconButton icon="arrow_back" label="Back to chats" className="border-0! md:hidden" onClick={onBack} />
-        <button type="button" onClick={() => open(<ChatInfoDialog id={t.id} onJump={jump} />)} title="Chat info"
+        <IconButton icon="arrow_back" label={tr("msg.back")} className="border-0! md:hidden" onClick={onBack} />
+        <button type="button" onClick={() => open(<ChatInfoDialog id={t.id} onJump={jump} />)} title={tr("msg.info")}
           className="flex min-w-0 flex-1 cursor-pointer items-center gap-3 rounded-xl border-0 bg-transparent p-1 text-left text-ink hover-tint">
           <ChatAvatar t={t} />
           <span className="min-w-0">
@@ -416,56 +419,56 @@ export default function Chat({ t, focusId, onBack }) {
           </span>
         </button>
         {/* The most used options, one tap away (labels on hover and for screen readers). On phones, the rest live in ⋮. */}
-        <div role="toolbar" aria-label="Chat options" className="flex shrink-0 items-center gap-0.5">
-          <IconButton icon="search" label="Search in this chat" title="Search in this chat (Ctrl+F)" aria-pressed={searching} className={tool} onClick={toggleSearch} />
-          <IconButton icon="info" label="Chat info and members" title="Chat info and members" className={cx(tool, "max-sm:hidden")} onClick={info} />
-          <IconButton icon="push_pin" label={t.pinned ? "Unpin chat" : "Pin chat"} title={t.pinned ? "Unpin chat" : "Pin chat to the top"} aria-pressed={!!t.pinned}
-            iconProps={{ fill: !!t.pinned }} className={cx(tool, "max-md:hidden", t.pinned && "text-sec-ink! active:text-sec-on!")} onClick={() => set("pinned", !t.pinned, t.pinned ? "Unpinned" : "Pinned to the top")} />
-          <IconButton icon={t.muted ? "notifications_off" : "notifications"} label={t.muted ? "Unmute chat" : "Mute chat"} title={t.muted ? "Unmute notifications" : "Mute notifications"}
-            aria-pressed={!!t.muted} className={cx(tool, "max-md:hidden")} onClick={() => set("muted", !t.muted, t.muted ? "Notifications on" : "Muted")} />
-          <Menu label="All chat options" trigger={(p) => <IconButton {...p} icon="more_vert" label="All chat options" title="All chat options" className={tool} />}>
-            <MenuLabel>This chat</MenuLabel>
-            <MenuItem icon="info" onClick={info}>Chat info &amp; members</MenuItem>
-            <MenuItem icon="search" hint="Ctrl F" onClick={toggleSearch}>Search in chat</MenuItem>
-            <MenuItem icon="star" onClick={info}>Starred messages</MenuItem>
-            {canSpeak && latest && <MenuItem icon={speaking ? "stop_circle" : "volume_up"} onClick={readLatest}>{speaking ? "Stop reading" : "Read latest message aloud"}</MenuItem>}
+        <div role="toolbar" aria-label={tr("msg.options")} className="flex shrink-0 items-center gap-0.5">
+          <IconButton icon="search" label={tr("msg.searchIn")} title={tr("msg.searchInTitle")} aria-pressed={searching} className={tool} onClick={toggleSearch} />
+          <IconButton icon="info" label={tr("msg.infoMembers")} title={tr("msg.infoMembers")} className={cx(tool, "max-sm:hidden")} onClick={info} />
+          <IconButton icon="push_pin" label={tr(t.pinned ? "msg.unpinChat" : "msg.pinChat")} title={tr(t.pinned ? "msg.unpinChat" : "msg.pinChatTop")} aria-pressed={!!t.pinned}
+            iconProps={{ fill: !!t.pinned }} className={cx(tool, "max-md:hidden", t.pinned && "text-sec-ink! active:text-sec-on!")} onClick={() => set("pinned", !t.pinned, tr(t.pinned ? "msg.unpinned" : "msg.pinnedTop"))} />
+          <IconButton icon={t.muted ? "notifications_off" : "notifications"} label={tr(t.muted ? "msg.unmuteChat" : "msg.muteChat")} title={tr(t.muted ? "msg.unmuteNotif" : "msg.muteNotif")}
+            aria-pressed={!!t.muted} className={cx(tool, "max-md:hidden")} onClick={() => set("muted", !t.muted, tr(t.muted ? "msg.notifOn" : "msg.muted"))} />
+          <Menu label={tr("msg.allOptions")} trigger={(p) => <IconButton {...p} icon="more_vert" label={tr("msg.allOptions")} title={tr("msg.allOptions")} className={tool} />}>
+            <MenuLabel>{tr("msg.thisChat")}</MenuLabel>
+            <MenuItem icon="info" onClick={info}>{tr("msg.infoMenu")}</MenuItem>
+            <MenuItem icon="search" hint="Ctrl F" onClick={toggleSearch}>{tr("msg.searchMenu")}</MenuItem>
+            <MenuItem icon="star" onClick={info}>{tr("msg.starred")}</MenuItem>
+            {canSpeak && latest && <MenuItem icon={speaking ? "stop_circle" : "volume_up"} onClick={readLatest}>{tr(speaking ? "read.stop" : "msg.readLatest")}</MenuItem>}
             <MenuDivider />
-            <MenuLabel>Organise</MenuLabel>
-            <MenuItem icon="push_pin" onClick={() => set("pinned", !t.pinned, t.pinned ? "Unpinned" : "Pinned to the top")}>{t.pinned ? "Unpin chat" : "Pin chat to the top"}</MenuItem>
-            <MenuItem icon={t.muted ? "notifications_active" : "notifications_off"} onClick={() => set("muted", !t.muted, t.muted ? "Notifications on" : "Muted")}>{t.muted ? "Unmute notifications" : "Mute notifications"}</MenuItem>
-            <MenuItem icon="mark_chat_unread" onClick={() => { set("unread", Math.max(1, t.unread || 0), "Marked as unread"); onBack(); }}>Mark as unread</MenuItem>
+            <MenuLabel>{tr("msg.organise")}</MenuLabel>
+            <MenuItem icon="push_pin" onClick={() => set("pinned", !t.pinned, tr(t.pinned ? "msg.unpinned" : "msg.pinnedTop"))}>{tr(t.pinned ? "msg.unpinChat" : "msg.pinChatTop")}</MenuItem>
+            <MenuItem icon={t.muted ? "notifications_active" : "notifications_off"} onClick={() => set("muted", !t.muted, tr(t.muted ? "msg.notifOn" : "msg.muted"))}>{tr(t.muted ? "msg.unmuteNotif" : "msg.muteNotif")}</MenuItem>
+            <MenuItem icon="mark_chat_unread" onClick={() => { set("unread", Math.max(1, t.unread || 0), tr("msg.markedUnread")); onBack(); }}>{tr("msg.markUnread")}</MenuItem>
             <MenuDivider />
-            <MenuLabel>Manage</MenuLabel>
-            <MenuItem icon="download" onClick={exportChat}>Export chat (text file)</MenuItem>
-            <MenuItem icon="delete_sweep" onClick={clearChat}>Clear all messages…</MenuItem>
-            <MenuItem icon={t.group ? "logout" : "delete"} onClick={removeChat}>{t.group ? "Leave group…" : "Delete chat…"}</MenuItem>
+            <MenuLabel>{tr("msg.manage")}</MenuLabel>
+            <MenuItem icon="download" onClick={exportChat}>{tr("msg.export")}</MenuItem>
+            <MenuItem icon="delete_sweep" onClick={clearChat}>{tr("msg.clearMenu")}</MenuItem>
+            <MenuItem icon={t.group ? "logout" : "delete"} onClick={removeChat}>{tr(t.group ? "msg.leaveMenu" : "msg.deleteMenu")}</MenuItem>
             <MenuDivider />
-            <MenuItem icon="close" onClick={onBack}>Close chat</MenuItem>
+            <MenuItem icon="close" onClick={onBack}>{tr("msg.close")}</MenuItem>
           </Menu>
-          <IconButton icon="close" label="Close chat" title="Close chat" className={cx(tool, "max-md:hidden")} onClick={onBack} />
+          <IconButton icon="close" label={tr("msg.close")} title={tr("msg.close")} className={cx(tool, "max-md:hidden")} onClick={onBack} />
         </div>
       </header>
 
       {searching && (
         <div className="flex items-center gap-2 border-b border-line bg-surface-2 px-3 py-2">
           <Icon name="search" size="sm" className="text-muted" />
-          <label htmlFor="chatQ" className="sr-only">Search messages in {t.title}</label>
-          <input id="chatQ" autoFocus value={q} onChange={(e) => { setQ(e.target.value); setHit(0); }} placeholder="Search this chat"
+          <label htmlFor="chatQ" className="sr-only">{tr("msg.searchMsgs", { title: t.title })}</label>
+          <input id="chatQ" autoFocus value={q} onChange={(e) => { setQ(e.target.value); setHit(0); }} placeholder={tr("msg.searchPh")}
             onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); goHit(hit + (e.shiftKey ? -1 : 1)); } }}
             className="min-w-0 flex-1 border-0 bg-transparent py-1 text-ink outline-0" />
-          <span className="text-xsmall text-muted tabular-nums" aria-live="polite">{q.trim() ? (matches.length ? `${hit + 1} of ${matches.length}` : "No matches") : ""}</span>
-          <IconButton icon="keyboard_arrow_up" label="Older match" className="size-8! border-0!" disabled={!matches.length} onClick={() => goHit(hit + 1)} />
-          <IconButton icon="keyboard_arrow_down" label="Newer match" className="size-8! border-0!" disabled={!matches.length} onClick={() => goHit(hit - 1)} />
-          <IconButton icon="close" label="Close search" className="size-8! border-0!" onClick={() => { setSearching(false); setQ(""); }} />
+          <span className="text-xsmall text-muted tabular-nums" aria-live="polite">{q.trim() ? (matches.length ? tr("msg.hitOf", { a: hit + 1, b: matches.length }) : tr("msg.noMatches")) : ""}</span>
+          <IconButton icon="keyboard_arrow_up" label={tr("msg.older")} className="size-8! border-0!" disabled={!matches.length} onClick={() => goHit(hit + 1)} />
+          <IconButton icon="keyboard_arrow_down" label={tr("msg.newer")} className="size-8! border-0!" disabled={!matches.length} onClick={() => goHit(hit - 1)} />
+          <IconButton icon="close" label={tr("msg.closeSearch")} className="size-8! border-0!" onClick={() => { setSearching(false); setQ(""); }} />
         </div>
       )}
 
       {/* Message body. */}
       <div className="relative min-h-0 flex-1">
-        <ol ref={bodyRef} aria-label="Messages" onScroll={(e) => { const el = e.currentTarget; setAtBottom(el.scrollHeight - el.scrollTop - el.clientHeight < 120); }}
+        <ol ref={bodyRef} aria-label={tr("nav.messages")} onScroll={(e) => { const el = e.currentTarget; setAtBottom(el.scrollHeight - el.scrollTop - el.clientHeight < 120); }}
           className="m-0 h-full list-none overflow-y-auto bg-surface-2 bg-[radial-gradient(var(--color-line)_1px,transparent_1px)] [background-size:20px_20px] px-3 py-3 sm:px-6">
           <li className="mx-auto mb-3 flex max-w-110 items-start gap-2 rounded-xl bg-gold-100 px-3 py-2 text-center text-xsmall text-gold-ink">
-            <Icon name="lock" size="xs" /> Messages stay inside the family archive. Only the people in this chat can read them.
+            <Icon name="lock" size="xs" /> {tr("msg.privacyNote")}
           </li>
           {/* One section per day: its label sticks to the top only while that day is on screen, then the next day's takes over. */}
           {days.map(({ day, list }) => (
@@ -477,8 +480,8 @@ export default function Chat({ t, focusId, onBack }) {
                 {list.map((m, k) => (
                   <Fragment key={m.id}>
                     {unreadMark?.id === m.id && (
-                      <li className="my-3 flex justify-center" role="separator" aria-label={`${unreadMark.n} unread messages`}>
-                        <span className="w-full rounded-lg bg-sec-soft py-1 text-center text-xsmall font-semibold text-sec-ink">{unreadMark.n} unread message{unreadMark.n > 1 ? "s" : ""}</span>
+                      <li className="my-3 flex justify-center" role="separator" aria-label={unreadMark.n > 1 ? tr("msg.unreadMsgsN", { n: unreadMark.n }) : tr("msg.unreadMsgs1")}>
+                        <span className="w-full rounded-lg bg-sec-soft py-1 text-center text-xsmall font-semibold text-sec-ink">{unreadMark.n > 1 ? tr("msg.unreadMsgsN", { n: unreadMark.n }) : tr("msg.unreadMsgs1")}</span>
                       </li>
                     )}
                     <Bubble t={t} m={m} prev={list[k - 1]} next={list[k + 1]} q={q.trim()} flash={flash === m.id}
@@ -490,7 +493,7 @@ export default function Chat({ t, focusId, onBack }) {
           ))}
         </ol>
         {!atBottom && (
-          <button type="button" aria-label="Jump to the newest message" title="Newest message"
+          <button type="button" aria-label={tr("msg.jumpNewest")} title={tr("msg.newest")}
             onClick={() => bodyRef.current.scrollTo({ top: bodyRef.current.scrollHeight, behavior: "smooth" })}
             className="absolute right-4 bottom-4 grid size-11 animate-pop cursor-pointer place-items-center rounded-full border border-sec-line bg-surface text-sec-ink shadow-pop hover-fill">
             <Icon name="keyboard_double_arrow_down" />
