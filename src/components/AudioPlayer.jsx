@@ -79,7 +79,7 @@ export default function AudioPlayer({ id, duration = 0, label: labelProp, dark }
     <div className={cx("flex min-w-0 items-center gap-3 rounded-xl border px-3.5 py-2.5",
       dark ? "border-white/10 bg-white/5" : "border-line bg-surface")}>
       <button type="button" onClick={toggle} aria-label={tr(playing ? "audio.pause" : "audio.play", { label })}
-        className={cx("pressable grid size-10 shrink-0 cursor-pointer place-items-center rounded-full border-0 hover:scale-110 hover:ring-4 hover:ring-sec-line",
+        className={cx("pressable grid size-10 shrink-0 cursor-pointer place-items-center rounded-full border-0 hover:scale-110 hover:ring-4 hover:ring-sec-edge",
           dark ? "bg-mint text-pine-900" : "bg-sec text-sec-on shadow-[0_4px_12px_-6px_var(--sec)]")}>
         <Icon name={playing ? "pause" : "play_arrow"} fill />
       </button>

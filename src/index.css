@@ -37,8 +37,11 @@
   --color-gold-ink: #7d5715;
   --color-rose: #b4473f;
   --color-rose-100: #fbe1de;
+  --color-rose-ring: #fbe1de;
   --color-rec: #d63c33;
   --color-focus: #1e3a8a;
+  /* Hover fill of the mint button (the dark theme swaps it, see below). */
+  --color-mint-btn-hover: var(--color-pine-900);
 
   --font-serif: "Playfair Display", Georgia, "Times New Roman", serif;
   --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -55,6 +58,9 @@
   --breakpoint-sm: 700px;
   --breakpoint-md: 980px;
   --breakpoint-lg: 1200px;
+
+  /* Plain `transition` utilities ease over 200ms, like the shared hover states below. */
+  --default-transition-duration: 200ms;
 
   --animate-pop: pop 0.18s;
   --animate-fade: fade 0.15s;
@@ -79,6 +85,8 @@
   --color-sec-on: var(--sec-on);
   --color-sec-hover: var(--sec-hover);
   --color-sec-hover-line: var(--sec-hover-line);
+  --color-sec-hover-tint: var(--sec-hover-tint);
+  --color-sec-edge: var(--sec-edge);
 }
 
 /* ----------------------------------------------------------
@@ -109,7 +117,7 @@
 /* Rows and cards that hold several lines of text: slate blue on hover, navy outline and deeper tint when clicked
    (text keeps its normal, readable colours). */
 @utility hover-tint {
-  &:is(:hover, :focus-visible):not(:disabled) { background-color: var(--sec-hover); border-color: var(--sec-hover-line); }
+  &:is(:hover, :focus-visible):not(:disabled) { background-color: var(--sec-hover-tint); border-color: var(--sec-hover-line); }
   &:active:not(:disabled) { background-color: var(--sec-line); border-color: var(--sec); }
 }
 /* Clickable cards: slate blue + a slight lift on hover; navy outline when clicked. */
@@ -118,7 +126,7 @@
   &:is(:hover, :focus-visible) {
     transform: translateY(-2px);
     border-color: var(--sec-hover-line);
-    background-color: var(--sec-hover);
+    background-color: var(--sec-hover-tint);
     box-shadow: 0 0 0 1px var(--sec-hover-line), 0 12px 26px -14px color-mix(in oklab, var(--sec) 60%, transparent);
   }
   &:active { transform: translateY(0) scale(0.99); background-color: var(--sec-line); border-color: var(--sec); box-shadow: 0 0 0 2px var(--sec); }
@@ -161,20 +169,39 @@ html[data-text="lg"] { font-size: 17.5px; }
   --sec-press: color-mix(in oklab, var(--sec) 72%, #000);
   --sec-on: #fff;
   --stripe: var(--sec);
+  /* Hover on rows and cards that keep their own (muted) text; the light theme uses the same slate as controls. */
+  --sec-hover-tint: var(--sec-hover);
+  /* Hover border/ring for inputs, search boxes and plain cards. */
+  --sec-edge: var(--sec-line);
+  /* Hover on list rows that rest on surface-2: they lift to the plain surface (white). */
+  --surface-hover: var(--color-surface);
+  /* Hover brightness for blocks with no colour of their own (quoted replies). */
+  --hover-brightness: 0.95;
 }
 
 /* Dark theme: a brighter navy for fills (white text, 5:1+) so it stands out on the dark background,
-   light blue for coloured text, and a dark slate blue on hover. */
+   light blue for coloured text, and its own slate-blue hover palette (not the light one reused):
+     --sec-hover       controls whose text turns light blue on hover: 1.8:1 against the page, light-blue text 4.7:1+
+     --sec-hover-tint  rows and cards whose muted text stays: a touch deeper, so muted text keeps 4.8:1+
+     --sec-hover-line  hover outline, 3.3:1+ against the surface so the edge is always visible
+     --sec-edge        input/card hover border (sec-line matched the resting border here, so hover was invisible)
+   Ratios hold for every accent. */
 /* Note: `html.dark :root` never matches (:root is <html> itself), so the root is listed as `html.dark`. */
 html.dark, html.dark [data-sec] {
   --sec: var(--color-pine-600);
   --sec-soft: color-mix(in oklab, var(--sec) 18%, var(--color-surface));
   --sec-line: color-mix(in oklab, var(--sec) 40%, var(--color-surface));
   --sec-ink: var(--color-mint);
-  --sec-hover: color-mix(in oklab, var(--sec) 30%, #1c2433);
-  --sec-hover-line: color-mix(in oklab, var(--sec) 60%, #3a4458);
+  --sec-hover: color-mix(in oklab, var(--sec) 32%, #28334d);
+  --sec-hover-tint: color-mix(in oklab, var(--sec) 28%, #232e46);
+  --sec-hover-line: color-mix(in oklab, var(--sec) 68%, #74829e);
+  --sec-edge: var(--sec-hover-line);
+  /* The dark surface is darker than surface-2, so lifting to it made rows dimmer on hover. */
+  --surface-hover: var(--sec-hover-tint);
   --sec-press: color-mix(in oklab, var(--sec) 75%, #000);
   --sec-on: #fff;
+  /* Darkening is lost on dark surfaces, so hover brightens instead. */
+  --hover-brightness: 1.2;
 }
 /* Easy-to-Read: deeper tints and borders, so highlights are even easier to see. */
 html.easy, html.easy [data-sec] {
@@ -182,6 +209,13 @@ html.easy, html.easy [data-sec] {
   --sec-hover: color-mix(in oklab, var(--sec) 24%, #dfe5ee);
   --sec-hover-line: color-mix(in oklab, var(--sec) 60%, #aab5c8);
   --sec-line: color-mix(in oklab, var(--sec) 50%, var(--color-surface));
+}
+/* Easy-to-Read in the dark theme: the light slate above would put light-blue text on a pale fill (1.2:1),
+   so dark keeps its own, slightly stronger hover colours and a brighter outline. */
+html.dark.easy, html.dark.easy [data-sec] {
+  --sec-hover: color-mix(in oklab, var(--sec) 34%, #2a3652);
+  --sec-hover-tint: color-mix(in oklab, var(--sec) 30%, #26314b);
+  --sec-hover-line: color-mix(in oklab, var(--sec) 80%, #8693ad);
 }
 
 /* Accent colour preference: re-tints the pine/mint scale used for buttons, highlights and focus rings.
@@ -222,6 +256,9 @@ html.dark {
   --color-gold-ink: #f1d08f;
   --color-rose: #e8746a;
   --color-rose-100: #3e1f1c;
+  --color-rose-ring: color-mix(in oklab, var(--color-rose) 45%, #111a2c);
+  /* The mint button's navy hover sank into the dark page (1.3:1); use the bright accent fill (white text 5:1+). */
+  --color-mint-btn-hover: var(--sec);
   --color-mint-100: color-mix(in oklab, var(--color-mint) 14%, #111a2c);
   --color-mint-200: color-mix(in oklab, var(--color-mint) 28%, #111a2c);
   --color-focus: var(--color-mint);
@@ -273,7 +310,7 @@ html.dark.easy {
   /* Everything clickable changes colour smoothly instead of flickering. */
   :where(button, a, summary, select, label:has(> input), [role="button"], [role="option"], [role="tab"]) {
     transition-property: color, background-color, border-color, box-shadow, transform, filter, opacity, text-decoration-color;
-    transition-duration: 0.18s;
+    transition-duration: 0.2s;
     transition-timing-function: cubic-bezier(0.2, 0.7, 0.3, 1);
     -webkit-tap-highlight-color: transparent;
   }

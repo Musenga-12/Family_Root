@@ -20,10 +20,10 @@ const BTN_VARIANTS = {
     "active:translate-y-0 active:border-(--sec-press) active:bg-(--sec-press) active:text-sec-on"),
   brand: "bg-pine-900 border-pine-900 text-white hover:bg-pine-700 hover:-translate-y-px hover:ring-4 hover:ring-mint-200 active:bg-pine-950",
   tint: "hover-fill bg-sec-soft border-sec-line text-sec-ink",
-  mint: "bg-mint border-mint text-pine-900 hover:-translate-y-px hover:border-pine-900 hover:bg-pine-900 hover:text-white active:bg-pine-950",
+  mint: "bg-mint border-mint text-pine-900 hover:-translate-y-px hover:border-mint-btn-hover hover:bg-mint-btn-hover hover:text-white active:bg-pine-950",
   soft: "hover-fill bg-sec-soft border-transparent text-sec-ink",
   ghost: "hover-fill bg-transparent border-transparent text-sec-ink",
-  danger: "bg-[linear-gradient(135deg,var(--color-rose),#8f2f29)] border-transparent text-white shadow-[0_4px_12px_-6px_var(--color-rose)] hover:-translate-y-px hover:bg-none hover:bg-[#8f2f29] hover:ring-4 hover:ring-rose-100 active:bg-[#6f241f]",
+  danger: "bg-[linear-gradient(135deg,var(--color-rose),#8f2f29)] border-transparent text-white shadow-[0_4px_12px_-6px_var(--color-rose)] hover:-translate-y-px hover:bg-none hover:bg-[#8f2f29] hover:ring-4 hover:ring-rose-ring active:bg-[#6f241f]",
 };
 const BTN_SIZES = {
   md: "min-h-11 px-4 py-2.5 text-[.9rem] rounded-xl",
@@ -93,7 +93,7 @@ const chipCls = (pressed) =>
   cx(
     "pressable group inline-flex min-h-10 items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-[.84rem] font-medium whitespace-nowrap cursor-pointer easy:min-h-12",
     pressed
-      ? "border-transparent bg-sec font-semibold text-sec-on shadow-[0_4px_12px_-6px_var(--sec)] hover:ring-4 hover:ring-sec-line"
+      ? "border-transparent bg-sec font-semibold text-sec-on shadow-[0_4px_12px_-6px_var(--sec)] hover:ring-4 hover:ring-sec-edge"
       : "hover-fill border-sec-line bg-surface text-ink",
   );
 
@@ -193,7 +193,7 @@ export function Empty({ icon, title, className, children }) {
 /** A soft row with a leading icon tile (records, notifications, linked items). */
 export function Record({ icon, as: As = "div", className, children, ...rest }) {
   return (
-    <As className={cx("flex items-center gap-3 rounded-xl border border-transparent bg-surface-2 p-3 text-inherit no-underline", As !== "div" && "lift cursor-pointer hover:bg-surface", className)} {...rest}>
+    <As className={cx("flex items-center gap-3 rounded-xl border border-transparent bg-surface-2 p-3 text-inherit no-underline", As !== "div" && "lift cursor-pointer hover:bg-(--surface-hover)", className)} {...rest}>
       {icon && <span className="grid size-9 shrink-0 place-items-center rounded-[10px] bg-sec-soft text-sec-ink"><Icon name={icon} /></span>}
       {children}
     </As>
@@ -251,7 +251,7 @@ export const PhotoCorner = ({ children }) => <span className="absolute top-2.5 l
 
 /* ---------- Forms ---------- */
 const inputCls = cx(
-  "min-h-11 w-full rounded-[10px] border border-line bg-surface-2 px-3 py-2.5 outline-none transition-[border-color,box-shadow,background-color] hover:border-sec-line",
+  "min-h-11 w-full rounded-[10px] border border-line bg-surface-2 px-3 py-2.5 outline-none transition-[border-color,box-shadow,background-color] hover:border-sec-edge",
   "focus:border-sec focus:bg-surface focus:shadow-[0_0_0_3px_var(--sec-line)]",
   "aria-invalid:border-rose aria-invalid:bg-rose-100/50",
 );

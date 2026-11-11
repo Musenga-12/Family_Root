@@ -49,7 +49,7 @@ function Quote({ t, m, mine, onClick, onClose }) {
   return (
     <Tag type={onClick ? "button" : undefined} onClick={onClick}
       className={cx("flex w-full min-w-0 items-stretch gap-2 overflow-hidden rounded-lg border-0 p-0 text-left",
-        mine ? "bg-white/12 text-white" : "bg-surface-2 text-ink", onClick && "cursor-pointer hover:brightness-95")}>
+        mine ? "bg-white/12 text-white" : "bg-surface-2 text-ink", onClick && "cursor-pointer hover:brightness-(--hover-brightness)")}>
       <span aria-hidden="true" className={cx("w-1 shrink-0", mine ? "bg-sec-on/70" : "bg-sec")} />
       <span className="min-w-0 flex-1 py-1.5 pr-2">
         <strong className={cx("block text-xsmall", mine ? "text-sec-on" : nameTone(t, m.by))}>{onClose ? tr("msg.replyingTo", { name: who }) : who}</strong>

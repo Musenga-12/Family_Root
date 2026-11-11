@@ -384,7 +384,7 @@ function Topbar({ menuOpen, onMenu, onPalette, onTour, speech }) {
         <Icon name="expand_more" size="sm" />
       </button>
       <form role="search" data-tour="search" onSubmit={(e) => { e.preventDefault(); navigate(`/directory${q.trim() ? "?q=" + encodeURIComponent(q.trim()) : ""}`); }}
-        className="flex min-w-0 flex-1 items-center gap-2 rounded-xl border border-line bg-surface px-3 text-muted transition-[border-color,box-shadow] hover:border-sec-line focus-within:border-sec focus-within:text-sec-ink focus-within:shadow-[0_0_0_4px_var(--sec-line)] sm:max-w-90">
+        className="flex min-w-0 flex-1 items-center gap-2 rounded-xl border border-line bg-surface px-3 text-muted transition-[border-color,box-shadow] hover:border-sec-edge focus-within:border-sec focus-within:text-sec-ink focus-within:shadow-[0_0_0_4px_var(--sec-line)] sm:max-w-90">
         <Icon name="search" size="sm" />
         <label className="sr-only" htmlFor="globalSearchInput">{t("top.search")}</label>
         <input id="globalSearchInput" type="search" value={q} onChange={(e) => setQ(e.target.value)} autoComplete="off"
@@ -402,7 +402,7 @@ function Topbar({ menuOpen, onMenu, onPalette, onTour, speech }) {
       <UndoControls />
       <button type="button" data-tour="easy" data-sec="easy" aria-pressed={easy} title={t("top.easyTitle")} onClick={toggleEasy}
         className={cx("pressable inline-flex min-h-11 cursor-pointer items-center gap-1.5 rounded-xl border px-3 py-2 text-small font-medium easy:min-h-12",
-          easy ? "border-transparent bg-sec text-sec-on shadow-[0_4px_12px_-6px_var(--sec)] hover:ring-4 hover:ring-sec-line"
+          easy ? "border-transparent bg-sec text-sec-on shadow-[0_4px_12px_-6px_var(--sec)] hover:ring-4 hover:ring-sec-edge"
             : "hover-fill border-sec-line bg-sec-soft text-sec-ink")}>
         <span className="font-bold">Aa</span> <span className="hidden xl:inline">{t("top.easy")}</span>
       </button>
@@ -549,7 +549,7 @@ function QuickActions() {
         onClick={() => setExpanded((x) => !x)}
         className={cx("grid size-15 cursor-pointer place-items-center rounded-full border-0 text-sec-on shadow-[0_10px_28px_-8px_var(--sec)]",
           "bg-sec transition-[transform,box-shadow] duration-300",
-          "hover:scale-105 hover:ring-4 hover:ring-sec-line active:scale-95 active:ring-sec", expanded && "ring-4 ring-sec-line")}>
+          "hover:scale-105 hover:ring-4 hover:ring-sec-edge active:scale-95 active:ring-sec", expanded && "ring-4 ring-sec-line")}>
         <Icon name="add" className={cx("text-[30px]! transition-transform", expanded && "rotate-45")} />
       </button>
     </div>

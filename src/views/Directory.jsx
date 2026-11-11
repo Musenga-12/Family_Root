@@ -49,7 +49,7 @@ function PersonCard({ p, selected, list, onOpen }) {
   return (
     <article aria-label={fullName(p)}
       className={cx(
-        "relative grid content-start gap-2.5 overflow-hidden rounded-[18px] border bg-surface p-4.5 transition-[border-color,box-shadow] hover:border-sec-line hover:shadow-card",
+        "relative grid content-start gap-2.5 overflow-hidden rounded-[18px] border bg-surface p-4.5 transition-[border-color,box-shadow] hover:border-sec-edge hover:shadow-card",
         list ? "grid-cols-[auto_minmax(0,1fr)] items-center sm:grid-cols-[auto_minmax(0,1fr)_auto]" : "grid-cols-[minmax(0,1fr)]",
         selected ? "border-sec shadow-[0_0_0_3px_var(--sec-line)]" : "border-line",
       )}>
