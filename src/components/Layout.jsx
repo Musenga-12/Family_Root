@@ -359,7 +359,7 @@ function Breadcrumbs({ route }) {
 }
 
 function Topbar({ menuOpen, onMenu, onPalette, onTour, speech }) {
-  const { easy, person, prefs, kin } = useStore();
+  const { easy, person, prefs, kin, dark } = useStore();
   const t = useT();
   const toggleEasy = useToggleEasy();
   const { cycleTheme, setTheme, setLang } = usePrefActions();
@@ -419,7 +419,7 @@ function Topbar({ menuOpen, onMenu, onPalette, onTour, speech }) {
 
       <ReadAloudButton speech={speech} />
 
-      <IconButton icon={THEME_ICON[prefs.theme]} label={t("theme.switch", { mode: t(`theme.${prefs.theme}`) })} title={t("theme.switch", { mode: t(`theme.${prefs.theme}`) })}
+      <IconButton icon={THEME_ICON[dark ? "dark" : "light"]} label={t("theme.switch", { mode: t(dark ? "theme.dark" : "theme.light") })} title={t("theme.switch", { mode: t(dark ? "theme.dark" : "theme.light") })}
         onClick={cycleTheme} />
 
       <IconButton icon="notifications" label={unread ? `${t("top.notifications")}, ${unread}` : t("top.notifications")} className="max-sm:hidden"

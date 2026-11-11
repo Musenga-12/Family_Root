@@ -14,7 +14,7 @@ const scrollTo = (id) => document.getElementById(id)?.scrollIntoView({ behavior:
 
 function LandingHeader() {
   const t = useT();
-  const { prefs } = useStore();
+  const { prefs, dark } = useStore();
   const { cycleTheme, setLang } = usePrefActions();
   const [open, setOpen] = useState(false);
   const lang = LANGS.find((l) => l.code === prefs.lang) || LANGS[0];
@@ -34,14 +34,14 @@ function LandingHeader() {
         <div className="ml-auto flex items-center gap-2">
           <Menu label={t("top.language")} trigger={(p) => (
             <button type="button" {...p} aria-label={`${t("top.language")}: ${lang.name}`}
-              className="inline-flex h-10 cursor-pointer items-center gap-1 rounded-[10px] border border-line bg-surface px-2.5 text-[.8rem] font-semibold text-pine-800">
+              className="pressable inline-flex h-11 cursor-pointer items-center gap-1 rounded-xl border border-sec-line bg-surface px-2.5 text-[.8rem] font-semibold text-sec-ink hover-fill">
               <Icon name="translate" size="sm" />{lang.short}
             </button>
           )}>
             <MenuLabel>{t("top.language")}</MenuLabel>
             {LANGS.map((l) => <MenuItem key={l.code} checked={prefs.lang === l.code} onClick={() => setLang(l.code)} hint={l.short}>{l.name}</MenuItem>)}
           </Menu>
-          <IconButton icon={THEME_ICON[prefs.theme]} label={t("theme.switch", { mode: t(`theme.${prefs.theme}`) })} onClick={cycleTheme} />
+          <IconButton icon={THEME_ICON[dark ? "dark" : "light"]} label={t("theme.switch", { mode: t(dark ? "theme.dark" : "theme.light") })} title={t("theme.switch", { mode: t(dark ? "theme.dark" : "theme.light") })} onClick={cycleTheme} />
           <Button className="max-sm:hidden" to="/auth">{t("land.signin")}</Button>
           <Button variant="primary" className="max-sm:hidden" to="/overview">{t("land.demo")}</Button>
           <IconButton icon={open ? "close" : "menu"} label={t("common.menu")} aria-expanded={open} className="md:hidden" onClick={() => setOpen(!open)} />

@@ -165,7 +165,8 @@ html[data-text="lg"] { font-size: 17.5px; }
 
 /* Dark theme: a brighter navy for fills (white text, 5:1+) so it stands out on the dark background,
    light blue for coloured text, and a dark slate blue on hover. */
-html.dark :is(:root, [data-sec]) {
+/* Note: `html.dark :root` never matches (:root is <html> itself), so the root is listed as `html.dark`. */
+html.dark, html.dark [data-sec] {
   --sec: var(--color-pine-600);
   --sec-soft: color-mix(in oklab, var(--sec) 18%, var(--color-surface));
   --sec-line: color-mix(in oklab, var(--sec) 40%, var(--color-surface));
@@ -176,7 +177,7 @@ html.dark :is(:root, [data-sec]) {
   --sec-on: #fff;
 }
 /* Easy-to-Read: deeper tints and borders, so highlights are even easier to see. */
-html.easy :is(:root, [data-sec]) {
+html.easy, html.easy [data-sec] {
   --sec-soft: color-mix(in oklab, var(--sec) 16%, var(--color-surface));
   --sec-hover: color-mix(in oklab, var(--sec) 24%, #dfe5ee);
   --sec-hover-line: color-mix(in oklab, var(--sec) 60%, #aab5c8);
