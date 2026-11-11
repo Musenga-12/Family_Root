@@ -157,10 +157,10 @@ export function StoreProvider({ children }) {
   const audioUrl = useCallback((id) => audioUrls.current[id], []);
   const setAudioUrl = useCallback((id, url) => { audioUrls.current[id] = url; }, []);
 
-  const reset = useCallback(() => {
+  const reset = useCallback((label = "Restored the sample family") => {
     try { localStorage.removeItem(KEY); } catch { /* ignore */ }
     // Undoable like any other change; preferences are kept apart from the archive.
-    setDoc((d) => ({ state: structuredClone(SEED), past: [...d.past, { state: d.state, label: "Restored the sample family", at: Date.now() }].slice(-HISTORY_LIMIT), future: [] }));
+    setDoc((d) => ({ state: structuredClone(SEED), past: [...d.past, { state: d.state, label, at: Date.now() }].slice(-HISTORY_LIMIT), future: [] }));
     setPrefs({ ...DEFAULT_PREFS, tourDone: true });
   }, []);
 

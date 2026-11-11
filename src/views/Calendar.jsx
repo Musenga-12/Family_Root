@@ -48,7 +48,7 @@ function AddGatheringDialog({ initialDate }) {
   return (
     <Dialog title={t("cal.add")} footer={<><CancelButton>{t("common.cancel")}</CancelButton><Button variant="primary" onClick={save}>{t("common.save")}</Button></>}>
       <Field id="gTitle" label={t("cal.title")} error={errors.title}>
-        <Input id="gTitle" value={f.title} invalid={!!errors.title} onChange={(e) => setF({ ...f, title: e.target.value })} placeholder="Sunday lunch at Rose Cottage" />
+        <Input id="gTitle" value={f.title} invalid={!!errors.title} onChange={(e) => setF({ ...f, title: e.target.value })} placeholder={t("cal.titlePh")} />
       </Field>
       <div className="grid gap-3 sm:grid-cols-2">
         <Field id="gDate" label={t("cal.date")} error={errors.date}>
@@ -146,8 +146,8 @@ export default function Calendar() {
       </Hero>
 
       <Card className="mt-4 flex flex-wrap items-center gap-3 p-3.5!">
-        <Tabs label="View" value={view} onChange={setView} items={[["month", t("cal.month")], ["agenda", t("cal.agenda")]]} />
-        <Chips role="group" aria-label="Event types">
+        <Tabs label={t("cal.view")} value={view} onChange={setView} items={[["month", t("cal.month")], ["agenda", t("cal.agenda")]]} />
+        <Chips role="group" aria-label={t("cal.types")}>
           {Object.entries(KINDS).map(([k, [icon]]) => (
             <Chip key={k} icon={icon} pressed={show[k]} count={counts[k]} onClick={() => setShow({ ...show, [k]: !show[k] })}>{t(`cal.${k}`)}</Chip>
           ))}

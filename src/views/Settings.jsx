@@ -60,9 +60,9 @@ export default function Settings() {
           <div className="flex items-center justify-between"><Eyebrow>{t("settings.preview")}</Eyebrow><Tag tone="mint" icon={THEME_ICON[prefs.theme]}>{t(`theme.${prefs.theme}`)}</Tag></div>
           <p className="mt-2 text-small text-muted">{t("settings.previewText")}</p>
           <div className="mt-3 flex flex-wrap gap-2">
-            <Button variant="primary" size="sm" icon="favorite">Primary</Button>
-            <Button variant="mint" size="sm">Mint</Button>
-            <Tag tone="gold">Gold</Tag><Tag tone="rose">Rose</Tag>
+            <Button variant="primary" size="sm" icon="favorite">{t("settings.swatch.primary")}</Button>
+            <Button variant="mint" size="sm">{t("settings.swatch.mint")}</Button>
+            <Tag tone="gold">{t("settings.swatch.gold")}</Tag><Tag tone="rose">{t("settings.swatch.rose")}</Tag>
           </div>
         </div>
       </Hero>
@@ -171,14 +171,14 @@ export default function Settings() {
             <p className="text-xsmall text-muted">{t("settings.helpNote", { n: past.length })}</p>
             <div className="flex flex-wrap items-center gap-2.5 border-t border-line pt-4">
               {app.status === "installed" ? (
-                <p className="flex items-center gap-2 text-small"><Icon name="task_alt" className="text-pine-700" /> FamilyRoots is installed on this device.</p>
+                <p className="flex items-center gap-2 text-small"><Icon name="task_alt" className="text-pine-700" /> {t("settings.installedHere")}</p>
               ) : (
                 <>
                   <Button icon="install_desktop" disabled={app.status !== "available"}
-                    onClick={async () => { if (await app.install()) toast("FamilyRoots installed", { sub: "Open it from your home screen or apps list.", icon: "install_desktop" }); }}>
-                    Install FamilyRoots app
+                    onClick={async () => { if (await app.install()) toast(t("shell.installed"), { sub: t("shell.installedSub"), icon: "install_desktop" }); }}>
+                    {t("shell.install")}
                   </Button>
-                  {app.status !== "available" && <span className="text-xsmall text-muted">Open FamilyRoots from its web address in Chrome, Edge or Safari to install it.</span>}
+                  {app.status !== "available" && <span className="text-xsmall text-muted">{t("settings.installHint")}</span>}
                 </>
               )}
             </div>
@@ -211,7 +211,7 @@ export default function Settings() {
               <Button icon="download" onClick={exportData}>{t("settings.export")}</Button>
               <Button variant="danger" icon="restart_alt"
                 onClick={() => confirm(t("settings.reset") + "?", t("settings.resetHelp"), t("settings.reset"),
-                  () => { reset(); toast("Sample family restored", { sub: "The Mackenzie family archive is back. Use Undo if you didn't mean to.", icon: "restart_alt" }); })}>
+                  () => { reset(t("history.reset")); toast(t("settings.restored"), { sub: t("settings.restoredSub"), icon: "restart_alt" }); })}>
                 {t("settings.reset")}
               </Button>
             </div>

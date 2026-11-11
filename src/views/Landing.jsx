@@ -25,7 +25,7 @@ function LandingHeader() {
           <span className="grid size-8.5 place-items-center rounded-full bg-pine-900 text-mint"><Icon name="park" /></span>
           <strong className="font-serif text-[1.15rem]">FamilyRoots</strong>
         </Link>
-        <nav aria-label="Sections" className="ml-6 hidden gap-1 md:flex">
+        <nav aria-label={t("land.sections")} className="ml-6 hidden gap-1 md:flex">
           {SECTIONS.map(([id, key]) => (
             <button key={id} type="button" onClick={() => scrollTo(id)}
               className="cursor-pointer rounded-lg border-0 bg-transparent px-3 py-2 text-[.88rem] text-muted hover-fill">{t(key)}</button>
@@ -44,11 +44,11 @@ function LandingHeader() {
           <IconButton icon={THEME_ICON[prefs.theme]} label={t("theme.switch", { mode: t(`theme.${prefs.theme}`) })} onClick={cycleTheme} />
           <Button className="max-sm:hidden" to="/auth">{t("land.signin")}</Button>
           <Button variant="primary" className="max-sm:hidden" to="/overview">{t("land.demo")}</Button>
-          <IconButton icon={open ? "close" : "menu"} label="Menu" aria-expanded={open} className="md:hidden" onClick={() => setOpen(!open)} />
+          <IconButton icon={open ? "close" : "menu"} label={t("common.menu")} aria-expanded={open} className="md:hidden" onClick={() => setOpen(!open)} />
         </div>
       </div>
       {open && (
-        <nav aria-label="Sections" className="grid gap-1 border-t border-line px-4 py-3 md:hidden">
+        <nav aria-label={t("land.sections")} className="grid gap-1 border-t border-line px-4 py-3 md:hidden">
           {SECTIONS.map(([id, key]) => (
             <button key={id} type="button" onClick={() => { setOpen(false); scrollTo(id); }}
               className="cursor-pointer rounded-lg border-0 bg-transparent px-3 py-2.5 text-left text-ink hover-fill">{t(key)}</button>
@@ -117,9 +117,9 @@ function Hero() {
         <p className="mt-4 flex items-center gap-1.5 text-small text-muted"><Icon name="verified_user" size="sm" className="text-pine-700" /> {t("land.trust")}</p>
       </div>
       <div className="relative">
-        <Photo p1="#a98a68" p2="#2d4a3b" icon="family_restroom" aspect="aspect-[4/3.6]" className="rounded-[28px] shadow-pop" alt="Three generations looking through a family album">
+        <Photo p1="#a98a68" p2="#2d4a3b" icon="family_restroom" aspect="aspect-[4/3.6]" className="rounded-[28px] shadow-pop" alt={t("land.heroAlt")}>
           <PhotoOverlay className="flex items-center justify-between gap-2.5">
-            <strong className="font-serif text-[1.1rem]">The Mackenzie Folio</strong><Tag tone="glass">142</Tag>
+            <strong className="font-serif text-[1.1rem]">{t("land.folio")}</strong><Tag tone="glass">142</Tag>
           </PhotoOverlay>
         </Photo>
         <div className="absolute -bottom-5 -left-4 flex animate-pop items-center gap-2.5 rounded-2xl border border-line bg-surface px-3.5 py-2.5 shadow-pop">
@@ -138,7 +138,7 @@ function Stats() {
   const t = useT();
   const items = [[1200, "+", "land.stat.families"], [48000, "+", "land.stat.stories"], [4, "", "land.stat.gens"], [4, "", "land.stat.langs"]];
   return (
-    <section aria-label="FamilyRoots in numbers" className="mx-auto mt-6 grid max-w-300 grid-cols-2 gap-3 px-4 sm:px-7 md:grid-cols-4">
+    <section aria-label={t("land.numbers")} className="mx-auto mt-6 grid max-w-300 grid-cols-2 gap-3 px-4 sm:px-7 md:grid-cols-4">
       {items.map(([n, s, k]) => (
         <div key={k} className="rounded-2xl border border-line bg-surface p-5 text-center">
           <strong className="block font-serif text-[2rem] text-pine-800"><CountUp to={n} suffix={s} /></strong>
