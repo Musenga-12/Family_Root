@@ -1,9 +1,10 @@
 /* Public welcome page: introduces FamilyRoots before sign-in. Fully translated; has its own header with language and theme switches. */
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { SiteFooter } from "../components/Footer";
 import { Menu, MenuItem, MenuLabel } from "../components/Menu";
 import { useToast } from "../components/toastContext";
-import { Button, Card, Chip, Chips, Eyebrow, Icon, IconButton, Input, InputIcon, Photo, PhotoOverlay, Switch, Tabs, Tag } from "../components/ui";
+import { Button, Card, Eyebrow, Icon, IconButton, Input, InputIcon, Photo, PhotoOverlay, Switch, Tabs, Tag } from "../components/ui";
 import { cx, emailOk } from "../lib/format";
 import { LANGS, localeOf, useT } from "../lib/i18n";
 import { useStore } from "../lib/store";
@@ -465,14 +466,7 @@ export default function Landing() {
         <Faq />
         <Newsletter />
       </main>
-      <footer className="mt-16 border-t border-line bg-surface-2">
-        <div className="mx-auto flex max-w-300 flex-wrap items-center justify-between gap-4 px-4 py-6 text-small text-muted sm:px-7">
-          <span className="flex items-center gap-2"><Icon name="park" className="text-pine-700" /> FamilyRoots · {t("land.footer")}</span>
-          <Chips>
-            {SECTIONS.map(([id, key]) => <Chip key={id} onClick={() => scrollTo(id)}>{t(key)}</Chip>)}
-          </Chips>
-        </div>
-      </footer>
+      <SiteFooter sections={SECTIONS} onSection={scrollTo} />
     </div>
   );
 }

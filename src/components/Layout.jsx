@@ -15,6 +15,7 @@ import { fullName, useStore } from "../lib/store";
 import { THEME_ICON, usePrefActions } from "../lib/usePrefActions";
 import { useToggleEasy } from "../lib/useToggleEasy";
 import CommandPalette from "./CommandPalette";
+import { AppFooter } from "./Footer";
 import { Menu, MenuDivider, MenuItem, MenuLabel } from "./Menu";
 import { Dialog } from "./Modal";
 import Tour from "./Tour";
@@ -656,13 +657,8 @@ export default function Layout({ children }) {
             <Breadcrumbs route={route} />
             {children}
           </main>
-          <footer data-no-print className="flex flex-wrap items-center justify-between gap-3 border-t border-line bg-surface-2 px-4 py-3.5 pr-24 text-[.76rem] text-muted sm:px-7 sm:pr-24">
-            <span><Icon name="verified_user" size="sm" className="text-pine-700" /> {t("footer.privacy")} • {t("footer.gens")} • <SyncStatus /></span>
-            <span className="flex gap-5.5">
-              <Link to="/privacy" className="font-medium text-ink no-underline hover:text-sec-ink hover:underline">{t("footer.guidelines")}</Link>
-              <Link to="/privacy" className="font-medium text-ink no-underline hover:text-sec-ink hover:underline">{t("footer.support")}</Link>
-            </span>
-          </footer>
+          {/* The sign-in page stays focused on signing in, so it has no footer. */}
+          {route !== "auth" && <AppFooter status={<SyncStatus />} />}
         </div>
       </div>
       {/* Not on Messages, where it would cover the Send button. Its actions stay in Ctrl+K and the Alt shortcuts. */}
