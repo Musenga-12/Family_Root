@@ -23,11 +23,14 @@ def age_of(p: Person, on: date | None = None) -> int | None:
     if not p.born or len(p.born) < 4:
         return None
     on = on or date.today()
-    end = date.fromisoformat(p.died) if p.died and len(p.died) == 10 else on
-    y = int(p.born[:4])
-    a = end.year - y
-    if len(p.born) >= 10 and (end.month, end.day) < (int(p.born[5:7]), int(p.born[8:10])):
-        a -= 1
+    try:
+        end = date.fromisoformat(p.died) if p.died and len(p.died) == 10 else on
+        y = int(p.born[:4])
+        a = end.year - y
+        if len(p.born) >= 10 and (end.month, end.day) < (int(p.born[5:7]), int(p.born[8:10])):
+            a -= 1
+    except ValueError:  # a malformed date already in the database: treat the age as unknown rather than fail every request
+        return None
     return a
 
 

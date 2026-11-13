@@ -59,6 +59,12 @@ class MemoryCreate(MemoryBase):
             raise ValueError("is required")
         return v.strip()
 
+    model_config = {"json_schema_extra": {"examples": [{
+        "title": "Picnic at the loch", "date": "2026-06", "alt": "The family on a tartan blanket by the water",
+        "place": "Loch Lomond", "caption": "Everyone came, even Grandad.", "visibility": "All Family Branches",
+        "tagged": ["mary"], "consent": True, "upload_ids": []
+    }]}}
+
 
 class MemoryUpdate(MemoryBase):
     title: str | None = None
@@ -73,6 +79,8 @@ class MemoryUpdate(MemoryBase):
 
     _vis = field_validator("visibility")(_check_visibility)
     _date = field_validator("date")(_check_date)
+
+    model_config = {"json_schema_extra": {"examples": [{"caption": "Taken by Sarah on her new camera."}]}}
 
 
 # ---------- helpers ----------

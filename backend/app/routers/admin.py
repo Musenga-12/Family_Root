@@ -36,6 +36,8 @@ class MemberOut(BaseModel):
 class RoleIn(BaseModel):
     role: str
 
+    model_config = {"json_schema_extra": {"examples": [{"role": "Contributor"}]}}
+
 
 class RequestOut(BaseModel):
     id: str
@@ -51,12 +53,18 @@ class RequestOut(BaseModel):
 class ApproveIn(BaseModel):
     role: str = "Viewer"  # the Admin screen offers Custodian, Contributor or Viewer
 
+    model_config = {"json_schema_extra": {"examples": [{"role": "Viewer"}]}}
+
 
 class InviteIn(BaseModel):
     name: str = Field(min_length=1)
     email: EmailStr
     relation: str | None = None
     role: str | None = None  # Admins may choose; anyone else's invitations join as Viewers
+
+    model_config = {"json_schema_extra": {"examples": [{
+        "name": "Fiona Campbell", "email": "fiona@example.com", "relation": "Cousin", "role": "Contributor"
+    }]}}
 
 
 class InviteOut(BaseModel):

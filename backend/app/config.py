@@ -1,6 +1,8 @@
 """Settings read from backend/.env (see .env.example)."""
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+API_PREFIX = "/api/v1"
+
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")

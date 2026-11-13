@@ -1,8 +1,10 @@
 """/auth and /me: create an account, sign in, check a family code, read the current user."""
 import logging
 import secrets
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import BaseModel, EmailStr, Field
 from sqlmodel import Session, select
 
@@ -30,10 +32,18 @@ class RegisterIn(BaseModel):
     relation: str | None = None  # join requests: "Cousin (Campbell side)"
     note: str | None = Field(None, max_length=500)  # join requests: a word for the Admin
 
+    model_config = {"json_schema_extra": {"examples": [
+        {"name": "Fiona Campbell", "email": "fiona@example.com", "password": "familyroots123", "family_name": "Campbell family"},
+        {"name": "Ian Mackenzie", "email": "ian@example.com", "password": "familyroots123", "family_code": "MCK-8294",
+         "relation": "Cousin (Campbell side)", "note": "Robert's nephew"},
+    ]}}
+
 
 class LoginIn(BaseModel):
     email: str
     password: str
+
+    model_config = {"json_schema_extra": {"examples": [{"email": "mary@example.com", "password": "familyroots123"}]}}
 
 
 class TokenOut(BaseModel):
@@ -50,6 +60,8 @@ class RegisterOut(BaseModel):
 
 class CodeIn(BaseModel):
     code: str
+
+    model_config = {"json_schema_extra": {"examples": [{"code": "MCK-8294"}]}}
 
 
 class MeOut(BaseModel):
@@ -118,15 +130,14 @@ def register(body: RegisterIn, response: Response, db: Session = Depends(get_ses
     return RegisterOut(status="active", access_token=create_token(user.id), family_name=family.name)
 
 
-@router.post("/auth/login", response_model=TokenOut)
-def login(body: LoginIn, db: Session = Depends(get_session)):
-    email = body.email.strip().lower()
+def sign_in(db: Session, email: str, password: str) -> TokenOut:
+    email = email.strip().lower()
     user = db.exec(select(User).where(User.email == email)).first()
     if not user:
         req = pending_request(db, email)
-        if req and req.password_hash and verify_password(body.password, req.password_hash):
+        if req and req.password_hash and verify_password(password, req.password_hash):
             raise HTTPException(403, "Your request to join is waiting for an Admin. You'll be able to sign in once it's approved.")
-    if not user or not verify_password(body.password, user.password_hash):
+    if not user or not verify_password(password, user.password_hash):
         raise HTTPException(401, "Email or password is incorrect")
     if user.removed_at:
         raise HTTPException(403, "Your access to this family archive was removed. Ask a family Admin if this is a mistake.")
@@ -134,6 +145,18 @@ def login(body: LoginIn, db: Session = Depends(get_session)):
     db.add(user)
     db.commit()
     return TokenOut(access_token=create_token(user.id))
+
+
+@router.post("/auth/login", response_model=TokenOut)
+def login(body: LoginIn, db: Session = Depends(get_session)):
+    return sign_in(db, body.email, body.password)
+
+
+@router.post("/auth/token", response_model=TokenOut, summary="Sign in from the Authorize button in /docs")
+def token(form: Annotated[OAuth2PasswordRequestForm, Depends()], db: Session = Depends(get_session)):
+    """The same as /auth/login, but as an OAuth2 password form so Swagger UI can call it.
+    Put the email address in `username`. The React app uses /auth/login."""
+    return sign_in(db, form.username, form.password)
 
 
 @router.post("/auth/family-code/verify")
@@ -156,15 +179,25 @@ def me(user: User = Depends(get_current_user), db: Session = Depends(get_session
 class ForgotIn(BaseModel):
     email: str
 
+    model_config = {"json_schema_extra": {"examples": [{"email": "mary@example.com"}]}}
+
 
 class ResetIn(BaseModel):
     token: str
     password: str = Field(min_length=10)
 
+    model_config = {"json_schema_extra": {"examples": [
+        {"token": "the part after ?reset= in the link from the server console", "password": "familyroots123"}]}}
+
 
 class ChangeIn(BaseModel):
     current_password: str
     new_password: str = Field(min_length=10)
+
+    # Keeps the demo password, so trying this in /docs doesn't lock you out of the sample account.
+    model_config = {"json_schema_extra": {"examples": [{
+        "current_password": "familyroots123", "new_password": "familyroots123"
+    }]}}
 
 
 def set_password(db: Session, user: User, password: str) -> None:

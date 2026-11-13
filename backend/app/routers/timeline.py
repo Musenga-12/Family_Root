@@ -54,6 +54,11 @@ class MilestoneCreate(MilestoneBase):
             raise ValueError("is required")
         return v.strip()
 
+    model_config = {"json_schema_extra": {"examples": [{
+        "type": "Milestones", "title": "Mary retires from teaching", "date": "2026-07-01", "place": "Edinburgh",
+        "text": "Forty years at the same school.", "people": ["mary"]
+    }]}}
+
 
 class MilestoneUpdate(BaseModel):
     type: str | None = None
@@ -68,6 +73,8 @@ class MilestoneUpdate(BaseModel):
 
     _t = field_validator("type")(_type)
     _d = field_validator("date")(_date)
+
+    model_config = {"json_schema_extra": {"examples": [{"text": "Forty-one years at the same school, as it turns out."}]}}
 
 
 def may_edit(user: User, m: Milestone) -> bool:

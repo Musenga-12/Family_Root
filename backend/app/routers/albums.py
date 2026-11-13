@@ -30,13 +30,21 @@ class AlbumCreate(AlbumBase):
             raise ValueError("is required")
         return v.strip()
 
+    model_config = {"json_schema_extra": {"examples": [{
+        "title": "Summer 2026", "tag": "Holidays", "note": "Our trip north", "items": ["m1", "m2"]
+    }]}}
+
 
 class AlbumUpdate(AlbumBase):
     title: str | None = None
 
+    model_config = {"json_schema_extra": {"examples": [{"note": "Photos from the whole week"}]}}
+
 
 class ItemsIn(BaseModel):
     items: list[str]
+
+    model_config = {"json_schema_extra": {"examples": [{"items": ["m1", "m2", "m3"]}]}}
 
 
 def get_album(db: Session, user: User, aid: str) -> Album:

@@ -64,11 +64,15 @@ class NewThreadIn(BaseModel):
     text: str = Field("", max_length=MAX_TEXT)
     upload_id: str | None = None
 
+    model_config = {"json_schema_extra": {"examples": [{"to": ["sarah"], "text": "Hi Sarah, are you coming on Sunday?"}]}}
+
 
 class SendIn(BaseModel):
     text: str = Field("", max_length=MAX_TEXT)
     reply_to: str | None = None
     upload_id: str | None = None
+
+    model_config = {"json_schema_extra": {"examples": [{"text": "See you on Sunday!"}]}}
 
 
 class ThreadUpdate(BaseModel):
@@ -77,9 +81,13 @@ class ThreadUpdate(BaseModel):
     unread: bool | None = None  # true = "Mark as unread", false = mark as read
     title: str | None = Field(None, min_length=1, max_length=120)  # groups only
 
+    model_config = {"json_schema_extra": {"examples": [{"pinned": True}]}}
+
 
 class ReactionIn(BaseModel):
     emoji: str = Field(min_length=1, max_length=16)
+
+    model_config = {"json_schema_extra": {"examples": [{"emoji": "❤️"}]}}
 
 
 class MessagePage(BaseModel):

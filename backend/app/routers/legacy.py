@@ -74,6 +74,12 @@ class RecordCreate(RecordBase):
             raise ValueError("is required")
         return v.strip()
 
+    model_config = {"json_schema_extra": {"examples": [{
+        "title": "Letter from Robert, 1958", "category": "Letters", "date": "1958-04",
+        "text": "Dear Margaret, the crossing was rough but we are all well...", "source": "Shoebox in the attic",
+        "visibility": "All Family Branches"
+    }]}}
+
 
 class RecordUpdate(BaseModel):
     title: str | None = None
@@ -90,6 +96,8 @@ class RecordUpdate(BaseModel):
     _d = field_validator("date")(_date)
     _v = field_validator("visibility")(_vis)
     _s = field_validator("sealedUntil")(_seal)
+
+    model_config = {"json_schema_extra": {"examples": [{"source": "National Records of Scotland #ED-2016-8932"}]}}
 
 
 def is_sealed(r: LegacyRecord) -> bool:

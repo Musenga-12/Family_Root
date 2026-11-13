@@ -22,7 +22,7 @@ fastapi dev app/main.py
 ```
 
 - API: http://localhost:8000/api/v1
-- Interactive docs: http://localhost:8000/docs (log in, copy `access_token`, click **Authorize**, paste it)
+- Interactive docs: http://localhost:8000/docs: click **Authorize**, put a demo email (e.g. `mary@example.com`) in *username* and `familyroots123` as the password. Every request body starts from a working example; the page lists sample ids.
 
 Run the frontend at the same time in a second terminal (`npm run dev` in the project root).
 

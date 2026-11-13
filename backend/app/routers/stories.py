@@ -79,6 +79,11 @@ class StoryCreate(BaseModel):
             raise ValueError("is required")
         return v.strip()
 
+    model_config = {"json_schema_extra": {"examples": [{
+        "title": "How Grandad met Grandma", "text": "It was the summer of 1962, at the dance hall in Leith...",
+        "category": "Written Memories", "visibility": "All Family Branches", "tag": "Love stories"
+    }]}}
+
 
 class StoryUpdate(BaseModel):
     title: str | None = None
@@ -88,9 +93,13 @@ class StoryUpdate(BaseModel):
     tag: str | None = None
     excerpt: str | None = None
 
+    model_config = {"json_schema_extra": {"examples": [{"tag": "Love stories"}]}}
+
 
 class ReflectionIn(BaseModel):
     text: str = Field(min_length=1, max_length=2000)
+
+    model_config = {"json_schema_extra": {"examples": [{"text": "I never knew this. Thank you for writing it down."}]}}
 
 
 class ReflectionOut(BaseModel):

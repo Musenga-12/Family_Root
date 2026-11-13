@@ -5,17 +5,19 @@ from datetime import datetime, timedelta
 
 import jwt
 from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from fastapi.security import OAuth2PasswordBearer
 from pwdlib import PasswordHash
 from sqlmodel import Session
 
-from app.config import settings
+from app.config import API_PREFIX, settings
 from app.db import get_session
 from app.models import User, now
 
 ALGORITHM = "HS256"
 hasher = PasswordHash.recommended()
-bearer = HTTPBearer(auto_error=False)
+# Reads "Authorization: Bearer <token>", as before. Declaring it as an OAuth2 password flow lets the Authorize
+# button in /docs sign in with an email (in the "username" box) and password via POST /auth/token.
+oauth2 = OAuth2PasswordBearer(tokenUrl=f"{API_PREFIX}/auth/token", auto_error=False)
 
 
 def hash_password(password: str) -> str:
@@ -92,10 +94,10 @@ def use_reset_token(db: Session, token: str) -> User | None:
 
 
 def get_current_user(
-    creds: HTTPAuthorizationCredentials | None = Depends(bearer),
+    token: str | None = Depends(oauth2),
     db: Session = Depends(get_session),
 ) -> User:
-    user = user_from_token(creds.credentials, db) if creds else None
+    user = user_from_token(token, db) if token else None
     if not user:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Not signed in", {"WWW-Authenticate": "Bearer"})
     return user

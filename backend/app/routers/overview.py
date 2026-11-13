@@ -34,9 +34,15 @@ class PollCreate(BaseModel):
             raise ValueError("options must be filled in and different from each other")
         return v
 
+    model_config = {"json_schema_extra": {"examples": [{
+        "question": "Where should we meet next summer?", "options": ["Edinburgh", "Glasgow", "Inverness"]
+    }]}}
+
 
 class VoteIn(BaseModel):
     choice: int = Field(ge=0)
+
+    model_config = {"json_schema_extra": {"examples": [{"choice": 0}]}}
 
 
 class ReplyOut(BaseModel):
@@ -59,9 +65,13 @@ class PromptOut(BaseModel):
 class PromptCreate(BaseModel):
     question: str = Field(min_length=1, max_length=300)
 
+    model_config = {"json_schema_extra": {"examples": [{"question": "What did your family do on rainy Sundays?"}]}}
+
 
 class ReplyIn(BaseModel):
     text: str = Field(min_length=1, max_length=2000)
+
+    model_config = {"json_schema_extra": {"examples": [{"text": "We played cards with Gran by the fire."}]}}
 
 
 # ---------- poll ----------

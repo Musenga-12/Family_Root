@@ -1,8 +1,10 @@
 """/people: the family tree and directory. Every query is limited to the signed-in user's family."""
-from datetime import timedelta
+import re
+from datetime import date, timedelta
 from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Response
+from pydantic import field_validator
 from sqlmodel import Session, select
 
 from app.auth import get_current_user, require_role
@@ -25,10 +27,35 @@ class PersonOut(PersonBase):
     restricted: bool = False  # a protected minor seen by someone outside their close family: name and place in the tree only
 
 
+DATE_RE = re.compile(r"^\d{4}(-\d{2}(-\d{2})?)?$")
+
+
+def _check_date(v: str | None) -> str | None:
+    """born / died: YYYY, YYYY-MM or YYYY-MM-DD, and a real date. Other code reads the year and day from these."""
+    if v is None:
+        return v
+    ok = bool(DATE_RE.match(v))
+    if ok:
+        try:
+            date.fromisoformat((v + "-01-01")[:10] if len(v) < 10 else v)
+        except ValueError:
+            ok = False
+    if not ok:
+        raise ValueError("use a real date as YYYY, YYYY-MM or YYYY-MM-DD")
+    return v
+
+
 class PersonCreate(PersonBase):
     tags: list[str] = []
     relation: Literal["parent", "child", "spouse"] | None = None
     relative_id: str | None = None  # the person the new one is related to
+
+    _dates = field_validator("born", "died")(_check_date)
+
+    model_config = {"json_schema_extra": {"examples": [{
+        "first": "Lily", "last": "Mackenzie", "born": "2024-03-14", "role": "Granddaughter", "city": "Edinburgh",
+        "relation": "child", "relative_id": "sarah",
+    }]}}
 
 
 class PersonUpdate(PersonBase):
@@ -43,6 +70,20 @@ class PersonUpdate(PersonBase):
     tags: list[str] | None = None
     parents: list[str] | None = None
     spouse: str | None = None
+
+    _dates = field_validator("born", "died")(_check_date)
+
+    model_config = {"json_schema_extra": {"examples": [{"city": "Glasgow", "occupation": "Teacher"}]}}
+
+
+def check_relatives(db: Session, user: User, pid: str, parents: list[str] | None, spouse: str | None) -> None:
+    """Parents and spouse must be other people in the same family tree."""
+    for rid in [*(parents or []), *([spouse] if spouse else [])]:
+        if rid == pid:
+            raise HTTPException(422, "A person can't be their own parent or spouse")
+        r = db.get(Person, rid)
+        if not r or r.family_id != user.family_id or r.deleted_at:
+            raise HTTPException(422, f"Unknown person: {rid}")
 
 
 def get_person(db: Session, user: User, pid: str) -> Person:
@@ -134,7 +175,10 @@ def create_person(body: PersonCreate, user: User = Depends(get_current_user), db
 @router.patch("/{pid}", response_model=PersonOut, dependencies=[Depends(require_role(*EDITORS))])
 def update_person(pid: str, body: PersonUpdate, user: User = Depends(get_current_user), db: Session = Depends(get_session)):
     p = get_person(db, user, pid)
-    for k, v in body.model_dump(exclude_unset=True).items():
+    data = body.model_dump(exclude_unset=True)
+    if "parents" in data or "spouse" in data:
+        check_relatives(db, user, pid, data.get("parents"), data.get("spouse"))
+    for k, v in data.items():
         setattr(p, k, v)
     db.add(p)
     db.commit()

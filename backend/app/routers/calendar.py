@@ -62,6 +62,11 @@ class EventCreate(EventBase):
             raise ValueError("is required")
         return v.strip()
 
+    model_config = {"json_schema_extra": {"examples": [{
+        "title": "Sunday lunch", "date": "2026-12-06", "time": "13:00", "place": "Gran's house",
+        "note": "Bring a dish", "extra_guests": 0
+    }]}}
+
 
 class EventUpdate(BaseModel):
     title: str | None = Field(None, min_length=1)
@@ -73,6 +78,8 @@ class EventUpdate(BaseModel):
 
     _d = field_validator("date")(_date)
     _t = field_validator("time")(_time)
+
+    model_config = {"json_schema_extra": {"examples": [{"time": "14:00"}]}}
 
 
 class Attendee(BaseModel):
@@ -121,6 +128,14 @@ def events_out(db: Session, user: User, events: list[Event]) -> list[EventOut]:
 
 def one(db: Session, user: User, e: Event) -> EventOut:
     return events_out(db, user, [e])[0]
+
+
+def _is_date(s: str) -> bool:
+    try:
+        date.fromisoformat(s[:10])
+        return True
+    except ValueError:
+        return False
 
 
 def on_year(month_day: str, year: int) -> date:
@@ -175,7 +190,7 @@ def calendar(
                                               Person.died == None, Person.born != None)).all()  # noqa: E711
         kin = Kin(db, user.family_id)
         for p in people:
-            if p.bornApprox or len(p.born) < 10:
+            if p.bornApprox or len(p.born) < 10 or not _is_date(p.born):
                 continue  # no exact day to celebrate
             if not kin.shows(user, p.id, "birthdays"):
                 continue  # their choice, or a protected minor outside your close family
@@ -189,7 +204,7 @@ def calendar(
         ms = db.exec(select(Milestone).where(Milestone.family_id == user.family_id, Milestone.deleted_at == None,  # noqa: E711
                                              Milestone.approx == False, Milestone.type.in_(["Weddings", "Memorials"]))).all()  # noqa: E712
         for m in ms:
-            if len(m.date) < 10:
+            if len(m.date) < 10 or not _is_date(m.date):
                 continue
             for d, n in yearly(m.date, a, b):
                 items.append(CalendarItem(id=f"a-{m.id}-{d.year}", kind="anniversary", date=d.isoformat(),

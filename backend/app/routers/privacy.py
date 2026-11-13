@@ -4,7 +4,7 @@ import secrets
 from datetime import date, timedelta
 from typing import Literal
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Response
+from fastapi import APIRouter, Body, Depends, HTTPException, Query, Response
 from pydantic import BaseModel, Field
 from sqlmodel import Session, func, select
 
@@ -50,10 +50,14 @@ class MineIn(BaseModel):
     books: bool | None = None
     age: bool | None = None
 
+    model_config = {"json_schema_extra": {"examples": [{"age": True}]}}
+
 
 class MinorIn(BaseModel):
     hide: bool | None = None
     guardian: bool | None = None
+
+    model_config = {"json_schema_extra": {"examples": [{"hide": True}]}}
 
 
 class ConsentOut(BaseModel):
@@ -75,9 +79,13 @@ class ConsentCreate(BaseModel):
     kind: Literal["Photo", "Voice"] = "Photo"
     memory_id: str | None = None
 
+    model_config = {"json_schema_extra": {"examples": [{"person": "sarah", "item": "Beach photo (2026)", "kind": "Photo"}]}}
+
 
 class ConsentDecision(BaseModel):
     status: Literal["given", "withdrawn"]
+
+    model_config = {"json_schema_extra": {"examples": [{"status": "given"}]}}
 
 
 class LogOut(BaseModel):
@@ -92,6 +100,8 @@ class ActivityIn(BaseModel):
     action: Literal["listened", "downloaded"]
     kind: Literal["story", "memory"]
     id: str
+
+    model_config = {"json_schema_extra": {"examples": [{"action": "listened", "kind": "story", "id": "s1"}]}}
 
 
 # ---------- helpers ----------
@@ -174,7 +184,11 @@ def read_privacy(user: User = Depends(get_current_user), db: Session = Depends(g
 
 
 @router.patch("/privacy/categories", response_model=PrivacyOut)
-def set_categories(body: dict[str, str], user: User = Depends(get_current_user), db: Session = Depends(get_session)):
+def set_categories(
+    body: dict[str, str] = Body(examples=[{"birthdays": "Immediate Family", "location": "Only Me (draft)"}]),
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_session),
+):
     """Who can see each kind of your information, e.g. {"birthdays": "Immediate Family"}."""
     for k, v in body.items():
         if k not in PRIVACY_CATEGORIES:
