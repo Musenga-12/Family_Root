@@ -1,65 +1,16 @@
 /* Public welcome page: introduces FamilyRoots before sign-in. Fully translated; has its own header with language and theme switches. */
 import { useEffect, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { SiteFooter } from "../components/Footer";
-import { Menu, MenuItem, MenuLabel } from "../components/Menu";
+import SiteHeader from "../components/SiteHeader";
 import { useToast } from "../components/toastContext";
 import { Button, Card, Eyebrow, Icon, IconButton, Input, InputIcon, Photo, PhotoOverlay, Switch, Tabs, Tag } from "../components/ui";
 import { cx, emailOk } from "../lib/format";
-import { LANGS, localeOf, useT } from "../lib/i18n";
+import { localeOf, useT } from "../lib/i18n";
 import { useStore } from "../lib/store";
-import { THEME_ICON, usePrefActions } from "../lib/usePrefActions";
 
 const SECTIONS = [["features", "land.nav.features"], ["how", "land.nav.how"], ["pricing", "land.nav.pricing"], ["faq", "land.nav.faq"]];
 const scrollTo = (id) => document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
-
-function LandingHeader() {
-  const t = useT();
-  const { prefs, dark } = useStore();
-  const { cycleTheme, setLang } = usePrefActions();
-  const [open, setOpen] = useState(false);
-  const lang = LANGS.find((l) => l.code === prefs.lang) || LANGS[0];
-  return (
-    <header className="sticky top-0 z-30 border-b border-line bg-bg/90 backdrop-blur-md">
-      <div className="mx-auto flex max-w-300 items-center gap-3 px-4 py-3 sm:px-7">
-        <Link to="/" className="flex items-center gap-2.5 text-ink no-underline">
-          <span className="grid size-8.5 place-items-center rounded-full bg-pine-900 text-mint"><Icon name="park" /></span>
-          <strong className="font-serif text-[1.15rem]">FamilyRoots</strong>
-        </Link>
-        <nav aria-label={t("land.sections")} className="ml-6 hidden gap-1 md:flex">
-          {SECTIONS.map(([id, key]) => (
-            <button key={id} type="button" onClick={() => scrollTo(id)}
-              className="cursor-pointer rounded-lg border-0 bg-transparent px-3 py-2 text-[.88rem] text-muted hover-fill">{t(key)}</button>
-          ))}
-        </nav>
-        <div className="ml-auto flex items-center gap-2">
-          <Menu label={t("top.language")} trigger={(p) => (
-            <button type="button" {...p} aria-label={`${t("top.language")}: ${lang.name}`}
-              className="pressable inline-flex h-11 cursor-pointer items-center gap-1 rounded-xl border border-sec-line bg-surface px-2.5 text-[.8rem] font-semibold text-sec-ink hover-fill">
-              <Icon name="translate" size="sm" />{lang.short}
-            </button>
-          )}>
-            <MenuLabel>{t("top.language")}</MenuLabel>
-            {LANGS.map((l) => <MenuItem key={l.code} checked={prefs.lang === l.code} onClick={() => setLang(l.code)} hint={l.short}>{l.name}</MenuItem>)}
-          </Menu>
-          <IconButton icon={THEME_ICON[dark ? "dark" : "light"]} label={t("theme.switch", { mode: t(dark ? "theme.dark" : "theme.light") })} title={t("theme.switch", { mode: t(dark ? "theme.dark" : "theme.light") })} onClick={cycleTheme} />
-          <Button className="max-sm:hidden" to="/auth">{t("land.signin")}</Button>
-          <Button variant="primary" className="max-sm:hidden" to="/overview">{t("land.demo")}</Button>
-          <IconButton icon={open ? "close" : "menu"} label={t("common.menu")} aria-expanded={open} className="md:hidden" onClick={() => setOpen(!open)} />
-        </div>
-      </div>
-      {open && (
-        <nav aria-label={t("land.sections")} className="grid gap-1 border-t border-line px-4 py-3 md:hidden">
-          {SECTIONS.map(([id, key]) => (
-            <button key={id} type="button" onClick={() => { setOpen(false); scrollTo(id); }}
-              className="cursor-pointer rounded-lg border-0 bg-transparent px-3 py-2.5 text-left text-ink hover-fill">{t(key)}</button>
-          ))}
-          <div className="mt-2 grid grid-cols-2 gap-2"><Button to="/auth">{t("land.signin")}</Button><Button variant="primary" to="/overview">{t("land.demo")}</Button></div>
-        </nav>
-      )}
-    </header>
-  );
-}
 
 /** Cycles through words, e.g. "Keep your family's [stories → voices → recipes]". */
 function RotatingWord({ words }) {
@@ -118,7 +69,7 @@ function Hero() {
         <p className="mt-4 flex items-center gap-1.5 text-small text-muted"><Icon name="verified_user" size="sm" className="text-pine-700" /> {t("land.trust")}</p>
       </div>
       <div className="relative">
-        <Photo p1="#a98a68" p2="#2d4a3b" icon="family_restroom" aspect="aspect-[4/3.6]" className="rounded-[28px] shadow-pop" alt={t("land.heroAlt")}>
+        <Photo p1="#a98a68" p2="#2d4a3b" icon="family_restroom" sample="hero" aspect="aspect-[4/3.6]" className="rounded-[28px] shadow-pop" alt={t("land.heroAlt")}>
           <PhotoOverlay className="flex items-center justify-between gap-2.5">
             <strong className="font-serif text-[1.1rem]">{t("land.folio")}</strong><Tag tone="glass">142</Tag>
           </PhotoOverlay>
@@ -137,9 +88,10 @@ function Hero() {
 
 function Stats() {
   const t = useT();
-  const items = [[1200, "+", "land.stat.families"], [48000, "+", "land.stat.stories"], [4, "", "land.stat.gens"], [4, "", "land.stat.langs"]];
+  // Only facts the app can stand behind (no invented user counts).
+  const items = [[4, "", "land.stat.gens"], [4, "", "land.stat.langs"]];
   return (
-    <section aria-label={t("land.numbers")} className="mx-auto mt-6 grid max-w-300 grid-cols-2 gap-3 px-4 sm:px-7 md:grid-cols-4">
+    <section aria-label={t("land.numbers")} className="mx-auto mt-6 grid max-w-300 grid-cols-2 gap-3 px-4 sm:px-7">
       {items.map(([n, s, k]) => (
         <div key={k} className="rounded-2xl border border-line bg-surface p-5 text-center">
           <strong className="block font-serif text-[2rem] text-pine-800"><CountUp to={n} suffix={s} /></strong>
@@ -216,7 +168,7 @@ function Features() {
         </div>
         <div id="featPanel" role="tabpanel" aria-labelledby={`feat-${key}`} key={key}
           className="grid animate-fade items-center gap-5 rounded-card border border-line bg-surface p-5 sm:grid-cols-2">
-          <Photo p1={p1} p2={p2} icon={icon} aspect="aspect-4/3" alt="" />
+          <Photo p1={p1} p2={p2} icon={icon} sample={`feature-${key}`} aspect="aspect-4/3" alt="" />
           <div>
             <h3 className="text-[1.5rem]!">{t(`land.feat.${key}`)}</h3>
             <p className="mt-2 text-muted">{t(`land.feat.${key}.d`)}</p>
@@ -453,7 +405,7 @@ export default function Landing() {
   useEffect(() => { document.title = "FamilyRoots – " + t("land.eyebrow"); }, [t]);
   return (
     <div className="min-h-screen">
-      <LandingHeader />
+      <SiteHeader sections={SECTIONS} onSection={scrollTo} />
       <main id="main">
         <Hero />
         <Stats />

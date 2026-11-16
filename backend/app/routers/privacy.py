@@ -13,6 +13,7 @@ from app.db import get_session
 from app.models import (PRIVACY_CATEGORIES, VISIBILITY, AccessLog, Album, Consent, Event, Family, LegacyRecord, Memory,
                         Message, Milestone, MinorSetting, Person, Story, ThreadMember, User, UserPrivacy, iso, now)
 from app.realtime import hub
+from app.routers.notifications import notify
 from app.visibility import Kin, age_of, is_minor
 
 router = APIRouter(tags=["privacy"])
@@ -254,7 +255,7 @@ def request_consent(body: ConsentCreate, user: User = Depends(get_current_user),
     db.add(c)
     db.commit()
     db.refresh(c)
-    notify_deciders(kin, c, "consent.requested")
+    notify_deciders(db, kin, c, "consent.requested")
     return consent_out(user, kin, c)
 
 
@@ -289,13 +290,16 @@ def remind(cid: str, user: User = Depends(get_current_user), db: Session = Depen
     db.add(c)
     db.commit()
     db.refresh(c)
-    notify_deciders(kin, c, "consent.reminder")  # TODO: also by email once sending is set up
+    notify_deciders(db, kin, c, "consent.reminder")  # TODO: also by email once sending is set up
     return consent_out(user, kin, c)
 
 
-def notify_deciders(kin: Kin, c: Consent, kind: str) -> None:
+def notify_deciders(db: Session, kin: Kin, c: Consent, kind: str) -> None:
     ids = [kin.users[p].id for p in deciders(kin, c) if p in kin.users]
     hub.notify(ids, {"type": kind, "consent_id": c.id, "item": c.item})
+    # Also kept in the bell, so someone who was offline still sees it.
+    title = "You're asked to agree to sharing" if kind == "consent.requested" else "Reminder: a family member is waiting for your answer"
+    notify(db, c.family_id, ids, kind, title, c.item, "/privacy", exclude=c.requested_by if kind == "consent.requested" else None)
 
 
 # ---------- access log ----------

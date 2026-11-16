@@ -6,6 +6,7 @@ import "./assets/fonts/fonts.css";
 import { ModalProvider } from "./components/Modal";
 import { ToastProvider } from "./components/Toasts";
 import "./index.css";
+import { SessionProvider } from "./lib/SessionProvider";
 import { StoreProvider } from "./lib/StoreProvider";
 
 // HashRouter keeps the original "#/overview" style URLs and works from any static host, or from a double-clicked file.
@@ -13,11 +14,13 @@ createRoot(document.getElementById("root")).render(
   <StrictMode>
     <HashRouter>
       <StoreProvider>
-        <ToastProvider>
-          <ModalProvider>
-            <App />
-          </ModalProvider>
-        </ToastProvider>
+        <SessionProvider>
+          <ToastProvider>
+            <ModalProvider>
+              <App />
+            </ModalProvider>
+          </ToastProvider>
+        </SessionProvider>
       </StoreProvider>
     </HashRouter>
   </StrictMode>,

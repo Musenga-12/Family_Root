@@ -12,7 +12,7 @@ export default function NotFound() {
   const [q, setQ] = useState("");
   // The path sits inside the sentence where each language puts it.
   const [before, after] = t("nf.body").split("{path}");
-  const pages = NAV.flatMap((g) => g.items).filter(([id]) => id !== "auth");
+  const pages = NAV.flatMap((g) => g.items);
   return (
     <>
       <Hero>

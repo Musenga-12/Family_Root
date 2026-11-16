@@ -46,7 +46,7 @@ function Slideshow({ list }) {
   const m = list[i];
   return (
     <Dialog wide title={t("mem.slideshow")} sub={t("mem.slide", { i: i + 1, n })}>
-      <Photo key={m.id} p1={m.p1} p2={m.p2} icon={m.icon} img={m.img} alt={m.alt} aspect="aspect-16/10" className="animate-fade">
+      <Photo key={m.id} p1={m.p1} p2={m.p2} icon={m.icon} img={m.img} sample={m.id} alt={m.alt} aspect="aspect-16/10" className="animate-fade">
         <PhotoOverlay><strong className="block font-serif text-[1.2rem]">{m.title}</strong><small>{fmtDate(m.date, m.approx)} · {m.place}</small></PhotoOverlay>
       </Photo>
       <p className="text-small text-muted">{m.caption}</p>
@@ -92,7 +92,7 @@ function MemoryCard({ m }) {
     // Right-click (or the keyboard's Menu key / Shift+F10) opens the same actions as the ⋮ button.
     <article aria-label={m.title} onContextMenu={(e) => { if (e.target.closest("a, input")) return; e.preventDefault(); moreRef.current?.click(); }}
       className="lift group/photo flex flex-col overflow-hidden rounded-[18px] border border-line bg-surface">
-      <Photo p1={m.p1} p2={m.p2} icon={m.icon} img={m.img} alt={m.alt} aspect="aspect-[4/3.3]" flush>
+      <Photo p1={m.p1} p2={m.p2} icon={m.icon} img={m.img} sample={m.id} alt={m.alt} aspect="aspect-[4/3.3]" flush>
         <PhotoCorner><Tag tone="glass" icon={m.type === "document" ? "description" : "photo_camera"}>{m.label}</Tag></PhotoCorner>
         {m.audio && <PhotoOverlay className="text-xsmall"><Icon name="graphic_eq" size="xs" /> {t("mem.oralClip", { name: "Mary", title: "Crossing the Atlantic in ’68" })}</PhotoOverlay>}
       </Photo>
@@ -158,7 +158,7 @@ function AlbumDialog({ id }) {
               const on = picked.includes(m.id);
               return (
                 <label key={m.id} className={cx("grid cursor-pointer gap-1.5 rounded-xl border-2 p-1.5 text-xsmall", on ? "border-sec bg-sec-soft" : "border-line")}>
-                  <Photo p1={m.p1} p2={m.p2} icon={m.icon} img={m.img} alt={m.alt} aspect="aspect-4/3">
+                  <Photo p1={m.p1} p2={m.p2} icon={m.icon} img={m.img} sample={m.id} alt={m.alt} aspect="aspect-4/3">
                     <span className="absolute top-1.5 left-1.5 rounded bg-white/90 p-0.5 leading-none"><input type="checkbox" checked={on} onChange={() => setPicked(on ? picked.filter((x) => x !== m.id) : [...picked, m.id])} className="size-4.5" /></span>
                   </Photo>
                   <span className="line-clamp-2 font-semibold">{m.title}</span>
@@ -171,7 +171,7 @@ function AlbumDialog({ id }) {
         <div className="grid grid-cols-[repeat(auto-fill,minmax(170px,1fr))] gap-3">
           {inAlbum.map((m) => (
             <figure key={m.id} className="m-0 grid gap-1.5">
-              <Photo p1={m.p1} p2={m.p2} icon={m.icon} img={m.img} alt={m.alt} aspect="aspect-4/3" />
+              <Photo p1={m.p1} p2={m.p2} icon={m.icon} img={m.img} sample={m.id} alt={m.alt} aspect="aspect-4/3" />
               <figcaption className="text-xsmall"><strong className="block text-small">{m.title}</strong>{fmtDate(m.date, m.approx)} · {m.place}</figcaption>
             </figure>
           ))}
@@ -268,7 +268,7 @@ export default function Memories() {
           <strong>{t("mem.redundancy")}</strong> <Tag tone="mint">{t("mem.zeroLoss")}</Tag>
           <p className="text-xsmall text-muted">{t("mem.redundancySub")}</p>
         </div>
-        <Tag tone="outline">{t("mem.health")}</Tag>
+        <Button size="sm" icon="download" to="/settings">{t("settings.export")}</Button>
       </Card>
 
       <section className="mt-7" aria-labelledby="albumsH">
@@ -284,7 +284,7 @@ export default function Memories() {
             <button key={a.id} type="button"
               aria-label={t("mem.openAlbum", { title: a.title })} onClick={() => open(<AlbumDialog id={a.id} />)}
               className="lift group/photo flex cursor-pointer snap-start flex-col overflow-hidden rounded-2xl border border-line bg-surface p-0 text-left">
-              <Photo as="span" p1={a.p1} p2={a.p2} icon={a.icon} aspect="aspect-[4/3.2]" flush>
+              <Photo as="span" p1={a.p1} p2={a.p2} icon={a.icon} sample={a.id} alt="" aspect="aspect-[4/3.2]" flush>
                 <PhotoCorner><Tag tone="glass">{a.tag}</Tag></PhotoCorner>
                 <PhotoOverlay className="text-xsmall">{a.items ? keepsakes(a.items.length) : a.meta}</PhotoOverlay>
               </Photo>

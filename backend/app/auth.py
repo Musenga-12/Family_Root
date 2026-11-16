@@ -79,7 +79,8 @@ def create_reset_link(db: Session, user: User, minutes: int = RESET_MINUTES) -> 
     expires = now() + timedelta(minutes=minutes)
     db.add(PasswordReset(token_hash=_hash_token(token), user_id=user.id, expires_at=expires))
     db.commit()
-    return f"{settings.frontend_origin}/auth?reset={token}", expires
+    # The React app uses hash routing (#/auth), so the link has to include the "#".
+    return f"{settings.frontend_origin}/#/auth?reset={token}", expires
 
 
 def use_reset_token(db: Session, token: str) -> User | None:

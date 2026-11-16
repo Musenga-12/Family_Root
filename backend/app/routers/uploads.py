@@ -23,6 +23,7 @@ CHUNK = 1024 * 1024
 
 IMAGE_TYPES = {"image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp", "image/gif": ".gif"}
 AUDIO_TYPES = {"audio/webm": ".webm", "audio/ogg": ".ogg", "audio/mpeg": ".mp3", "audio/mp4": ".m4a", "audio/wav": ".wav", "audio/x-wav": ".wav"}
+DOC_TYPES = {"application/pdf": ".pdf"}  # scanned certificates and letters for the Legacy Archive
 
 
 class UploadOut(BaseModel):
@@ -61,10 +62,12 @@ async def save_upload(file: UploadFile, user: User, db: Session, kind: str | Non
         ext, limit = IMAGE_TYPES[ctype], settings.max_image_mb
     elif ctype in AUDIO_TYPES and kind in (None, "audio"):
         ext, limit = AUDIO_TYPES[ctype], settings.max_audio_mb
+    elif ctype in DOC_TYPES and kind is None:
+        ext, limit = DOC_TYPES[ctype], settings.max_image_mb
     elif kind == "audio":
         raise HTTPException(415, "Recordings must be WebM, Ogg, MP3, M4A or WAV audio")
     else:
-        raise HTTPException(415, "Only JPEG, PNG, WebP or GIF images and WebM, Ogg, MP3, M4A or WAV audio can be uploaded")
+        raise HTTPException(415, "Only JPEG, PNG, WebP or GIF images, PDF scans and WebM, Ogg, MP3, M4A or WAV audio can be uploaded")
 
     u = Upload(family_id=user.family_id, owner_user_id=user.id, filename=Path(file.filename or "file").name,
                content_type=ctype, size=0, path="")

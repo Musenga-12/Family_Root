@@ -53,7 +53,7 @@ function Item({ t, compact }) {
         {details && <p className="animate-fade text-small text-muted">{t.text}</p>}
         {details && t.hasPhoto && (
           <>
-            <Photo p1={t.p1} p2={t.p2} icon="groups" alt={tr("tl.photoAlt")} aspect="aspect-16/8" className="max-h-70 w-full">
+            <Photo p1={t.p1} p2={t.p2} icon="groups" sample={t.id} alt={tr("tl.photoAlt")} aspect="aspect-16/8" className="max-h-70 w-full">
               <PhotoOverlay className="text-xsmall"><Icon name="photo_camera" size="xs" /> {tr("tl.attendance", { n: 28 })}</PhotoOverlay>
             </Photo>
             <AudioPlayer id={"tl-" + t.id} duration={286} label={tr("tl.reflection")} />

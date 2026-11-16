@@ -2,6 +2,7 @@
 import { Link } from "react-router-dom";
 import { ME } from "../data";
 import { cx } from "../lib/format";
+import { samplePhoto } from "../lib/photos";
 import { useT } from "../lib/i18n";
 import { fullName, initials } from "../lib/store";
 
@@ -225,13 +226,16 @@ export function Avatar({ p, size = "md", round, className }) {
   );
 }
 
-/** Placeholder "photo": a gradient tile with an icon, or a real image when provided. */
-export function Photo({ p1 = "#6d8d72", p2 = "#2d4a3b", icon = "image", img, alt, aspect = "aspect-4/3", flush, className, children, as: As = "div", ...rest }) {
+/** A gradient tile with an icon, or a real image: `img` (the keepsake's own) or the bundled sample photo for `sample`. */
+export function Photo({ p1 = "#6d8d72", p2 = "#2d4a3b", icon = "image", img, sample, alt, aspect = "aspect-4/3", flush, className, children, as: As = "div", ...rest }) {
+  img ||= sample && samplePhoto(sample);
   return (
     <As role={As === "div" || As === "span" ? "img" : undefined} aria-label={alt}
       style={{ background: `linear-gradient(135deg, ${p1}, ${p2})` }}
       className={cx("group/photo relative grid place-items-center overflow-hidden text-white/85 no-underline", aspect, flush ? "rounded-none" : "rounded-xl", As !== "div" && As !== "span" && "lift", className)} {...rest}>
-      {img ? <img src={img} alt={alt} className="absolute inset-0 size-full object-cover transition-transform duration-500 group-hover/photo:scale-105" /> : <Icon name={icon} className="text-[44px]! opacity-55" />}
+      {/* A picture that fails to load is hidden, so the gradient tile shows instead of a broken-image icon. */}
+      {img ? <img src={img} alt={alt} loading="lazy" decoding="async" onError={(e) => { e.currentTarget.hidden = true; }}
+        className="absolute inset-0 size-full object-cover transition-transform duration-500 group-hover/photo:scale-105" /> : <Icon name={icon} className="text-[44px]! opacity-55" />}
       {children}
     </As>
   );

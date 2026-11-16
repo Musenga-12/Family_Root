@@ -15,7 +15,7 @@ export const NAV = [
     ["admin", "Family Administration", "admin_panel_settings"],
     ["privacy", "Privacy & Consent", "verified_user"],
     ["settings", "Settings & Accessibility", "tune"],
-    ["auth", "Sign in / Join", "login"],
   ] },
+  // Sign in / Join (/auth) is a public page with its own header, so it is not in the members' sidebar.
 ];
 export const routeLabel = (route) => NAV.flatMap((g) => g.items).find(([id]) => id === route)?.[1];

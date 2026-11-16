@@ -112,7 +112,7 @@ function MemoryShuffle() {
         <div><Eyebrow icon="auto_awesome">{t("otd.eyebrow")}</Eyebrow><h2 id="otdH" className="mt-1 text-[1.1rem]!">{t("otd.title")}</h2></div>
         <IconButton icon="shuffle" label={t("otd.shuffle")} title={t("otd.shuffle")} onClick={() => setI(i + 1 + Math.floor(Math.random() * (list.length - 1)))} />
       </div>
-      <Photo key={m.id} as={Link} to={`/memories?q=${encodeURIComponent(m.title)}`} p1={m.p1} p2={m.p2} icon={m.icon} img={m.img} aria-label={m.alt}
+      <Photo key={m.id} as={Link} to={`/memories?q=${encodeURIComponent(m.title)}`} p1={m.p1} p2={m.p2} icon={m.icon} img={m.img} sample={m.id} aria-label={m.alt}
         aspect="aspect-video" className="mt-3 animate-fade">
         <PhotoOverlay><strong className="block font-serif">{m.title}</strong><small>{fmtDate(m.date, m.approx)} · {m.place}</small></PhotoOverlay>
       </Photo>
@@ -186,8 +186,9 @@ export default function Overview() {
 
   const me = person(ME);
   const p = person;
-  const nb = st.people.filter((x) => !x.died && x.id !== ME).sort((a, b) => daysToBirthday(a) - daysToBirthday(b))[0];
-  const nbDate = new Date(nb.born);
+  // The next birthday among living relatives; there may be none (e.g. a newly started archive).
+  const nb = st.people.filter((x) => !x.died && x.id !== ME && x.born).sort((a, b) => daysToBirthday(a) - daysToBirthday(b))[0];
+  const nbDate = nb && new Date(nb.born);
   const story = st.stories.find((s) => s.id === "s1") || st.stories[0];
   const recipe = st.stories.slice(1, 5).filter((s) => s.kind === "audio").slice(-1)[0];
   const recentMem = st.memories[st.memories.length - 1];
@@ -279,7 +280,7 @@ export default function Overview() {
               </div>
               <Button variant="primary" size="sm" icon="mic" to="/stories?record=1">{t("ov.recordNew")}</Button>
             </SectionTitle>
-            <Card as="article" tone="soft">
+            {story && <Card as="article" tone="soft">
               <div className="flex items-start gap-2.5">
                 <IconBox icon="radio_button_checked" tone="solid" />
                 <div className="min-w-0 flex-1">
@@ -298,7 +299,7 @@ export default function Overview() {
                   <span className="text-muted">{t("ov.transcriptNote")}</span><Link to="/stories">{t("ov.readTranscript")}</Link>
                 </div>
               </div>
-            </Card>
+            </Card>}
             {recipe && (
               <Record icon="restaurant" className="mt-4">
                 <div className="min-w-0 flex-1"><strong>{recipe.title}</strong><p className="text-small text-muted">{recipe.excerpt} • {fmtDur(recipe.duration)}</p></div>
@@ -329,7 +330,7 @@ export default function Overview() {
           <Card sec="calendar" aria-labelledby="gath">
             <SectionTitle><h2 id="gath" className="flex items-center gap-2.5 text-[1.2rem]!"><Icon name="event" /> {t("ov.gatherings")}</h2></SectionTitle>
             <div className="grid gap-3.5">
-              <div className="flex gap-3 rounded-[14px] border border-sec-line bg-sec-soft p-3.5">
+              {nb && <div className="flex gap-3 rounded-[14px] border border-sec-line bg-sec-soft p-3.5">
                 <DateBadge month={monthName(nbDate.getMonth()).toUpperCase()} day={nbDate.getDate()} />
                 <div className="min-w-0 flex-1">
                   <div className="flex items-start justify-between gap-2.5"><strong>{t("ov.birthday", { name: nb.first, n: age(nb) + 1 })}</strong><Tag tone="rose" className="shrink-0">{t("ov.inDays", { n: daysToBirthday(nb) })}</Tag></div>
@@ -339,7 +340,7 @@ export default function Overview() {
                     <Button size="sm" icon="attach_file" iconSize="xs" onClick={() => open(<AddMemoryDialog />)}>{t("ov.attach")}</Button>
                   </div>
                 </div>
-              </div>
+              </div>}
               <div className="flex gap-3 rounded-[14px] border border-sec-line bg-sec-soft p-3.5">
                 <DateBadge month={monthName(7).toUpperCase()} day="14" mint />
                 <div className="min-w-0 flex-1">
@@ -362,7 +363,8 @@ export default function Overview() {
               <h2 id="alb" className="flex items-center gap-2.5 text-[1.2rem]!"><Icon name="photo_library" /> {t("ov.albums")}</h2>
               <Link className="text-small" to="/memories">{t("ov.viewAll")}</Link>
             </SectionTitle>
-            <Photo as={Link} to="/memories" p1={recentMem.p1} p2={recentMem.p2} icon={recentMem.icon} img={recentMem.img}
+            {recentMem && <>
+            <Photo as={Link} to="/memories" p1={recentMem.p1} p2={recentMem.p2} icon={recentMem.icon} img={recentMem.img} sample={recentMem.id}
               aria-label={recentMem.alt} aspect="aspect-16/10">
               <PhotoOverlay>
                 <Tag tone="gold">{t("ov.featured")}</Tag>
@@ -375,6 +377,7 @@ export default function Overview() {
             <div className="mt-2 flex items-center justify-between gap-2.5 text-small">
               <Visibility>{recentMem.visibility}</Visibility><Link to="/memories">{t("ov.openAlbum")}</Link>
             </div>
+            </>}
           </Card>
 
           <Card tone="dark" sec="privacy" aria-labelledby="priv">

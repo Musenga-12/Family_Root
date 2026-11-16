@@ -15,10 +15,12 @@ from app.routers import (
     calendar,
     legacy,
     memories,
+    notifications,
     overview,
     people,
     privacy,
     stories,
+    suggestions,
     threads,
     timeline,
     uploads,
@@ -58,9 +60,17 @@ app = FastAPI(
     swagger_ui_parameters={"persistAuthorization": True},
 )
 
+def allowed_origins() -> list[str]:
+    """FRONTEND_ORIGIN and EXTRA_ORIGINS. "localhost" and "127.0.0.1" are the same computer but different origins to a
+    browser, so each is allowed together with its twin; otherwise opening the app the other way looks like a dead server."""
+    origins = [settings.frontend_origin, *[o.strip() for o in settings.extra_origins.split(",") if o.strip()]]
+    twins = [o.replace("://localhost", "://127.0.0.1") if "://localhost" in o else o.replace("://127.0.0.1", "://localhost") for o in origins]
+    return list(dict.fromkeys(o.rstrip("/") for o in origins + twins))
+
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[settings.frontend_origin],
+    allow_origins=allowed_origins(),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -80,6 +90,8 @@ app.include_router(legacy.router, prefix=API)
 app.include_router(admin.router, prefix=API)
 app.include_router(privacy.router, prefix=API)
 app.include_router(overview.router, prefix=API)
+app.include_router(notifications.router, prefix=API)
+app.include_router(suggestions.router, prefix=API)
 app.include_router(realtime.router, prefix=API)
 
 

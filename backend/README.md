@@ -53,7 +53,9 @@ app/
     legacy.py    /records (Legacy Archive, sealed time capsules)
     admin.py     /admin/summary, /members, /join-requests, /invites
     privacy.py   /privacy, /consents, /access-log, /activity, /me/export, /admin/export, /me/deletion-request
-    overview.py  /overview, /polls, /prompts
+    overview.py  /overview, /polls, /prompts, /mood
+    notifications.py  /notifications (the bell) and notify(), used by the other routers
+    suggestions.py    /people/{id}/suggestions, /suggestions ("Suggest a correction")
   realtime.py    /ws live updates for open chats
   visibility.py  who can see "All Family Branches" / "Immediate Family" / "Only Me (draft)" items
 uploads/         stored files (git-ignored)
@@ -138,7 +140,28 @@ All in `app/visibility.py`, applied by every endpoint that returns the data:
 - Admins can create a 3-day link for a relative with `POST /members/{id}/reset-link`.
 - Changing or resetting a password signs out every other device.
 
+## Newer endpoints
+
+| Endpoint | What it's for |
+|---|---|
+| `PATCH /me` | Change your name, email (needs `current_password`) or Easy-to-Read |
+| `GET`/`PUT /me/preferences` | Language and notification choices that follow the account |
+| `GET /notifications`, `POST /notifications/{id}/read`, `/{id}/unread`, `/read-all` | The bell. Filled by join requests (Admins), consent requests and reminders, corrections and replies to your stories |
+| `POST /people/{id}/suggestions`, `GET /suggestions`, `PATCH /suggestions/{id}` | Suggest a correction; Admins and Custodians close it (`accepted`, `dismissed`, or `open` to undo) |
+| `GET`/`PUT`/`DELETE /mood` | Today's mood check-in on the Overview, with the family's counts |
+| `PUT /events/{id}/rsvp` `{answer: yes\|maybe\|no}` | No body still means yes, as before |
+| `POST /records/{id}/attachments`, `DELETE /records/{id}/attachments/{upload_id}` | Attach a scan (image or PDF from `POST /uploads`); hidden with the text while a capsule is sealed |
+| `POST /records/{id}/reopen`, `/milestones/{id}/reopen`, `/stories/{id}/reopen` | Undo "verified" |
+
+On start-up the server adds any new nullable column to an existing `familyroots.db`, so you don't need to delete it
+after updating.
+
 ## Adding a resource
 
 Copy `routers/people.py`: add the table to `models.py`, create `routers/<name>.py`, and register it in `main.py`.
 Always filter by `user.family_id` so one family can never see another's data.
+
+## Supabase information
+
+Project name:familyroots
+Password : YLZC?+#5MavDiMp

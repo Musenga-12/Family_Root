@@ -12,8 +12,9 @@ from sqlmodel import Session, select
 
 from app.auth import get_current_user, require_role
 from app.db import get_session
-from app.models import RECORD_CATEGORIES, VISIBILITY, LegacyRecord, Person, RecordBase, User, now
+from app.models import RECORD_CATEGORIES, VISIBILITY, LegacyRecord, Person, RecordAttachment, RecordBase, Upload, User, now
 from app.routers.memories import DATE_RE
+from app.routers.uploads import family_upload, file_url
 from app.visibility import Kin, can_see
 
 router = APIRouter(prefix="/records", tags=["legacy"])
@@ -52,13 +53,28 @@ def _seal(v):
     return v
 
 
+class AttachmentOut(BaseModel):
+    id: str  # the upload id
+    filename: str
+    content_type: str
+    size: int
+    url: str  # signed link for <img src> or opening the PDF
+
+
+class AttachmentIn(BaseModel):
+    upload_id: str  # from POST /uploads: an image (JPEG, PNG, WebP) or a PDF scan
+
+    model_config = {"json_schema_extra": {"examples": [{"upload_id": "u1a2b3c4d5"}]}}
+
+
 class RecordOut(RecordBase):
     id: str
     icon: str
     status: str
-    sealed: bool  # true while the capsule is closed; text and source are then empty for everyone but its author
+    sealed: bool  # true while the capsule is closed; text, source and attachments are then empty for everyone but its author
     can_edit: bool
     can_verify: bool
+    attachments: list[AttachmentOut] = []
 
 
 class RecordCreate(RecordBase):
@@ -122,12 +138,31 @@ def visible(user: User, kin: Kin, r: LegacyRecord) -> bool:
     return can_see(user, kin, r.visibility, r.owner_user_id, r.custodian, [r.custodian] if r.custodian else [])
 
 
-def out(user: User, r: LegacyRecord) -> RecordOut:
+def attachments_of(db: Session, record_ids: list[str]) -> dict[str, list[AttachmentOut]]:
+    """Each record's attached files, oldest first, in one query."""
+    if not record_ids:
+        return {}
+    rows = db.exec(select(RecordAttachment, Upload).join(Upload, Upload.id == RecordAttachment.upload_id)
+                   .where(RecordAttachment.record_id.in_(record_ids)).order_by(RecordAttachment.added_at)).all()
+    files: dict[str, list[AttachmentOut]] = {}
+    for a, u in rows:
+        files.setdefault(a.record_id, []).append(AttachmentOut(id=u.id, filename=u.filename, content_type=u.content_type,
+                                                               size=u.size, url=file_url(u.id)))
+    return files
+
+
+def out(user: User, r: LegacyRecord, files: list[AttachmentOut] | None = None) -> RecordOut:
     sealed = is_sealed(r)
     data = r.model_dump()
-    if sealed and not is_author(user, r):
+    hidden = sealed and not is_author(user, r)
+    if hidden:
         data["text"], data["source"] = "", None
-    return RecordOut(**data, sealed=sealed, can_edit=may_edit(user, r), can_verify=may_verify(user, r))
+    return RecordOut(**data, sealed=sealed, can_edit=may_edit(user, r), can_verify=may_verify(user, r),
+                     attachments=[] if hidden else (files or []))
+
+
+def out_one(db: Session, user: User, r: LegacyRecord) -> RecordOut:
+    return out(user, r, attachments_of(db, [r.id]).get(r.id))
 
 
 def get_record(db: Session, user: User, rid: str, include_deleted: bool = False) -> LegacyRecord:
@@ -166,11 +201,13 @@ def list_records(
         stmt = stmt.where(LegacyRecord.status == status)
     kin = Kin(db, user.family_id)
     needle = (q or "").strip().lower()
+    rows = db.exec(stmt.order_by(*SORTS[sort])).all()
+    files = attachments_of(db, [r.id for r in rows])
     result = []
-    for r in db.exec(stmt.order_by(*SORTS[sort])).all():
+    for r in rows:
         if not visible(user, kin, r) or (sealed is not None and is_sealed(r) != sealed):
             continue
-        o = out(user, r)
+        o = out(user, r, files.get(r.id))
         if needle and needle not in f"{o.title} {o.text} {o.source or ''}".lower():  # sealed text is never searched
             continue
         result.append(o)
@@ -179,7 +216,7 @@ def list_records(
 
 @router.get("/{rid}", response_model=RecordOut)
 def read_record(rid: str, user: User = Depends(get_current_user), db: Session = Depends(get_session)):
-    return out(user, get_record(db, user, rid))
+    return out_one(db, user, get_record(db, user, rid))
 
 
 @router.post("", response_model=RecordOut, status_code=201, dependencies=[Depends(require_role(*EDITORS))])
@@ -217,7 +254,7 @@ def update_record(rid: str, body: RecordUpdate, user: User = Depends(get_current
     db.add(r)
     db.commit()
     db.refresh(r)
-    return out(user, r)
+    return out_one(db, user, r)
 
 
 @router.post("/{rid}/verify", response_model=RecordOut, dependencies=[Depends(require_role(*MODERATORS))])
@@ -231,7 +268,51 @@ def verify_record(rid: str, user: User = Depends(get_current_user), db: Session 
     db.add(r)
     db.commit()
     db.refresh(r)
-    return out(user, r)
+    return out_one(db, user, r)
+
+
+@router.post("/{rid}/reopen", response_model=RecordOut, dependencies=[Depends(require_role(*MODERATORS))])
+def reopen_record(rid: str, user: User = Depends(get_current_user), db: Session = Depends(get_session)):
+    """Undo "verified": the record goes back to awaiting review."""
+    r = get_record(db, user, rid)
+    r.status, r.verified_by = "review", None
+    db.add(r)
+    db.commit()
+    db.refresh(r)
+    return out_one(db, user, r)
+
+
+@router.post("/{rid}/attachments", response_model=RecordOut, status_code=201)
+def attach(rid: str, body: AttachmentIn, user: User = Depends(get_current_user), db: Session = Depends(get_session)):
+    """Add a scan or photo of the original (image or PDF). Changes what was checked, so the record needs reviewing again."""
+    r = get_record(db, user, rid)
+    if not may_edit(user, r):
+        raise HTTPException(403, "Only the person who added this, an Admin or a Custodian can add files")
+    u = family_upload(db, user, body.upload_id)
+    if not (u.content_type.startswith("image/") or u.content_type == "application/pdf"):
+        raise HTTPException(422, "Attach an image or a PDF")
+    if not db.get(RecordAttachment, (rid, u.id)):
+        db.add(RecordAttachment(record_id=rid, upload_id=u.id, added_by=user.id))
+        r.status, r.verified_by = "review", None
+        db.add(r)
+        db.commit()
+        db.refresh(r)
+    return out_one(db, user, r)
+
+
+@router.delete("/{rid}/attachments/{upload_id}", response_model=RecordOut)
+def detach(rid: str, upload_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_session)):
+    """Remove a file from the record. The file itself is kept, so attaching it again undoes this."""
+    r = get_record(db, user, rid)
+    if not may_edit(user, r):
+        raise HTTPException(403, "Only the person who added this, an Admin or a Custodian can remove files")
+    a = db.get(RecordAttachment, (rid, upload_id))
+    if not a:
+        raise HTTPException(404, "This file isn't attached to the record")
+    db.delete(a)
+    db.commit()
+    db.refresh(r)
+    return out_one(db, user, r)
 
 
 @router.delete("/{rid}", status_code=204)
@@ -254,4 +335,4 @@ def restore_record(rid: str, user: User = Depends(get_current_user), db: Session
     db.add(r)
     db.commit()
     db.refresh(r)
-    return out(user, r)
+    return out_one(db, user, r)

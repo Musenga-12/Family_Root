@@ -12,7 +12,7 @@ from sqlmodel import Session, func, select
 
 from app.auth import get_current_user, require_role
 from app.db import get_session
-from app.models import Event, EventBase, EventRsvp, Milestone, Person, User, now
+from app.models import RSVP_ANSWERS, Event, EventBase, EventRsvp, Milestone, Person, User, now
 from app.visibility import Kin
 
 router = APIRouter(tags=["calendar"])
@@ -43,10 +43,18 @@ def _time(v: str | None) -> str | None:
 class EventOut(EventBase):
     id: str
     sub: str  # "Lake Highlands • 14:00", the line under the title in the UI
-    attending: int
-    going: bool  # the current user's RSVP
+    attending: int  # "yes" answers plus extra guests
+    maybe: int = 0
+    going: bool  # the current user answered "yes"
+    rsvp: str | None = None  # the current user's answer: yes | maybe | no, or None if they haven't answered
     can_edit: bool
     cancelled: bool
+
+
+class RsvpIn(BaseModel):
+    answer: str = "yes"  # yes | maybe | no
+
+    model_config = {"json_schema_extra": {"examples": [{"answer": "maybe"}]}}
 
 
 class EventCreate(EventBase):
@@ -86,6 +94,7 @@ class Attendee(BaseModel):
     user_id: int
     person_id: str | None
     name: str
+    answer: str = "yes"  # yes | maybe
 
 
 class CalendarItem(BaseModel):
@@ -119,11 +128,19 @@ def get_event(db: Session, user: User, eid: str) -> Event:
 
 def events_out(db: Session, user: User, events: list[Event]) -> list[EventOut]:
     ids = [e.id for e in events]
-    counts = dict(db.exec(select(EventRsvp.event_id, func.count()).where(EventRsvp.event_id.in_(ids))
-                          .group_by(EventRsvp.event_id)).all()) if ids else {}
-    mine = set(db.exec(select(EventRsvp.event_id).where(EventRsvp.user_id == user.id, EventRsvp.event_id.in_(ids))).all()) if ids else set()
-    return [EventOut(**e.model_dump(), sub=" • ".join(filter(None, [e.place, e.time])), attending=counts.get(e.id, 0) + e.extra_guests,
-                     going=e.id in mine, can_edit=may_edit(user, e), cancelled=e.cancelled_at is not None) for e in events]
+    rows = db.exec(select(EventRsvp.event_id, EventRsvp.user_id, EventRsvp.answer).where(EventRsvp.event_id.in_(ids))).all() if ids else []
+    yes, maybe, mine = {}, {}, {}
+    for eid, uid, answer in rows:
+        answer = answer or "yes"  # rows saved before answers existed
+        if answer == "yes":
+            yes[eid] = yes.get(eid, 0) + 1
+        elif answer == "maybe":
+            maybe[eid] = maybe.get(eid, 0) + 1
+        if uid == user.id:
+            mine[eid] = answer
+    return [EventOut(**e.model_dump(), sub=" • ".join(filter(None, [e.place, e.time])), attending=yes.get(e.id, 0) + e.extra_guests,
+                     maybe=maybe.get(e.id, 0), going=mine.get(e.id) == "yes", rsvp=mine.get(e.id),
+                     can_edit=may_edit(user, e), cancelled=e.cancelled_at is not None) for e in events]
 
 
 def one(db: Session, user: User, e: Event) -> EventOut:
@@ -295,14 +312,19 @@ def restore_event(eid: str, user: User = Depends(get_current_user), db: Session 
 
 
 @router.put("/events/{eid}/rsvp", response_model=EventOut)
-def rsvp(eid: str, user: User = Depends(get_current_user), db: Session = Depends(get_session)):
-    """I'm going. Anyone in the family can RSVP, Viewers included."""
+def rsvp(eid: str, body: RsvpIn | None = None, user: User = Depends(get_current_user), db: Session = Depends(get_session)):
+    """Answer yes, maybe or no (no body means yes). Answering again changes it. Anyone in the family can RSVP,
+    Viewers included; DELETE takes the answer back."""
+    answer = (body or RsvpIn()).answer
+    if answer not in RSVP_ANSWERS:
+        raise HTTPException(422, f"answer must be one of: {', '.join(RSVP_ANSWERS)}")
     e = get_event(db, user, eid)
     if e.cancelled_at:
         raise HTTPException(422, "This gathering was cancelled")
-    if not db.get(EventRsvp, (eid, user.id)):
-        db.add(EventRsvp(event_id=eid, user_id=user.id))
-        db.commit()
+    r = db.get(EventRsvp, (eid, user.id)) or EventRsvp(event_id=eid, user_id=user.id)
+    r.answer, r.at = answer, now()
+    db.add(r)
+    db.commit()
     return one(db, user, e)
 
 
@@ -318,7 +340,9 @@ def un_rsvp(eid: str, user: User = Depends(get_current_user), db: Session = Depe
 
 @router.get("/events/{eid}/attendees", response_model=list[Attendee])
 def attendees(eid: str, user: User = Depends(get_current_user), db: Session = Depends(get_session)):
+    """Who said yes (and who said maybe, flagged), in the order they answered."""
     get_event(db, user, eid)
-    rows = db.exec(select(User).join(EventRsvp, EventRsvp.user_id == User.id).where(EventRsvp.event_id == eid)
+    rows = db.exec(select(User, EventRsvp.answer).join(EventRsvp, EventRsvp.user_id == User.id)
+                   .where(EventRsvp.event_id == eid, (EventRsvp.answer == None) | (EventRsvp.answer != "no"))  # noqa: E711
                    .order_by(EventRsvp.at)).all()
-    return [Attendee(user_id=u.id, person_id=u.person_id, name=u.name) for u in rows]
+    return [Attendee(user_id=u.id, person_id=u.person_id, name=u.name, answer=a or "yes") for u, a in rows]

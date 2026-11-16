@@ -1,6 +1,9 @@
 /* 5.7 Authentication and Family Onboarding */
-import { useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { Link, Navigate, useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import SiteHeader from "../components/SiteHeader";
+import { authApi, connected } from "../lib/api";
+import { useSession } from "../lib/session";
 import { useToast } from "../components/toastContext";
 import { Button, Card, Check, ErrorText, Eyebrow, Field, Icon, IconBox, Input, InputIcon, Photo, PhotoOverlay, Tabs, Tag } from "../components/ui";
 import { cx, emailOk } from "../lib/format";
@@ -47,17 +50,20 @@ function RoleGrid({ role, onPick }) {
   );
 }
 
-function CreateAccount({ onEnter, setTab }) {
+/** `join` = { code, family } after a family code was checked; `invite` = { token, family_name, name, email } from an invitation link. */
+function CreateAccount({ onEnter, onPending, setTab, join, invite }) {
   const { setEasy } = useStore();
+  const { signIn } = useSession();
   const t = useT();
-  const [f, setF] = useState({ name: "", email: "", pass: "", easy: true, trust: false });
+  const [f, setF] = useState(() => ({ name: invite?.name || "", email: invite?.email || "", pass: "", easy: true, trust: false, relation: "" }));
   const [role, setRole] = useState("elder");
   const [show, setShow] = useState(false);
   const [errors, setErrors] = useState({});
+  const [busy, setBusy] = useState(false);
   const s = passStrength(f.pass);
   const set = (k) => (e) => setF({ ...f, [k]: e.target.type === "checkbox" ? e.target.checked : e.target.value });
 
-  const submit = () => {
+  const submit = async () => {
     const name = f.name.trim(), email = f.email.trim();
     const e = {
       name: name ? "" : t("au.errName"),
@@ -69,8 +75,27 @@ function CreateAccount({ onEnter, setTab }) {
     const bad = ["name", "email", "pass", "trust"].find((k) => e[k]);
     if (bad) { document.getElementById("ca-" + bad).focus(); return; }
     setEasy(f.easy);
-    onEnter(name.split(" ")[0], t("au.requestSent"));
+    if (!connected) { onEnter(name.split(" ")[0], t("au.requestSent")); return; }
+    setBusy(true);
+    try {
+      const r = await authApi.register({
+        name, email, password: f.pass, easy_mode: f.easy,
+        ...(invite ? { invite_token: invite.token } : join ? { family_code: join.code, relation: f.relation.trim() || null } : {}),
+      });
+      if (r.status === "pending") { onPending(r.family_name); return; }
+      const me = await signIn(r.access_token);
+      if (me) onEnter(name.split(" ")[0], t(invite || join ? "au.signedInTo" : "au.newFamilyDone", { family: r.family_name }));
+    } catch (err) {
+      setErrors({ form: err.message });
+    } finally {
+      setBusy(false);
+    }
   };
+  // What this account will join: the invitation, the checked family code, or (on a server, with neither) a new archive.
+  const joining = !connected ? rich(t("au.invite", { code: "MCK-8294" }))
+    : invite ? t("au.joiningInvite", { family: invite.family_name })
+    : join ? t("au.joiningCode", { family: join.family, code: join.code })
+    : t("au.newFamily");
 
   return (
     <form className="grid gap-4" noValidate onSubmit={(e) => { e.preventDefault(); submit(); }}>
@@ -108,9 +133,14 @@ function CreateAccount({ onEnter, setTab }) {
       </fieldset>
       <div className="flex items-center gap-3 rounded-[14px] bg-surface-2 p-3">
         <IconBox icon="key" tone="dark" />
-        <div className="min-w-0 flex-1"><strong className="text-small">{t("au.token")}</strong><p className="text-xsmall text-muted">{rich(t("au.invite", { code: "MCK-8294" }))}</p></div>
-        <Button variant="ghost" size="sm" onClick={() => setTab("code")}>{t("au.changeCode")}</Button>
+        <div className="min-w-0 flex-1"><strong className="text-small">{t("au.token")}</strong><p className="text-xsmall text-muted">{joining}</p></div>
+        {!invite && <Button variant="ghost" size="sm" onClick={() => setTab("code")}>{t(connected && !join ? "au.useCode" : "au.changeCode")}</Button>}
       </div>
+      {connected && join && !invite && (
+        <Field id="ca-relation" label={t("au.relation")} hint={t("common.optional")} help={t("au.relationHelp")}>
+          <Input id="ca-relation" value={f.relation} onChange={set("relation")} maxLength={120} placeholder={t("au.relationPh")} />
+        </Field>
+      )}
       <Check checked={f.easy} onChange={set("easy")}>
         <strong>{t("au.easy")}</strong><br />
         <span className="text-xsmall text-muted">{t("au.easyHelp")}</span>
@@ -122,23 +152,52 @@ function CreateAccount({ onEnter, setTab }) {
         </Check>
         <ErrorText>{errors.trust}</ErrorText>
       </div>
-      <Button variant="primary" size="lg" block type="submit">{t("au.create")} <Icon name="arrow_forward" size="sm" /></Button>
+      <FormError>{errors.form}</FormError>
+      <Button variant="primary" size="lg" block type="submit" busy={busy}>{t("au.create")} <Icon name="arrow_forward" size="sm" /></Button>
     </form>
   );
+}
+
+/** A problem the server reported for the whole form (wrong password, request still waiting…), in its own words. */
+function FormError({ children }) {
+  if (!children) return null;
+  return <p role="alert" className="flex items-start gap-2 rounded-xl bg-rose-100 p-3 text-small text-rose"><Icon name="error" size="sm" /> <span>{children}</span></p>;
 }
 
 function SignIn({ onEnter }) {
   const toast = useToast();
   const t = useT();
+  const { signIn } = useSession();
   const [email, setEmail] = useState("");
   const [pass, setPass] = useState("");
   const [show, setShow] = useState(false);
   const [errors, setErrors] = useState({});
-  const submit = () => {
+  const [busy, setBusy] = useState(false);
+  const submit = async () => {
     const e = { email: emailOk(email.trim()) ? "" : t("au.errSiEmail"), pass: pass ? "" : t("au.errSiPass") };
     setErrors(e);
     if (e.email || e.pass) { document.getElementById(e.email ? "siEmail" : "siPass").focus(); return; }
-    onEnter(null, t("au.signedIn"));
+    if (!connected) { onEnter(null, t("au.signedIn")); return; }
+    setBusy(true);
+    try {
+      const r = await authApi.login(email.trim(), pass);
+      const me = await signIn(r.access_token);
+      if (me) onEnter(me.name.split(" ")[0], t("au.signedInTo", { family: me.family_name }));
+    } catch (err) {
+      setErrors({ form: err.message });
+    } finally {
+      setBusy(false);
+    }
+  };
+  const forgot = async () => {
+    if (!connected) { toast(t("au.recovery"), { sub: t("au.recoverySub"), icon: "mail" }); return; }
+    if (!emailOk(email.trim())) { setErrors({ email: t("au.forgotNeedEmail") }); document.getElementById("siEmail").focus(); return; }
+    try {
+      const r = await authApi.forgotPassword(email.trim());
+      toast(t("au.recovery"), { sub: r.detail, icon: "mail", duration: 9000 });
+    } catch (err) {
+      toast(err.message, { error: true });
+    }
   };
   return (
     <form className="grid gap-4" noValidate onSubmit={(e) => { e.preventDefault(); submit(); }}>
@@ -151,11 +210,46 @@ function SignIn({ onEnter }) {
       </Field>
       <div className="flex items-center justify-between gap-2.5 text-small">
         <Check checked={show} onChange={(e) => setShow(e.target.checked)}>{t("au.showPass")}</Check>
-        <a href="#/auth" onClick={(e) => { e.preventDefault(); toast(t("au.recovery"), { sub: t("au.recoverySub"), icon: "mail" }); }}>
+        <a href="#/auth" onClick={(e) => { e.preventDefault(); forgot(); }}>
           {t("au.forgot")}
         </a>
       </div>
-      <Button variant="primary" size="lg" block type="submit">{t("au.signIn")} <Icon name="arrow_forward" size="sm" /></Button>
+      <FormError>{errors.form}</FormError>
+      <Button variant="primary" size="lg" block type="submit" busy={busy}>{t("au.signIn")} <Icon name="arrow_forward" size="sm" /></Button>
+    </form>
+  );
+}
+
+/** Opened from the link in a "choose a new password" message (#/auth?reset=…). */
+function ResetPassword({ token, onEnter }) {
+  const t = useT();
+  const { signIn } = useSession();
+  const [pass, setPass] = useState("");
+  const [show, setShow] = useState(false);
+  const [errors, setErrors] = useState({});
+  const [busy, setBusy] = useState(false);
+  const submit = async () => {
+    if (pass.length < 10) { setErrors({ pass: t("au.errPass", { n: pass.length }) }); document.getElementById("rpPass").focus(); return; }
+    setBusy(true);
+    try {
+      const r = await authApi.resetPassword(token, pass);
+      const me = await signIn(r.access_token);
+      if (me) onEnter(me.name.split(" ")[0], t("au.resetDone"));
+    } catch (err) {
+      setErrors({ form: err.message });
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <form className="grid gap-4" noValidate onSubmit={(e) => { e.preventDefault(); submit(); }}>
+      <div><h2>{t("au.resetTitle")}</h2><p className="mt-2 text-small text-muted">{t("au.resetSub")}</p></div>
+      <Field id="rpPass" label={t("au.pass")} error={errors.pass}>
+        <InputIcon icon="key"><Input id="rpPass" type={show ? "text" : "password"} autoComplete="new-password" value={pass} onChange={(e) => setPass(e.target.value)} invalid={!!errors.pass} /></InputIcon>
+      </Field>
+      <Check checked={show} onChange={(e) => setShow(e.target.checked)}>{t("au.showPass")}</Check>
+      <FormError>{errors.form}</FormError>
+      <Button variant="primary" size="lg" block type="submit" busy={busy}>{t("au.resetSave")} <Icon name="arrow_forward" size="sm" /></Button>
     </form>
   );
 }
@@ -165,14 +259,24 @@ function FamilyCode({ onAccepted }) {
   const t = useT();
   const [code, setCode] = useState("");
   const [error, setError] = useState("");
-  const submit = () => {
+  const [busy, setBusy] = useState(false);
+  const submit = async () => {
     const c = code.trim().toUpperCase();
-    const err = !/^[A-Z]{3}-?\d{4}$/.test(c) ? t("au.errCodeFormat")
-      : c.replace("-", "") !== "MCK8294" ? t("au.errCodeUnknown") : "";
+    // Codes look like MCK-8294; the dash is optional when typing.
+    const formatted = /^[A-Z]{3}\d{4}$/.test(c) ? `${c.slice(0, 3)}-${c.slice(3)}` : c;
+    let err = !/^[A-Z]{3}-\d{4}$/.test(formatted) ? t("au.errCodeFormat") : "";
+    let family = null;
+    if (!err && !connected && formatted !== "MCK-8294") err = t("au.errCodeUnknown");
+    if (!err && connected) {
+      setBusy(true);
+      try { family = (await authApi.verifyCode(formatted)).family_name; }
+      catch (e) { err = e.status === 404 ? t("au.errCodeUnknown") : e.message; }
+      finally { setBusy(false); }
+    }
     setError(err);
     if (err) { document.getElementById("fcCode").focus(); return; }
-    toast(t("au.codeOk"), { sub: t("au.codeOkSub"), icon: "verified" });
-    onAccepted();
+    toast(family ? t("au.codeFound", { family }) : t("au.codeOk"), { sub: t("au.codeOkSub"), icon: "verified" });
+    onAccepted({ code: formatted, family });
   };
   return (
     <form className="grid gap-4" noValidate onSubmit={(e) => { e.preventDefault(); submit(); }}>
@@ -184,7 +288,7 @@ function FamilyCode({ onAccepted }) {
         <Input id="fcCode" value={code} onChange={(e) => setCode(e.target.value)} invalid={!!error} placeholder="MCK-8294" autoComplete="off" maxLength={8}
           className="text-center text-[1.3rem] tracking-[.15em] uppercase" />
       </Field>
-      <Button variant="primary" size="lg" block type="submit">{t("au.checkCode")} <Icon name="arrow_forward" size="sm" /></Button>
+      <Button variant="primary" size="lg" block type="submit" busy={busy}>{t("au.checkCode")} <Icon name="arrow_forward" size="sm" /></Button>
     </form>
   );
 }
@@ -195,19 +299,43 @@ const STEPS = [["badge", 1], ["verified", 2], ["account_tree", 3]];
 export default function Auth() {
   const toast = useToast();
   const navigate = useNavigate();
+  const location = useLocation();
+  const [params] = useSearchParams();
+  const { status } = useSession();
   const t = useT();
-  const [tab, setTabState] = useState("create");
+  const resetToken = connected ? params.get("reset") : null;
+  const inviteToken = connected ? params.get("invite") : null;
+  const [tab, setTabState] = useState(inviteToken ? "create" : connected ? "signin" : "create");
+  const [join, setJoin] = useState(null);
+  const [invite, setInvite] = useState(null);
+  const [inviteError, setInviteError] = useState("");
+  const [pending, setPending] = useState(null);
   const setTab = (v) => {
     setTabState(v);
     setTimeout(() => document.querySelector("#authPanel input")?.focus());
   };
+  // Back to the page that sent you here (e.g. a link to a relative), or the Overview.
   const enter = (name, sub) => {
     toast(name ? t("au.welcome", { name }) : t("au.welcomeAgain"), { sub, icon: "celebration", duration: 6000 });
-    navigate("/overview");
+    navigate(location.state?.from || "/overview", { replace: true });
   };
 
+  useEffect(() => { document.title = `${t("nav.auth")} – FamilyRoots`; }, [t]);
+
+  // An invitation link greets the person by name and fills in their email.
+  useEffect(() => {
+    if (!inviteToken) return;
+    authApi.inviteInfo(inviteToken).then((i) => setInvite({ token: inviteToken, ...i }), (e) => setInviteError(e.message));
+  }, [inviteToken]);
+
+  // Already signed in (and not here to reset a password): straight into the archive.
+  if (status === "signedIn" && !resetToken) return <Navigate to={location.state?.from || "/overview"} replace />;
+
+  // A public page: its own header, outside the signed-in app shell (no sidebar, quick actions or tour).
   return (
-    <>
+    <div className="min-h-screen">
+      <SiteHeader />
+      <main id="main" className="mx-auto w-full max-w-300 px-4 pt-8 pb-16 sm:px-7">
       <div className="mb-6.5 grid justify-items-center gap-2.5 text-center">
         <Tag tone="sec" icon="shield">{t("au.haven")}</Tag>
         <h1>{t("au.h1a")}<br />{t("au.h1b")}</h1>
@@ -217,7 +345,7 @@ export default function Auth() {
       <div className="mx-auto grid max-w-260 overflow-hidden rounded-[26px] bg-surface shadow-pop md:grid-cols-[minmax(0,.85fr)_minmax(0,1fr)]">
         <div className="flex flex-col gap-5.5 bg-[radial-gradient(circle_at_20%_10%,var(--color-pine-700),var(--color-pine-900)_60%)] p-5 text-white sm:p-7">
           <div><Tag className="bg-white/10! text-mint!">{t("au.branch")}</Tag></div>
-          <Photo p1="#a98a68" p2="#3c4f40" icon="family_restroom" aspect="aspect-[4/3.4]" alt={t("au.photoAlt")}>
+          <Photo p1="#a98a68" p2="#3c4f40" icon="family_restroom" sample="auth" aspect="aspect-[4/3.4]" alt={t("au.photoAlt")}>
             <PhotoOverlay className="flex items-center justify-between gap-2.5">
               <strong>{t("land.folio")}</strong><Tag className="bg-white/20! text-white!">{t("au.memories", { n: 142 })}</Tag>
             </PhotoOverlay>
@@ -236,13 +364,28 @@ export default function Auth() {
         </div>
 
         <div className="grid content-start gap-4 p-5 sm:p-7.5">
-          <Tabs label={t("au.options")} value={tab} onChange={setTab} className="grid! grid-cols-3"
-            items={[["signin", t("au.tabSignIn")], ["create", t("au.tabCreate")], ["code", t("au.tabCode")]]} />
-          <div id="authPanel" role="tabpanel">
-            {tab === "signin" && <SignIn onEnter={enter} />}
-            {tab === "create" && <CreateAccount onEnter={enter} setTab={setTab} />}
-            {tab === "code" && <FamilyCode onAccepted={() => setTab("create")} />}
-          </div>
+          {resetToken ? <ResetPassword token={resetToken} onEnter={enter} /> : pending ? (
+            // A join request waits for an Admin: say so plainly instead of pretending the person is in.
+            <div role="status" className="grid justify-items-center gap-3 rounded-2xl bg-surface-2 p-6 text-center">
+              <Icon name="hourglass_top" className="text-[40px]! text-sec-ink" />
+              <h2>{t("au.pendingTitle", { family: pending })}</h2>
+              <p className="max-w-100 text-small text-muted">{t("au.pendingSub")}</p>
+              <Button onClick={() => { setPending(null); setTab("signin"); }}>{t("au.tabSignIn")}</Button>
+            </div>
+          ) : (
+            <>
+              {invite && <p className="flex items-start gap-2 rounded-xl bg-sec-soft p-3 text-small"><Icon name="mail" size="sm" className="text-sec-ink" /> {t("au.invited", { name: invite.name.split(" ")[0], family: invite.family_name })}</p>}
+              <FormError>{inviteError}</FormError>
+              <Tabs label={t("au.options")} value={tab} onChange={setTab} className="grid! grid-cols-3"
+                items={[["signin", t("au.tabSignIn")], ["create", t("au.tabCreate")], ["code", t("au.tabCode")]]} />
+              <div id="authPanel" role="tabpanel">
+                {tab === "signin" && <SignIn onEnter={enter} />}
+                {/* Re-created when an invitation arrives, so its name and email are filled in. */}
+                {tab === "create" && <CreateAccount key={invite?.token || "new"} onEnter={enter} onPending={setPending} setTab={setTab} join={join} invite={invite} />}
+                {tab === "code" && <FamilyCode onAccepted={(j) => { setJoin(j); setTab("create"); }} />}
+              </div>
+            </>
+          )}
           <p className="flex items-center gap-2.5 text-xsmall text-muted"><Icon name="support_agent" size="sm" /> {t("au.help")}</p>
         </div>
       </div>
@@ -270,6 +413,7 @@ export default function Auth() {
         </div>
         <Button to="/privacy">{t("au.readCharter")}</Button>
       </Card>
-    </>
+      </main>
+    </div>
   );
 }

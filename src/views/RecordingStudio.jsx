@@ -42,8 +42,6 @@ export default function RecordingStudio({ promptIdx, setPromptIdx, forName }) {
   const [status, setStatus] = useState("idle"); // idle | recording | paused | review
   const [simulated, setSimulated] = useState(false);
   const [seconds, setSeconds] = useState(0);
-  // Kept as data (not words) so they follow a language change mid-recording.
-  const [autosave, setAutosave] = useState(null);
   const [stt, setStt] = useState("idle"); // idle | typeOnly | listening
   const [transcript, setTranscript] = useState("");
   const [reviewUrl, setReviewUrl] = useState(null);
@@ -65,7 +63,7 @@ export default function RecordingStudio({ promptIdx, setPromptIdx, forName }) {
     if (!c) return;
     const g = c.getContext("2d"), w = c.width, h = c.height;
     g.clearRect(0, 0, w, h);
-    g.fillStyle = getComputedStyle(c).getPropertyValue("--sec").trim() || "#1e3a8a";
+    g.fillStyle = getComputedStyle(c).getPropertyValue("--sec").trim() || "#c2410c";
     const r = rec.current, live = statusRef.current === "recording";
     let data = null;
     if (r?.analyser) { data = new Uint8Array(r.analyser.frequencyBinCount); r.analyser.getByteFrequencyData(data); }
@@ -113,9 +111,7 @@ export default function RecordingStudio({ promptIdx, setPromptIdx, forName }) {
   const tick = () => {
     const r = rec.current;
     if (!r || statusRef.current !== "recording") return;
-    const secs = r.elapsed + (Date.now() - r.started) / 1000;
-    setSeconds(secs);
-    if (Math.floor(secs) % 10 === 0) setAutosave(Date.now());
+    setSeconds(r.elapsed + (Date.now() - r.started) / 1000);
   };
 
   const releaseDevices = (r) => {
@@ -248,7 +244,6 @@ export default function RecordingStudio({ promptIdx, setPromptIdx, forName }) {
     paused: t("rs.status.paused"),
     review: t("rs.status.review", { time: fmt(seconds) }),
   }[status];
-  const savedAt = autosave ? t("rs.backedUp", { time: new Date(autosave).toLocaleTimeString(localeOf(prefs.lang), { hour: "2-digit", minute: "2-digit", second: "2-digit" }) }) : t("rs.ready");
 
   return (
     <Card id="studio" className="mt-7" aria-labelledby="studioH">
@@ -257,7 +252,8 @@ export default function RecordingStudio({ promptIdx, setPromptIdx, forName }) {
           <h2 id="studioH" className="flex flex-wrap items-center gap-2.5"><Icon name="radio_button_checked" /> {t("rs.title")} <Tag tone="sec">{t("rs.tactile")}</Tag></h2>
           <p className="mt-2 text-small text-muted">{t("rs.sub")}</p>
         </div>
-        <Tag tone="outline" icon="cloud_done">{t("rs.autosave", { state: savedAt })}</Tag>
+        {/* Nothing is kept until Save: a closed tab loses the recording, so the tag says so. */}
+        <Tag tone="outline" icon="save">{t("rs.autosave")}</Tag>
       </div>
 
       <div className="mt-4 grid grid-cols-[minmax(0,1fr)] gap-4.5 md:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]">

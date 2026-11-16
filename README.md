@@ -13,6 +13,12 @@ There are three ways to use FamilyRoots. None needs an account or a server of yo
 | **Hosted** | Upload the contents of `dist/` to any static host (GitHub Pages, Netlify, a school server…). | Yes, after the first visit | Yes: *Install FamilyRoots app* in the account menu or Settings |
 | **Development** | `npm install` then `npm run dev`, open http://localhost:5173 | – | – |
 
+**With a family server** (the FastAPI backend in `backend/`): copy `.env.example` to `.env.local`, start the backend
+(see `backend/README.md`), then `npm run dev`. FamilyRoots then asks you to sign in (demo accounts such as
+`mary@example.com` / `familyroots123`). Sign in, create account, join with a family code, invitation links and
+"choose a new password" links use the server; the other screens are being moved onto it one at a time, and a note at
+the top of the app says so until they are. Without `VITE_API_URL`, nothing changes: no sign-in, everything on the device.
+
 Everything you add is saved in the browser on that device (localStorage; recordings in IndexedDB). It starts with the sample
 Mackenzie family; **Settings & Accessibility → Restore the sample family** brings it back (and can be undone).
 Use **Settings → Download my archive** or **Privacy & Consent → Download my data** to keep a copy.

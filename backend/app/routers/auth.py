@@ -1,7 +1,7 @@
 """/auth and /me: create an account, sign in, check a family code, read the current user."""
 import logging
 import secrets
-from typing import Annotated
+from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Response
 from fastapi.security import OAuth2PasswordRequestForm
@@ -10,7 +10,8 @@ from sqlmodel import Session, select
 
 from app.auth import create_reset_link, create_token, get_current_user, hash_password, use_reset_token, verify_password
 from app.db import get_session
-from app.models import Family, Invite, JoinRequest, User, now
+from app.models import Family, Invite, JoinRequest, User, UserPrefs, now
+from app.routers.notifications import family_users, notify
 
 router = APIRouter(tags=["auth"])
 log = logging.getLogger("familyroots")
@@ -112,6 +113,8 @@ def register(body: RegisterIn, response: Response, db: Session = Depends(get_ses
         db.add(JoinRequest(family_id=family.id, name=name, email=email, password_hash=hash_password(body.password),
                            easy_mode=body.easy_mode, relation=body.relation, note=body.note))
         db.commit()
+        notify(db, family.id, family_users(db, family.id, ("Admin",)), "join.requested",
+               f"{name} asked to join the family archive", body.relation, "/admin")
         response.status_code = 202  # accepted, waiting for an Admin
         return RegisterOut(status="pending", family_name=family.name)
 
@@ -167,11 +170,78 @@ def verify_code(body: CodeIn, db: Session = Depends(get_session)):
     return {"family_name": family.name}
 
 
-@router.get("/me", response_model=MeOut)
-def me(user: User = Depends(get_current_user), db: Session = Depends(get_session)):
+def me_out(db: Session, user: User) -> MeOut:
     family = db.get(Family, user.family_id)
     return MeOut(id=user.id, name=user.name, email=user.email, role=user.role, family_id=user.family_id,
                  family_name=family.name, person_id=user.person_id, easy_mode=user.easy_mode)
+
+
+@router.get("/me", response_model=MeOut)
+def me(user: User = Depends(get_current_user), db: Session = Depends(get_session)):
+    return me_out(db, user)
+
+
+class MeUpdate(BaseModel):
+    """Settings → Your account. Send only what changed. A new email address needs your current password."""
+    name: str | None = Field(None, min_length=1, max_length=120)
+    email: EmailStr | None = None
+    easy_mode: bool | None = None
+    current_password: str | None = None
+
+    model_config = {"json_schema_extra": {"examples": [{"easy_mode": True}]}}
+
+
+@router.patch("/me", response_model=MeOut)
+def update_me(body: MeUpdate, user: User = Depends(get_current_user), db: Session = Depends(get_session)):
+    if body.name is not None:
+        if not body.name.strip():
+            raise HTTPException(422, "Your name can't be empty")
+        user.name = body.name.strip()
+    if body.email is not None and body.email.lower() != user.email:
+        if not body.current_password or not verify_password(body.current_password, user.password_hash):
+            raise HTTPException(400, "Enter your current password to change your email address")
+        email = body.email.lower()
+        if db.exec(select(User).where(User.email == email)).first() or pending_request(db, email):
+            raise HTTPException(409, "An account with this email already exists")
+        user.email = email
+    if body.easy_mode is not None:
+        user.easy_mode = body.easy_mode
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return me_out(db, user)
+
+
+class NotifyPrefs(BaseModel):
+    birthdays: bool = True
+    stories: bool = True
+    digest: Literal["off", "daily", "weekly", "monthly"] = "weekly"
+
+
+class PrefsIO(BaseModel):
+    """Settings that follow the account to every device. Theme, accent and text size stay per device."""
+    lang: Literal["en", "fr", "rw", "sw"] = "en"
+    notify: NotifyPrefs = NotifyPrefs()
+
+    model_config = {"json_schema_extra": {"examples": [{"lang": "rw", "notify": {"birthdays": True, "stories": False, "digest": "monthly"}}]}}
+
+
+def user_prefs(db: Session, user: User) -> UserPrefs:
+    return db.get(UserPrefs, user.id) or UserPrefs(user_id=user.id)
+
+
+@router.get("/me/preferences", response_model=PrefsIO)
+def read_prefs(user: User = Depends(get_current_user), db: Session = Depends(get_session)):
+    return PrefsIO(**user_prefs(db, user).data)
+
+
+@router.put("/me/preferences", response_model=PrefsIO)
+def save_prefs(body: PrefsIO, user: User = Depends(get_current_user), db: Session = Depends(get_session)):
+    p = user_prefs(db, user)
+    p.data = body.model_dump()
+    db.add(p)
+    db.commit()
+    return body
 
 
 # ---------- passwords ----------

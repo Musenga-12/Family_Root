@@ -178,6 +178,17 @@ def verify_milestone(mid: str, user: User = Depends(get_current_user), db: Sessi
     return out(user, m)
 
 
+@router.post("/{mid}/reopen", response_model=MilestoneOut, dependencies=[Depends(require_role(*MODERATORS))])
+def reopen_milestone(mid: str, user: User = Depends(get_current_user), db: Session = Depends(get_session)):
+    """Undo "verified": the date shows as reported again until it is checked."""
+    m = get_milestone(db, user, mid)
+    m.verified = False
+    db.add(m)
+    db.commit()
+    db.refresh(m)
+    return out(user, m)
+
+
 @router.delete("/{mid}", status_code=204)
 def delete_milestone(mid: str, user: User = Depends(get_current_user), db: Session = Depends(get_session)):
     m = get_milestone(db, user, mid)

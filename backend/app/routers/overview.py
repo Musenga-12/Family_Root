@@ -1,11 +1,15 @@
-"""The Overview screen: the family poll, the prompt of the week, and /overview, which gathers the dashboard in one call."""
+"""The Overview screen: the family poll, the prompt of the week, the mood check-in, and /overview, which gathers
+the dashboard in one call."""
+from datetime import date
+from typing import Literal
+
 from fastapi import APIRouter, Depends, HTTPException, Response
 from pydantic import BaseModel, Field, field_validator
 from sqlmodel import Session, func, select
 
 from app.auth import get_current_user, require_role
 from app.db import get_session
-from app.models import Person, Poll, PollVote, Prompt, PromptReply, ThreadMember, User, iso, now
+from app.models import MOODS, MoodCheckin, Person, Poll, PollVote, Prompt, PromptReply, ThreadMember, User, iso, now
 
 router = APIRouter(tags=["overview"])
 MODERATORS = ("Admin", "Custodian")
@@ -211,6 +215,55 @@ def delete_reply(pid: str, rid: str, user: User = Depends(get_current_user), db:
     db.add(r)
     db.commit()
     return Response(status_code=204)
+
+
+# ---------- mood check-in ----------
+
+class MoodIn(BaseModel):
+    mood: Literal["joyful", "nostalgic", "grateful", "tired", "missing"]
+
+    model_config = {"json_schema_extra": {"examples": [{"mood": "grateful"}]}}
+
+
+class MoodOut(BaseModel):
+    day: str  # YYYY-MM-DD
+    mine: str | None  # your answer today, if any
+    family: dict[str, int]  # today's answers across the family, e.g. {"joyful": 3, "tired": 1}
+
+
+def mood_out(db: Session, user: User, day: str) -> MoodOut:
+    rows = db.exec(select(MoodCheckin).where(MoodCheckin.family_id == user.family_id, MoodCheckin.day == day)).all()
+    family = {m: 0 for m in MOODS}
+    for r in rows:
+        family[r.mood] = family.get(r.mood, 0) + 1
+    mine = next((r.mood for r in rows if r.user_id == user.id), None)
+    return MoodOut(day=day, mine=mine, family=family)
+
+
+@router.get("/mood", response_model=MoodOut)
+def read_mood(user: User = Depends(get_current_user), db: Session = Depends(get_session)):
+    return mood_out(db, user, date.today().isoformat())
+
+
+@router.put("/mood", response_model=MoodOut)
+def check_in(body: MoodIn, user: User = Depends(get_current_user), db: Session = Depends(get_session)):
+    """"How are you feeling today?" One answer per person per day; answering again changes it. Viewers can answer."""
+    day = date.today().isoformat()
+    m = db.get(MoodCheckin, (user.id, day)) or MoodCheckin(user_id=user.id, day=day, family_id=user.family_id, mood=body.mood)
+    m.mood, m.at = body.mood, now()
+    db.add(m)
+    db.commit()
+    return mood_out(db, user, day)
+
+
+@router.delete("/mood", response_model=MoodOut)
+def clear_mood(user: User = Depends(get_current_user), db: Session = Depends(get_session)):
+    """Take back today's answer (Undo)."""
+    day = date.today().isoformat()
+    if (m := db.get(MoodCheckin, (user.id, day))):
+        db.delete(m)
+        db.commit()
+    return mood_out(db, user, day)
 
 
 # ---------- dashboard ----------

@@ -218,10 +218,14 @@ class Event(EventBase, table=True):
     cancelled_at: datetime | None = None
 
 
+RSVP_ANSWERS = ("yes", "maybe", "no")
+
+
 class EventRsvp(SQLModel, table=True):
     event_id: str = Field(foreign_key="event.id", primary_key=True)
     user_id: int = Field(foreign_key="user.id", primary_key=True)
     at: datetime = Field(default_factory=now)
+    answer: str | None = None  # yes | maybe | no; rows from before answers existed (None) count as yes
 
 
 # ---------- Legacy archive ----------
@@ -251,6 +255,14 @@ class LegacyRecord(RecordBase, table=True):
     owner_user_id: int | None = Field(default=None, foreign_key="user.id")
     created_at: datetime = Field(default_factory=now)
     deleted_at: datetime | None = None
+
+
+class RecordAttachment(SQLModel, table=True):
+    """A scan or photo of the original document (a certificate, a will), kept with its record."""
+    record_id: str = Field(foreign_key="record.id", primary_key=True)
+    upload_id: str = Field(foreign_key="upload.id", primary_key=True)
+    added_by: int | None = Field(default=None, foreign_key="user.id")
+    added_at: datetime = Field(default_factory=now)
 
 
 # ---------- Family administration ----------
@@ -303,6 +315,16 @@ class UserPrivacy(SQLModel, table=True):
     user_id: int = Field(foreign_key="user.id", primary_key=True)
     categories: dict = Field(default_factory=lambda: dict(DEFAULT_CATEGORIES), sa_column=Column(JSON))
     mine: dict = Field(default_factory=lambda: dict(DEFAULT_MINE), sa_column=Column(JSON))
+
+
+DEFAULT_PREFS = {"lang": "en", "notify": {"birthdays": True, "stories": True, "digest": "weekly"}}
+
+
+class UserPrefs(SQLModel, table=True):
+    """Account settings that follow you to every device (Settings: language, notifications).
+    Display choices such as theme and text size stay on each device."""
+    user_id: int = Field(foreign_key="user.id", primary_key=True)
+    data: dict = Field(default_factory=lambda: {**DEFAULT_PREFS, "notify": dict(DEFAULT_PREFS["notify"])}, sa_column=Column(JSON))
 
 
 class MinorSetting(SQLModel, table=True):
@@ -381,6 +403,51 @@ class PromptReply(SQLModel, table=True):
     text: str
     created_at: datetime = Field(default_factory=now)
     deleted_at: datetime | None = None
+
+
+MOODS = ("joyful", "nostalgic", "grateful", "tired", "missing")  # the order of the Overview's mood chips ("Missing someone")
+
+
+class MoodCheckin(SQLModel, table=True):
+    """"How are you feeling today?" on the Overview: one answer per person per day; answering again changes it."""
+    user_id: int = Field(foreign_key="user.id", primary_key=True)
+    day: str = Field(primary_key=True)  # YYYY-MM-DD
+    family_id: int = Field(foreign_key="family.id", index=True)
+    mood: str
+    at: datetime = Field(default_factory=now)
+
+
+# ---------- Corrections and notifications ----------
+
+SUGGESTION_FIELDS = ("Birth date", "Birth place", "Relationship", "Occupation", "Other")
+
+
+class Suggestion(SQLModel, table=True):
+    """"Suggest a correction" on a tree profile. An Admin or Custodian makes the change, then closes it."""
+    id: str = Field(default_factory=lambda: new_id("sg"), primary_key=True)
+    family_id: int = Field(foreign_key="family.id", index=True)
+    person_id: str = Field(foreign_key="person.id", index=True)
+    field: str
+    value: str
+    source: str | None = None
+    by_user_id: int = Field(foreign_key="user.id")
+    status: str = "open"  # open | accepted | dismissed
+    decided_by: int | None = Field(default=None, foreign_key="user.id")
+    decided_at: datetime | None = None
+    created_at: datetime = Field(default_factory=now)
+
+
+class Notification(SQLModel, table=True):
+    """One item in someone's notifications (the bell): a request to look at, a reply, a decision."""
+    id: str = Field(default_factory=lambda: new_id("n"), primary_key=True)
+    family_id: int = Field(foreign_key="family.id", index=True)
+    user_id: int = Field(foreign_key="user.id", index=True)  # who it is for
+    kind: str  # e.g. consent.requested, join.requested, suggestion.new, suggestion.decided, story.reflection
+    title: str
+    body: str | None = None
+    link: str | None = None  # app route, e.g. "/privacy" or "/tree?person=anna"
+    created_at: datetime = Field(default_factory=now, index=True)
+    read_at: datetime | None = None
 
 
 # ---------- Messages ----------

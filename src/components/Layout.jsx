@@ -1,6 +1,6 @@
 /* App shell: sidebar navigation, top bar, breadcrumbs, footer, theme / language / Easy-to-Read switches, quick search,
    undo / redo with history, read aloud, voice search, connection status, quick actions and the first-visit tour. */
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Link, NavLink, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { ME } from "../data";
 import AddMemoryDialog from "../dialogs/AddMemoryDialog";
@@ -9,6 +9,7 @@ import InviteDialog from "../dialogs/InviteDialog";
 import { cx } from "../lib/format";
 import { LANGS, useT } from "../lib/i18n";
 import { NAV } from "../lib/nav";
+import { useSession } from "../lib/session";
 import { canSpeak, pageText, useSpeech, useVoiceInput } from "../lib/speech";
 import { useInstall } from "../lib/useInstall";
 import { fullName, useStore } from "../lib/store";
@@ -25,14 +26,43 @@ import { Avatar, Button, Empty, Icon, IconButton, Record } from "./ui";
 
 const isTyping = (el) => el && (el.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName));
 
-function Sidebar({ open, onClose }) {
+/* Below the md breakpoint (980px) the sidebar is an off-canvas drawer. */
+const DRAWER = "(max-width: 979.98px)";
+const subscribeDrawer = (cb) => {
+  const m = window.matchMedia(DRAWER);
+  m.addEventListener("change", cb);
+  return () => m.removeEventListener("change", cb);
+};
+const useDrawer = () => useSyncExternalStore(subscribeDrawer, () => window.matchMedia(DRAWER).matches, () => false);
+
+/** `onClose` closes after choosing a page (focus then moves to the new page); `onDismiss` closes and returns focus to the menu button. */
+function Sidebar({ open, onClose, onDismiss }) {
   const { prefs, setPref, state } = useStore();
   const unread = (state.threads || []).reduce((n, x) => n + (x.unread || 0), 0);
   const t = useT();
   const compact = prefs.sidebar === "compact";
+  const drawer = useDrawer();
+  const ref = useRef(null);
+  // While the drawer is open it holds the focus: first link focused, Tab stays inside, Escape closes it.
+  useEffect(() => {
+    if (!drawer || !open) return;
+    const el = ref.current;
+    el.querySelector("nav a")?.focus();
+    const onKey = (e) => {
+      if (e.key === "Escape") { e.stopPropagation(); onDismiss(); return; }
+      if (e.key !== "Tab") return;
+      const f = [...el.querySelectorAll("a, button")].filter((x) => !x.disabled && x.offsetParent !== null);
+      if (!f.length) return;
+      if (e.shiftKey && document.activeElement === f[0]) { e.preventDefault(); f[f.length - 1].focus(); }
+      else if (!e.shiftKey && document.activeElement === f[f.length - 1]) { e.preventDefault(); f[0].focus(); }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [drawer, open, onDismiss]);
   return (
     <>
-      <aside id="sidebar" aria-label={t("shell.primaryNav")} data-no-print
+      {/* A closed drawer is off screen, so it is also taken out of the tab order and the accessibility tree. */}
+      <aside ref={ref} id="sidebar" aria-label={t("shell.primaryNav")} data-no-print inert={drawer && !open}
         className={cx(
           "z-40 flex h-screen w-62 shrink-0 flex-col gap-4.5 overflow-y-auto border-r border-line bg-surface-2 px-3.5 py-4.5 transition-[width,transform]",
           "fixed top-0 left-0 shadow-pop md:sticky md:translate-x-0 md:shadow-none",
@@ -98,7 +128,7 @@ function Sidebar({ open, onClose }) {
           </button>
         </div>
       </aside>
-      {open && <div className="fixed inset-0 z-35 bg-[rgba(10,30,24,.4)] md:hidden" onClick={onClose} />}
+      {open && <div aria-hidden="true" className="fixed inset-0 z-35 bg-[rgba(10,30,24,.4)] md:hidden" onClick={onDismiss} />}
     </>
   );
 }
@@ -300,13 +330,25 @@ function OfflineBanner() {
   );
 }
 
-/** Footer sync line: icon + words (never colour alone), live with the connection. */
+/** While screens move onto the family server one by one, say plainly which data a signed-in person is looking at. */
+function ServerNotice() {
+  const { me } = useSession();
+  const t = useT();
+  if (!me) return null;
+  return (
+    <div role="note" data-no-print className="flex flex-wrap items-center gap-2.5 border-b border-line bg-sec-soft px-4 py-2 text-small text-sec-ink sm:px-7">
+      <Icon name="info" size="sm" /> <span>{t("session.interim", { name: me.name.split(" ")[0], family: me.family_name })}</span>
+    </div>
+  );
+}
+
+/** Footer storage line: icon + words (never colour alone). Everything is kept on this device; nothing syncs yet. */
 function SyncStatus() {
   const online = useOnline();
   const t = useT();
   return (
     <span className="inline-flex items-center gap-1">
-      <Icon name={online ? "cloud_done" : "cloud_off"} size="xs" className={online ? "text-pine-700" : "text-gold-ink"} />
+      <Icon name={online ? "save" : "cloud_off"} size="xs" className={online ? "text-pine-700" : "text-gold-ink"} />
       {online ? t("footer.synced") : t("net.footer")}
     </span>
   );
@@ -359,7 +401,7 @@ function Breadcrumbs({ route }) {
   );
 }
 
-function Topbar({ menuOpen, onMenu, onPalette, onTour, speech }) {
+function Topbar({ menuOpen, menuRef, onMenu, onPalette, onTour, speech }) {
   const { easy, person, prefs, kin, dark } = useStore();
   const t = useT();
   const toggleEasy = useToggleEasy();
@@ -370,12 +412,15 @@ function Topbar({ menuOpen, onMenu, onPalette, onTour, speech }) {
   const [q, setQ] = useState("");
   const [unread, setUnread] = useState(3);
   const app = useInstall();
+  const session = useSession();
   const me = person(ME);
+  // Signed in to a family server: the account's own name, until the screens read the server's people.
+  const myName = session.me?.name || `${me.first} ${me.last}`;
   const lang = LANGS.find((l) => l.code === prefs.lang) || LANGS[0];
 
   return (
     <header data-no-print className="sticky top-0 z-30 flex items-center gap-2 border-b border-line bg-bg/90 px-4 py-2.5 backdrop-blur-md sm:gap-2.5 sm:px-7 sm:py-3">
-      <IconButton icon="menu" label={t("shell.openNav")} aria-expanded={menuOpen} aria-controls="sidebar" onClick={onMenu} className="md:hidden" />
+      <IconButton ref={menuRef} icon="menu" label={t("shell.openNav")} aria-expanded={menuOpen} aria-controls="sidebar" onClick={onMenu} className="md:hidden" />
       <button type="button" onClick={() => toast(t("shell.oneArchive"), { sub: t("shell.oneArchiveSub"), icon: "info" })}
         className="pressable hidden cursor-pointer items-center gap-4 rounded-xl border border-line bg-surface px-3 py-1.5 text-left text-ink hover-fill min-[1500px]:flex">
         <span>
@@ -435,8 +480,8 @@ function Topbar({ menuOpen, onMenu, onPalette, onTour, speech }) {
           className="flex cursor-pointer items-center gap-2.5 rounded-xl border-0 bg-transparent p-0.5 pr-1.5 text-left text-ink hover-fill">
           <Avatar p={me} />
           <span className="hidden md:block">
-            <strong className="block text-[.9rem] font-semibold">{me.first} {me.last}</strong>
-            <small className="text-xsmall text-sec-ink">{kin(me.role)}</small>
+            <strong className="block text-[.9rem] font-semibold">{myName}</strong>
+            <small className="text-xsmall text-sec-ink">{session.me ? kin(session.me.role) : kin(me.role)}</small>
           </span>
           <Icon name="expand_more" size="sm" className="hidden text-muted md:inline-block" />
         </button>
@@ -460,7 +505,7 @@ function Topbar({ menuOpen, onMenu, onPalette, onTour, speech }) {
         </div>
         <MenuDivider />
         <MenuItem icon="home" onClick={() => navigate("/")}>{t("menu.landing")}</MenuItem>
-        <MenuItem icon="logout" onClick={() => { toast(t("shell.signedOut"), { sub: t("shell.signedOutSub"), icon: "logout" }); navigate("/auth"); }}>{t("menu.signout")}</MenuItem>
+        <MenuItem icon="logout" onClick={() => { session.signOut(); toast(t("shell.signedOut"), { sub: t("shell.signedOutSub"), icon: "logout" }); navigate("/auth"); }}>{t("menu.signout")}</MenuItem>
       </Menu>
     </header>
   );
@@ -559,6 +604,9 @@ function QuickActions() {
 
 export default function Layout({ children }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef(null);
+  const closeMenu = useCallback(() => setMenuOpen(false), []);
+  const dismissMenu = useCallback(() => { setMenuOpen(false); menuRef.current?.focus(); }, []);
   const [palette, setPalette] = useState(false);
   const { prefs, setPref, addRecent } = useStore();
   // The tour opens on a first visit, or when restarted from the menu, quick search or Settings.
@@ -648,17 +696,17 @@ export default function Layout({ children }) {
       <div data-sec={route} className="contents">
       <ScrollHelpers />
       <div className="flex min-h-screen">
-        <Sidebar open={menuOpen} onClose={() => setMenuOpen(false)} />
+        <Sidebar open={menuOpen} onClose={closeMenu} onDismiss={dismissMenu} />
         <div className="flex min-w-0 flex-1 flex-col">
-          <Topbar menuOpen={menuOpen} onMenu={() => setMenuOpen(true)} onPalette={() => setPalette(true)} speech={speech}
+          <Topbar menuOpen={menuOpen} menuRef={menuRef} onMenu={() => setMenuOpen(true)} onPalette={() => setPalette(true)} speech={speech}
             onTour={() => { navigate("/overview"); setTour(true); }} />
           <OfflineBanner />
+          <ServerNotice />
           <main id="main" ref={mainRef} tabIndex={-1} className="w-full max-w-350 min-w-0 flex-1 p-4 pb-24 outline-none sm:px-7 sm:pt-5">
             <Breadcrumbs route={route} />
             {children}
           </main>
-          {/* The sign-in page stays focused on signing in, so it has no footer. */}
-          {route !== "auth" && <AppFooter status={<SyncStatus />} />}
+          <AppFooter status={<SyncStatus />} />
         </div>
       </div>
       {/* Not on Messages, where it would cover the Send button. Its actions stay in Ctrl+K and the Alt shortcuts. */}

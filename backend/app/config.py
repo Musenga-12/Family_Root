@@ -10,6 +10,8 @@ class Settings(BaseSettings):
     secret_key: str = "dev-only-secret-change-me"
     database_url: str = "sqlite:///./familyroots.db"
     frontend_origin: str = "http://localhost:5173"
+    # More addresses the app may be opened from, comma-separated (e.g. "http://localhost:4173" for npm run preview).
+    extra_origins: str = ""
     access_token_minutes: int = 60 * 24
     # Public address of this API, used to build file links the browser can open (e.g. <img src>).
     api_base_url: str = "http://localhost:8000"

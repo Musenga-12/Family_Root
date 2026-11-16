@@ -153,7 +153,7 @@ function Dossier({ id, onClose }) {
         <>
           <h3 className="mt-4">{t("dir.artifacts")}</h3>
           <div className="mt-2 grid grid-cols-3 gap-2">
-            {mems.slice(0, 3).map((m) => <Photo key={m.id} p1={m.p1} p2={m.p2} icon={m.icon} img={m.img} alt={m.alt} aspect="aspect-square" />)}
+            {mems.slice(0, 3).map((m) => <Photo key={m.id} p1={m.p1} p2={m.p2} icon={m.icon} img={m.img} sample={m.id} alt={m.alt} aspect="aspect-square" />)}
           </div>
         </>
       )}
@@ -300,7 +300,6 @@ export default function Directory() {
         <div className="flex gap-2.5">
           <Stat value={living} label={t("dir.living")} />
           <Stat value={people.length - living} label={t("dir.memorial")} />
-          <Stat value="100%" label={t("dir.bound")} />
         </div>
       </Hero>
 

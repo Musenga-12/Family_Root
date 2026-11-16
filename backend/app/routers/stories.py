@@ -14,6 +14,7 @@ from sqlmodel import Session, select
 from app.auth import get_current_user, require_role
 from app.db import get_session
 from app.models import STORY_CATEGORIES, VISIBILITY, Family, Reflection, Story, StoryBase, StoryLove, User, now
+from app.routers.notifications import notify
 from app.routers.uploads import family_upload, file_url, save_upload
 from app.visibility import Kin, can_see
 
@@ -279,6 +280,17 @@ def verify_story(sid: str, user: User = Depends(get_current_user), db: Session =
     return out(user, s, loved_ids(db, user))
 
 
+@router.post("/{sid}/reopen", response_model=StoryOut, dependencies=[Depends(require_role(*MODERATORS))])
+def reopen_story(sid: str, user: User = Depends(get_current_user), db: Session = Depends(get_session)):
+    """Undo "verified": the story goes back to unchecked."""
+    s = get_story(db, user, sid)
+    s.verified = False
+    db.add(s)
+    db.commit()
+    db.refresh(s)
+    return out(user, s, loved_ids(db, user))
+
+
 @router.delete("/{sid}", status_code=204)
 def delete_story(sid: str, user: User = Depends(get_current_user), db: Session = Depends(get_session)):
     s = get_story(db, user, sid)
@@ -345,7 +357,7 @@ def list_reflections(sid: str, user: User = Depends(get_current_user), db: Sessi
 @router.post("/{sid}/reflections", response_model=ReflectionOut, status_code=201)
 def add_reflection(sid: str, body: ReflectionIn, user: User = Depends(get_current_user), db: Session = Depends(get_session)):
     """Anyone who can see a story may reply to it, Viewers included."""
-    get_story(db, user, sid)
+    s = get_story(db, user, sid)
     if not body.text.strip():
         raise HTTPException(422, "Write something first")
     r = Reflection(story_id=sid, user_id=user.id, by=user.person_id, text=body.text.strip())
@@ -353,6 +365,9 @@ def add_reflection(sid: str, body: ReflectionIn, user: User = Depends(get_curren
     db.execute(update(Story).where(Story.id == sid).values(reflections=Story.reflections + 1))
     db.commit()
     db.refresh(r)
+    if s.owner_user_id:
+        notify(db, user.family_id, [s.owner_user_id], "story.reflection", f"{user.name} replied to “{s.title}”",
+               make_excerpt(r.text, 120), "/stories", exclude=user.id)
     return reflection_out(user, r)
 
 

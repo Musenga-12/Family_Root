@@ -27,7 +27,7 @@ function pref(key, val) {
 
 /* Display preferences (theme, accent, language, text size…), stored together as JSON. */
 const DEFAULT_PREFS = {
-  theme: "system", accent: "blue", accentV: 2, lang: "en", text: "md", motion: "full", sidebar: "full",
+  theme: "system", accent: "heritage", accentV: 3, lang: "en", text: "md", motion: "full", sidebar: "full",
   notify: { birthdays: true, stories: true, digest: "weekly" }, visibility: "All Family Branches",
   sound: false, haptics: false, speechRate: 1, tourDone: false,
 };
@@ -42,7 +42,9 @@ function loadPrefs() {
   try {
     const saved = JSON.parse(pref("prefs") || "{}");
     if (!saved.accentV && saved.accent === "forest") delete saved.accent;
-    return { ...DEFAULT_PREFS, ...saved, accentV: 2 };
+    // v3: heritage orange replaced blue as the default, so a stored "blue" (the old default) moves to it.
+    if ((saved.accentV || 0) < 3 && saved.accent === "blue") delete saved.accent;
+    return { ...DEFAULT_PREFS, ...saved, accentV: 3 };
   } catch { return DEFAULT_PREFS; }
 }
 

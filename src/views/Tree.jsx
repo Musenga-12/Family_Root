@@ -91,7 +91,7 @@ function Canvas({ genFilter, selected, onSelect, isDim }) {
                 return (
                   <div key={a.id} className="flex items-center gap-3.5">
                     {node(a)}
-                    <div className="flex flex-col items-center justify-center gap-1 text-center text-[.7rem] text-gold">
+                    <div className="flex flex-col items-center justify-center gap-1 text-center text-[.7rem] text-gold-ink">
                       <span className="grid size-8.5 place-items-center rounded-full bg-gold-100"><Icon name="favorite" size="sm" /></span>
                       {rich(t("tree.golden", { year: a.married, n: years }).replace("<br>", " "))}
                     </div>
