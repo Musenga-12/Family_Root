@@ -30,4 +30,5 @@ __pycache__/
 *.py[cod]
 backend/*.db
 backend/uploads/
+backend/backups/
 .env

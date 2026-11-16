@@ -165,3 +165,7 @@ Always filter by `user.family_id` so one family can never see another's data.
 
 Project name:familyroots
 Password : YLZC?+#5MavDiMp
+
+## for testing
+Project:familyroots-staging
+pwd:Familyroots123@@@
