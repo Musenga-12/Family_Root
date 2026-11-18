@@ -7,7 +7,7 @@ import PublicLayout from "../components/PublicLayout";
 import { authApi, connected } from "../lib/api";
 import { useSession } from "../lib/session";
 import { useToast } from "../components/toastContext";
-import { Button, Card, Check, ErrorText, Eyebrow, Field, Icon, IconBox, Input, InputIcon, Photo, PhotoOverlay, Tabs, Tag } from "../components/ui";
+import { Button, Card, Check, ErrorText, Field, Icon, IconBox, Input, InputIcon, Photo, Tabs, Tag } from "../components/ui";
 import { cx, emailOk } from "../lib/format";
 import { rich, useT } from "../lib/i18n";
 import { useStore } from "../lib/store";
@@ -326,9 +326,6 @@ function FamilyCode({ onAccepted }) {
   );
 }
 
-// Text for each step is au.step<n>, au.step<n>d and au.step<n>f.
-const STEPS = [["badge", 1], ["verified", 2], ["account_tree", 3]];
-
 // Tab -> address, so each form has its own link and the browser's Back button moves between them.
 const TAB_PATH = { signin: "/login", create: "/register", code: "/join" };
 const TITLE = { signin: "pub.login", create: "pub.register", code: "au.tabCode", forgot: "auth.forgotTitle", reset: "au.resetTitle" };
@@ -357,9 +354,11 @@ export default function Auth({ mode }) {
     setTimeout(() => document.querySelector("#authPanel input")?.focus());
   };
   // New accounts go to the welcome steps; everyone else back to the page that sent them here, or the Overview.
+  // On a server, signing in already leads there through the "already signed in" redirect below, so only the
+  // demo (no sign-in state) and a password reset (which stays on this page) navigate here.
   const enter = (name, sub, { welcome } = {}) => {
     toast(name ? t("au.welcome", { name }) : t("au.welcomeAgain"), { sub, icon: "celebration", duration: 6000 });
-    navigate(welcome ? "/welcome" : location.state?.from || "/overview", { replace: true });
+    if (!connected || resetting) navigate(welcome ? "/welcome" : location.state?.from || "/overview", { replace: true });
   };
 
   // An invitation link greets the person by name and fills in their email.
@@ -384,16 +383,7 @@ export default function Auth({ mode }) {
 
       <div className="mx-auto grid max-w-260 overflow-hidden rounded-[26px] bg-surface shadow-pop md:grid-cols-[minmax(0,.85fr)_minmax(0,1fr)]">
         <div className="flex flex-col gap-5.5 bg-[radial-gradient(circle_at_20%_10%,var(--color-pine-700),var(--color-pine-900)_60%)] p-5 text-white sm:p-7">
-          <div><Tag className="bg-white/10! text-mint!">{t("au.branch")}</Tag></div>
-          <Photo p1="#a98a68" p2="#3c4f40" icon="family_restroom" sample="auth" aspect="aspect-[4/3.4]" alt={t("au.photoAlt")}>
-            <PhotoOverlay className="flex items-center justify-between gap-2.5">
-              <strong>{t("land.folio")}</strong><Tag className="bg-white/20! text-white!">{t("au.memories", { n: 142 })}</Tag>
-            </PhotoOverlay>
-          </Photo>
-          <blockquote className="m-0 font-serif text-[1.25rem] leading-[1.45] text-white italic">
-            {t("au.quote")}
-            <footer className="mt-2.5 font-sans text-small text-on-dark not-italic">{t("au.quoteBy")}</footer>
-          </blockquote>
+          <Photo p1="#a98a68" p2="#3c4f40" icon="family_restroom" sample="auth" aspect="aspect-[4/3.4]" alt={t("au.photoAlt")} />
           <div className="mt-auto grid gap-2">
             {[["lock", "au.f1"], ["block", "au.f2"], ["accessibility_new", "au.f3"]].map(([i, k]) => (
               <div key={k} className="flex gap-2.5 rounded-xl bg-white/10 px-3 py-2.5 text-[.8rem]">
@@ -435,22 +425,7 @@ export default function Auth({ mode }) {
         </div>
       </div>
 
-      <section className="mt-7 text-center">
-        <Eyebrow>{t("au.flow")}</Eyebrow>
-        <h2 className="mt-2">{t("au.flowTitle")}</h2>
-        <p className="mt-2 text-muted">{t("au.flowSub")}</p>
-      </section>
-      <div className="mt-4 grid gap-4.5 md:grid-cols-3">
-        {STEPS.map(([i, n]) => (
-          <div key={n} className="grid content-start gap-2.5 rounded-[18px] border border-line bg-surface p-5">
-            <span className="grid size-10 place-items-center rounded-[10px] bg-surface-2 text-pine-800"><Icon name={i} /></span>
-            <div className="flex items-center gap-2.5"><Tag tone="mint">{t("au.step", { n: String(n).padStart(2, "0") })}</Tag><h3>{t(`au.step${n}`)}</h3></div>
-            <p className="text-small text-muted">{t(`au.step${n}d`)}</p>
-            <span className="text-xsmall text-pine-700"><Icon name="check" size="xs" /> {t(`au.step${n}f`)}</span>
-          </div>
-        ))}
-      </div>
-      <Card tone="soft" className="mt-7 flex flex-wrap items-center gap-2.5">
+      <Card tone="soft" className="mx-auto mt-7 flex max-w-260 flex-wrap items-center gap-2.5">
         <IconBox icon="handshake" tone="gold" />
         <div className="min-w-0 flex-1">
           <h3>{t("au.guarantee")}</h3>

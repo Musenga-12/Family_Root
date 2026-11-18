@@ -129,7 +129,7 @@ def request_out(r: JoinRequest) -> RequestOut:
 
 
 def invite_link(inv: Invite) -> str:
-    return f"{settings.frontend_origin}/#/auth?invite={inv.token}"  # the React app uses hash routing
+    return f"{settings.frontend_origin}/#/register?invite={inv.token}"  # the React app uses hash routing
 
 
 def invite_out(user: User, inv: Invite) -> InviteOut:
