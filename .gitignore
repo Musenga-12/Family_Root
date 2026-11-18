@@ -32,3 +32,4 @@ backend/*.db
 backend/uploads/
 backend/backups/
 .env
+backend/.env.pre-supabase-backup
