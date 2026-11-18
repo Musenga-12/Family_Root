@@ -5,6 +5,7 @@ import { Button, Card, Icon } from "../../components/ui";
 import { useT } from "../../lib/i18n";
 import { useSession } from "../../lib/session";
 import { PageIntro, Section } from "./parts";
+import { PagePhoto } from "./photos";
 
 // Pages inside the signed-in app: visitors are asked to sign in first.
 const PROTECTED = ["/messages", "/privacy", "/settings"];
@@ -15,7 +16,8 @@ export default function Contact() {
   const signedOut = status === "signedOut" || status === "error";
   return (
     <PublicLayout title={t("contact.title")}>
-      <PageIntro eyebrow={t("pub.nav.contact")} icon="support_agent" title={t("contact.h1")} sub={t("contact.sub")} />
+      <PageIntro eyebrow={t("pub.nav.contact")} icon="support_agent" title={t("contact.h1")} sub={t("contact.sub")}
+        photo={<PagePhoto slot="contact" alt={t("contact.photoAlt")} eager />} />
       <Section className="mt-10">
         <ul className="m-0 grid list-none gap-4 p-0 sm:grid-cols-2 md:grid-cols-3">
           {t("contact.cards").map(([icon, title, body, to, action]) => (

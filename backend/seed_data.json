@@ -247,7 +247,7 @@
       ],
       "visibility": "All Family Branches",
       "caption": "Captured three days out of Southampton heading toward New York harbour. Original 2¼ square medium format negative conserved from John's chest.",
-      "alt": "Black and white photo of a young couple smiling on the deck of an ocean liner.",
+      "alt": "Black and white portrait of a young couple smiling cheek to cheek, dressed up for the voyage.",
       "p1": "#8d8d86",
       "p2": "#3d3d3a",
       "icon": "sailing",
@@ -266,14 +266,14 @@
       ],
       "visibility": "All Family Branches",
       "caption": "Daniel was six weeks old during the midsummer garden tea. John took this frame with his Canon AE-1 SLR on Kodak Gold 200.",
-      "alt": "A smiling mother holding a newborn in a flowering garden.",
+      "alt": "A smiling mother holding her baby in front of a bed of tulips.",
       "p1": "#c7a77c",
       "p2": "#5e7b4f",
       "icon": "local_florist"
     },
     {
       "id": "m3",
-      "title": "Michael building the treehouse with Grandpa John",
+      "title": "Michael at the pottery wheel with Grandpa John",
       "date": "1982-08",
       "type": "photo",
       "place": "Falkirk Homestead",
@@ -283,8 +283,8 @@
         "john"
       ],
       "visibility": "All Family Branches",
-      "caption": "“We spent three Saturdays nailing down Scots pine floorboards. Grandpa said if you measure twice, it stands for fifty years.”",
-      "alt": "A boy in red overalls and his grandfather building a wooden treehouse.",
+      "caption": "“We spent three Saturdays at his wheel. Grandpa said if you centre the clay first, the pot stands for fifty years.”",
+      "alt": "A grandfather with a white beard teaching his young grandson to shape clay on a pottery wheel.",
       "p1": "#b6845c",
       "p2": "#4b5d3a",
       "icon": "carpenter"
@@ -302,7 +302,7 @@
       ],
       "visibility": "Immediate Family",
       "caption": "Performance of Bruch's Scottish Fantasy. Anna played the 1928 heirloom violin previously owned by Great-Aunt Evelyn.",
-      "alt": "A teenage girl playing violin on a stage under warm lights.",
+      "alt": "A young violinist playing beside a grand piano on a dimly lit stage.",
       "p1": "#9a6b4a",
       "p2": "#2e2320",
       "icon": "music_note"
@@ -320,7 +320,7 @@
       ],
       "visibility": "All Family Branches",
       "caption": "Written by Great-Grandmother Margaret Mackenzie during the winter rations in Perthshire. Scanned at 600 DPI with full automated dialect text recognition.",
-      "alt": "Aged notebook pages with handwritten recipe ingredients.",
+      "alt": "Handwritten notes in faded ink on aged, yellowed paper.",
       "p1": "#e2cfa6",
       "p2": "#9c7f52",
       "icon": "menu_book"
@@ -343,7 +343,7 @@
       ],
       "visibility": "All Family Branches",
       "caption": "Family banquet at Gleneagles with 28 family members in attendance.",
-      "alt": "A large family gathered around a candle-lit dinner table.",
+      "alt": "An older woman smiling beside a tall, colourful birthday cake at her party.",
       "p1": "#c28a4d",
       "p2": "#3b2a1c",
       "icon": "cake"
@@ -995,7 +995,7 @@
     {
       "id": "k1",
       "person": "michael",
-      "item": "Treehouse photo (1982)",
+      "item": "Pottery photo (1982)",
       "kind": "Photo",
       "status": "given",
       "date": "2026-03-02"

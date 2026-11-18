@@ -5,10 +5,7 @@ import { CancelButton, Dialog } from "../components/Modal";
 import { Menu, MenuDivider, MenuItem } from "../components/Menu";
 import { useCloseModal, useModal } from "../components/modalContext";
 import { useToast } from "../components/toastContext";
-import {
-  Button, Card, Chip, Empty, Eyebrow, Field, Hero, Icon, IconBox, IconButton, Input, InputIcon, Photo, PhotoCorner, PhotoOverlay,
-  SectionTitle, Select, Tabs, Tag, Visibility,
-} from "../components/ui";
+import { Button, Card, Chip, Empty, Eyebrow, Field, Icon, IconBox, IconButton, Input, InputIcon, PageHeader, Photo, PhotoCorner, PhotoOverlay, SectionTitle, Select, Tabs, Tag, Visibility } from "../components/ui";
 import AddMemoryDialog from "../dialogs/AddMemoryDialog";
 import { cx, fmtDate, uid } from "../lib/format";
 import { useT } from "../lib/i18n";
@@ -99,7 +96,7 @@ function MemoryCard({ m }) {
       <div className="grid flex-1 content-start gap-2 p-3.5">
         <div className="flex items-center justify-between gap-2.5 text-xsmall text-muted">
           <span><Icon name="location_on" size="xs" /> {m.place}</span>
-          <span>{m.approx ? <Tag tone="rose" title={t("mem.approxDate")}>{fmtDate(m.date, true)} · {t("mem.approx")}</Tag> : fmtDate(m.date)}</span>
+          <span>{m.approx ? <Tag tone="gold" icon="help" title={t("mem.approxDate")}>{fmtDate(m.date, true)} · {t("mem.approx")}</Tag> : fmtDate(m.date)}</span>
         </div>
         <h3>{m.title}</h3>
         <p className="text-small text-muted">{m.caption}</p>
@@ -243,24 +240,12 @@ export default function Memories() {
 
   return (
     <>
-      <Hero className="flex flex-wrap items-center gap-6">
-        <div className="min-w-65 flex-1">
-          <Tag tone="sec">{t("mem.vault")}</Tag>
-          <h1 className="mt-4">{t("h1.memories")}</h1>
-          <p className="mt-2 text-muted">{t("mem.intro")}</p>
-          <div className="mt-4 flex flex-wrap gap-2.5">
-            {[["photo", t("mem.stat.prints")], ["mic", t("mem.stat.tapes")], ["mail", t("mem.stat.letters")], ["face", t("mem.stat.people", { n: st.people.length })]].map(([i, label]) => (
-              <Tag key={i} tone="outline" icon={i}>{label}</Tag>
-            ))}
-          </div>
-        </div>
-        <div className="flex flex-wrap items-center gap-2.5">
-          <Button variant="primary" icon="cloud_upload" className="px-4.5! py-3.5!" onClick={() => open(<AddMemoryDialog />)}>
-            <span className="text-left">{t("mem.upload")}<br /><small className="font-normal opacity-75">{t("mem.uploadSub")}</small></span>
-          </Button>
+      <PageHeader icon="photo_library" eyebrow={t("mem.vault")} title={t("h1.memories")} description={t("mem.intro")}
+        actions={<>
+          <Button variant="primary" icon="cloud_upload" onClick={() => open(<AddMemoryDialog />)}>{t("mem.upload")}</Button>
           <Button icon="create_new_folder" onClick={() => open(<CreateAlbumDialog />)}>{t("mem.createAlbum")}</Button>
-        </div>
-      </Hero>
+        </>}
+        aside={<p className="m-0 flex items-center gap-2 text-small text-muted"><Icon name="face" size="sm" />{t("mem.stat.people", { n: st.people.length })} · {t("mem.count", { n: st.memories.length })}</p>} />
 
       <Card tone="soft" className="mt-4 flex flex-wrap items-center gap-2.5">
         <IconBox icon="shield" tone="dark" />
@@ -335,10 +320,10 @@ export default function Memories() {
                   <button key={d} type="button" aria-pressed={f.from === d} onClick={() => setF({ ...f, from: d })}
                     aria-label={t("mem.decadeLabel", { d, count: keepsakes(decades[d]) })} title={`${d}s · ${decades[d]}`}
                     className="group flex h-full min-w-0 flex-1 cursor-pointer flex-col items-center justify-end gap-1 border-0 bg-transparent p-0">
-                    <span className="text-[.68rem] font-semibold text-muted">{decades[d]}</span>
+                    <span className="text-tag font-semibold text-muted">{decades[d]}</span>
                     <span className={cx("w-full max-w-12 rounded-t-md transition-colors", on ? "bg-sec group-hover:brightness-110" : "bg-surface-3 group-hover:bg-sec/60")}
                       style={{ height: `${(decades[d] / maxDecade) * 70}%`, minHeight: 4 }} />
-                    <span className={cx("text-[.66rem]", on ? "font-semibold text-ink" : "text-faint")}>{`’${String(d).slice(2)}s`}</span>
+                    <span className={cx("text-tag", on ? "font-semibold text-ink" : "text-faint")}>{`’${String(d).slice(2)}s`}</span>
                   </button>
                 );
               })}

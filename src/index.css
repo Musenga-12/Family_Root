@@ -9,51 +9,59 @@
    FamilyRoots – design tokens (from the Google Stitch screens)
    ========================================================== */
 @theme {
-  /* One colour for the whole app: a warm heritage orange on a peach-cream page with charcoal text
-     (styled after the MyHeritage / Legacy Family Tree look). Bright orange (#f26b21) only reaches 3:1 with
-     white text, so filled buttons use a deeper burnt orange (pine-700, 5.2:1) and the bright tone is kept
-     for light accents and for text on dark surfaces (mint, 10:1 on the dark theme).
-     The names pine/mint are kept so the optional accents in Settings can re-tint the same scale. */
-  --color-pine-950: #4a1d06;
-  --color-pine-900: #7a2e0b;
-  --color-pine-800: #9a360c;
-  --color-pine-700: #c2410c;
-  --color-pine-600: #c94a0f;
-  --color-mint: #ffb27a;
-  --color-mint-hover: #ffa260;
-  --color-mint-200: #ffd8bc;
-  --color-mint-100: #fff0e4;
-  --color-bg: #fcf5ee;
+  /* Warm Modern Family palette: forest green is the brand and the interactive colour; terracotta and muted gold add
+     warmth in a few chosen places; sage carries supporting information and subtle surfaces.
+     Shades are tuned for contrast: green fills keep white text at 7.9:1; secondary text is a touch deeper than the
+     brand sheet's #707A73 (4.1:1 on the page) so it reads at 5.2:1; terracotta and gold are used as accents and
+     fills with dark text, and terracotta text uses the deeper terra-ink (6.2:1).
+     The names pine/mint are kept so the optional accents in Settings can re-tint the same scale:
+     pine = the brand scale (pine-700 is the main fill), mint = its light partner (soft fills, and text on dark). */
+  --color-pine-950: #0f2a21;
+  --color-pine-900: #173d31;
+  --color-pine-800: #1e4d3e;
+  --color-pine-700: #245b4a;
+  --color-pine-600: #39745c;
+  --color-mint: #a9cdb9;
+  --color-mint-hover: #98c2ab;
+  --color-mint-200: #cfe2d6;
+  --color-mint-100: #eaf0e8;
+  --color-bg: #f7f5ef;
   --color-surface: #ffffff;
-  --color-surface-2: #f9f0e7;
-  --color-surface-3: #f2e5d8;
-  --color-line: #ecdccb;
-  --color-ink: #2b2622;
-  --color-muted: #635a52;
+  --color-surface-2: #f1f4ee;
+  --color-surface-3: #e7ece4;
+  --color-line: #e4e8e1;
+  --color-ink: #252d29;
+  --color-muted: #5f6962;
   /* Faint is still used for real text (hints, timestamps), so it keeps 4.5:1 on bg and surface-2. */
-  --color-faint: #766c63;
-  --color-on-dark: #f6dcc8;
-  --color-gold: #b9862b;
-  --color-gold-100: #fbefd6;
-  --color-gold-ink: #7d5715;
-  --color-rose: #b4473f;
+  --color-faint: #66706a;
+  --color-on-dark: #dce8df;
+  --color-sage: #a9bda8;
+  --color-sage-100: #eef3ec;
+  --color-terra: #c47755;
+  --color-terra-100: #f8e9e1;
+  --color-terra-ink: #9a4a2c;
+  --color-gold: #b58a35;
+  --color-gold-100: #f6edd8;
+  --color-gold-ink: #6e5016;
+  --color-rose: #a33c35;
   --color-rose-100: #fbe1de;
   --color-rose-ring: #fbe1de;
   --color-rec: #d63c33;
-  --color-focus: #c2410c;
+  --color-focus: #245b4a;
   /* Hover fill of the mint button (the dark theme swaps it, see below). */
   --color-mint-btn-hover: var(--color-pine-900);
 
   --font-serif: "Playfair Display", Georgia, "Times New Roman", serif;
   --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 
-  --text-small: 0.82rem;
-  --text-xsmall: 0.72rem;
-  --text-tag: 0.68rem;
+  /* Smallest sizes stay at 12px or more, so older relatives can read every label. */
+  --text-small: 0.875rem;
+  --text-xsmall: 0.8125rem;
+  --text-tag: 0.75rem;
 
   --radius-card: 22px;
-  --shadow-card: 0 1px 2px rgba(60, 30, 10, 0.05), 0 4px 18px rgba(60, 30, 10, 0.07);
-  --shadow-pop: 0 10px 40px rgba(60, 30, 10, 0.18);
+  --shadow-card: 0 1px 2px rgba(20, 40, 30, 0.05), 0 4px 16px rgba(20, 40, 30, 0.06);
+  --shadow-pop: 0 10px 36px rgba(20, 40, 30, 0.16);
 
   /* Breakpoints match the original demo: 700 / 980 / 1200px */
   --breakpoint-sm: 700px;
@@ -67,10 +75,15 @@
   --animate-fade: fade 0.15s;
   --animate-blink: blink 1s infinite;
   --animate-rec-pulse: rec-pulse 1.4s infinite;
+  /* Welcome page: a slow zoom on each slideshow photo, and a gentle drift for the notes pinned to it. */
+  --animate-kenburns: kenburns 9s ease-out forwards;
+  --animate-float: float 7s ease-in-out infinite;
 
   @keyframes fade { from { opacity: 0; } }
   @keyframes pop { from { opacity: 0; transform: translateY(10px) scale(0.98); } }
   @keyframes blink { 50% { opacity: 0.2; } }
+  @keyframes kenburns { from { transform: scale(1); } to { transform: scale(1.08) translate(-1%, -1%); } }
+  @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
   @keyframes rec-pulse {
     0% { box-shadow: 0 0 0 0 rgba(214, 60, 51, 0.35); }
     70% { box-shadow: 0 0 0 16px rgba(214, 60, 51, 0); }
@@ -164,14 +177,15 @@ html[data-text="lg"] { font-size: 17.5px; }
   --sec-soft: color-mix(in oklab, var(--sec) 11%, var(--color-surface));
   --sec-line: color-mix(in oklab, var(--sec) 32%, var(--color-surface));
   --sec-ink: color-mix(in oklab, var(--sec) 78%, #000);
-  /* Soft sand: the app colour mixed into a warm cream. */
-  --sec-hover: color-mix(in oklab, var(--sec) 14%, #f3e8dd);
-  --sec-hover-line: color-mix(in oklab, var(--sec) 40%, #d8c4b1);
+  /* Soft sage: the app colour mixed into the brand's hover surface (#EAF0E8). */
+  --sec-hover: color-mix(in oklab, var(--sec) 8%, #eaf0e8);
+  --sec-hover-line: color-mix(in oklab, var(--sec) 40%, #c9d3c6);
   --sec-press: color-mix(in oklab, var(--sec) 72%, #000);
   --sec-on: #fff;
   --stripe: var(--sec);
-  /* Hover on rows and cards that keep their own (muted) text; the light theme uses the same slate as controls. */
-  --sec-hover-tint: var(--sec-hover);
+  /* Hover on rows and cards that keep their own (muted) text: the brand's pale sage, light enough that secondary
+     text keeps 4.5:1+ (controls use the slightly deeper --sec-hover). */
+  --sec-hover-tint: color-mix(in oklab, var(--sec) 3%, #eef3ec);
   /* Hover border/ring for inputs, search boxes and plain cards. */
   --sec-edge: var(--sec-line);
   /* Hover on list rows that rest on surface-2: they lift to the plain surface (white). */
@@ -193,9 +207,9 @@ html.dark, html.dark [data-sec] {
   --sec-soft: color-mix(in oklab, var(--sec) 18%, var(--color-surface));
   --sec-line: color-mix(in oklab, var(--sec) 40%, var(--color-surface));
   --sec-ink: var(--color-mint);
-  --sec-hover: color-mix(in oklab, var(--sec) 32%, #3a2e25);
-  --sec-hover-tint: color-mix(in oklab, var(--sec) 28%, #33281f);
-  --sec-hover-line: color-mix(in oklab, var(--sec) 68%, #9a8574);
+  --sec-hover: color-mix(in oklab, var(--sec) 30%, #2d3d32);
+  --sec-hover-tint: color-mix(in oklab, var(--sec) 22%, #2d3d32);
+  --sec-hover-line: color-mix(in oklab, var(--sec) 60%, #8a9e90);
   --sec-edge: var(--sec-hover-line);
   /* The dark surface is darker than surface-2, so lifting to it made rows dimmer on hover. */
   --surface-hover: var(--sec-hover-tint);
@@ -207,27 +221,27 @@ html.dark, html.dark [data-sec] {
 /* Easy-to-Read: deeper tints and borders, so highlights are even easier to see. */
 html.easy, html.easy [data-sec] {
   --sec-soft: color-mix(in oklab, var(--sec) 16%, var(--color-surface));
-  --sec-hover: color-mix(in oklab, var(--sec) 22%, #eddfd2);
-  --sec-hover-line: color-mix(in oklab, var(--sec) 60%, #c9b39d);
+  --sec-hover: color-mix(in oklab, var(--sec) 16%, #e3ebe0);
+  --sec-hover-line: color-mix(in oklab, var(--sec) 60%, #b9c6b5);
   --sec-line: color-mix(in oklab, var(--sec) 50%, var(--color-surface));
 }
 /* Easy-to-Read in the dark theme: the light slate above would put light-blue text on a pale fill (1.2:1),
    so dark keeps its own, slightly stronger hover colours and a brighter outline. */
 html.dark.easy, html.dark.easy [data-sec] {
-  --sec-hover: color-mix(in oklab, var(--sec) 34%, #3d3027);
-  --sec-hover-tint: color-mix(in oklab, var(--sec) 30%, #372b22);
-  --sec-hover-line: color-mix(in oklab, var(--sec) 80%, #a8927f);
+  --sec-hover: color-mix(in oklab, var(--sec) 34%, #31433a);
+  --sec-hover-tint: color-mix(in oklab, var(--sec) 26%, #31433a);
+  --sec-hover-line: color-mix(in oklab, var(--sec) 75%, #9cb0a2);
 }
 
 /* Accent colour preference: re-tints the pine/mint scale used for buttons, highlights and focus rings.
-   Heritage orange (above) is the default; these are optional. */
+   Family green (above) is the default; these are optional. Heritage orange is the app's earlier look. */
+html[data-accent="heritage"] {
+  --color-pine-950: #4a1d06; --color-pine-900: #7a2e0b; --color-pine-800: #9a360c; --color-pine-700: #c2410c; --color-pine-600: #c94a0f;
+  --color-mint: #ffb27a; --color-mint-hover: #ffa260; --color-mint-200: #ffd8bc; --color-mint-100: #fff0e4; --color-focus: #c2410c;
+}
 html[data-accent="blue"] {
   --color-pine-950: #0c1a42; --color-pine-900: #12255a; --color-pine-800: #182f70; --color-pine-700: #1e3a8a; --color-pine-600: #4065c9;
   --color-mint: #93b6ff; --color-mint-hover: #7fa7ff; --color-mint-200: #cddcff; --color-mint-100: #e7eeff; --color-focus: #1e3a8a;
-}
-html[data-accent="forest"] {
-  --color-pine-950: #0f3127; --color-pine-900: #143d30; --color-pine-800: #1d4d3c; --color-pine-700: #2a6450; --color-pine-600: #3c7a63;
-  --color-mint: #9fe6c6; --color-mint-hover: #8ddcb9; --color-mint-200: #c8f1dd; --color-mint-100: #e3f6ec; --color-focus: #1f8a63;
 }
 html[data-accent="ocean"] {
   --color-pine-950: #0f2a3d; --color-pine-900: #143a52; --color-pine-800: #1d4c6a; --color-pine-700: #2a6283; --color-pine-600: #3c7899;
@@ -249,26 +263,34 @@ html:not(.dark) { color-scheme: light; }
 /* Dark theme tokens. Tints derive from the active accent, so every accent works in both themes. */
 html.dark {
   color-scheme: dark;
-  --color-bg: #15100c;
-  --color-surface: #1e1813;
-  --color-surface-2: #261f19;
-  --color-surface-3: #302720;
-  --color-line: #3e332a;
-  --color-ink: #f4ece4;
-  --color-muted: #c4b6a8;
-  --color-faint: #998b7d;
-  --color-gold-100: #3a2e16;
-  --color-gold-ink: #f1d08f;
+  /* Its own palette, not an inversion: deep green-black page, a slightly lifted sidebar (surface-2), cards a step
+     above that, and a hover surface above the cards. Secondary text keeps 6.7:1 on cards. */
+  --color-bg: #151d19;
+  --color-surface: #222f28;
+  --color-surface-2: #1b2922;
+  --color-surface-3: #2d3d32;
+  --color-line: #35443a;
+  --color-ink: #f3f2eb;
+  --color-muted: #aab7ac;
+  --color-faint: #9aa79d;
+  --color-on-dark: #dce8df;
+  --color-sage-100: #26342c;
+  --color-terra: #d18a69;
+  --color-terra-100: #3a2b23;
+  --color-terra-ink: #e3a585;
+  --color-gold: #d4ad62;
+  --color-gold-100: #3a321f;
+  --color-gold-ink: #e8c98a;
   --color-rose: #e8746a;
   --color-rose-100: #3e1f1c;
-  --color-rose-ring: color-mix(in oklab, var(--color-rose) 45%, #1e1813);
-  /* The mint button's navy hover sank into the dark page (1.3:1); use the bright accent fill (white text 5:1+). */
+  --color-rose-ring: color-mix(in oklab, var(--color-rose) 45%, #222f28);
+  /* The mint button's dark hover sank into the dark page; use the bright accent fill (white text 5:1+). */
   --color-mint-btn-hover: var(--sec);
-  --color-mint-100: color-mix(in oklab, var(--color-mint) 14%, #1e1813);
-  --color-mint-200: color-mix(in oklab, var(--color-mint) 28%, #1e1813);
+  --color-mint-100: color-mix(in oklab, var(--color-mint) 14%, #222f28);
+  --color-mint-200: color-mix(in oklab, var(--color-mint) 20%, #222f28);
   --color-focus: var(--color-mint);
-  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3), 0 4px 18px rgba(0, 0, 0, 0.25);
-  --shadow-pop: 0 10px 40px rgba(0, 0, 0, 0.5);
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3), 0 4px 16px rgba(0, 0, 0, 0.22);
+  --shadow-pop: 0 10px 36px rgba(0, 0, 0, 0.45);
 }
 /* Pine text is tuned for light surfaces; on dark surfaces use the light accent instead (but not on bright mint/white chips). */
 html.dark :is(.text-pine-600, .text-pine-700, .text-pine-800, .text-pine-900):not(.bg-mint, .bg-mint-hover, [class*="bg-white"]) {
@@ -278,14 +300,14 @@ html.dark :is(.text-pine-600, .text-pine-700, .text-pine-800, .text-pine-900):no
 /* Easy-to-Read: ≈18pt base text, stronger contrast. Everything is rem-based, so it all scales. */
 html.easy {
   font-size: 18px;
-  --color-muted: #3a322c;
-  --color-faint: #554b43;
-  --color-line: #cdb9a6;
+  --color-muted: #3b443f;
+  --color-faint: #4f5953;
+  --color-line: #c3ccc0;
 }
 html.dark.easy {
-  --color-muted: #d6cabd;
-  --color-faint: #b9ab9d;
-  --color-line: #57483c;
+  --color-muted: #ccd6ce;
+  --color-faint: #b4c0b7;
+  --color-line: #4a5b4f;
 }
 
 @layer base {
@@ -336,7 +358,7 @@ html.dark.easy {
     user-select: none; flex-shrink: 0;
   }
   .ms.sm { font-size: 18px; }
-  .ms.xs { font-size: 15px; }
+  .ms.xs { font-size: 16px; }
   .ms.lg { font-size: 28px; }
   .ms.fill { font-variation-settings: "FILL" 1; }
 }

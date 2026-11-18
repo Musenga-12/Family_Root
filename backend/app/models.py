@@ -338,7 +338,7 @@ class Consent(SQLModel, table=True):
     id: str = Field(default_factory=lambda: new_id("k"), primary_key=True)
     family_id: int = Field(foreign_key="family.id", index=True)
     person: str = Field(foreign_key="person.id")  # whose consent is asked
-    item: str  # "Treehouse photo (1982)"
+    item: str  # "Pottery photo (1982)"
     kind: str = "Photo"  # Photo | Voice
     status: str = "pending"  # pending | given | withdrawn
     date: str  # last change or reminder, YYYY-MM-DD
@@ -466,7 +466,7 @@ class Thread(SQLModel, table=True):
 class ThreadMember(SQLModel, table=True):
     """One account's place in a thread, with everything that is personal to them."""
     thread_id: str = Field(foreign_key="thread.id", primary_key=True)
-    user_id: int = Field(foreign_key="user.id", primary_key=True)
+    user_id: int = Field(foreign_key="user.id", primary_key=True, index=True)  # "my conversations" looks up by user
     joined_at: datetime = Field(default_factory=now)
     pinned: bool = False
     muted: bool = False

@@ -61,5 +61,5 @@ export function MenuItem({ icon, checked, onClick, children, hint }) {
   );
 }
 
-export const MenuLabel = ({ children }) => <div className="px-2.5 pt-2 pb-1 text-[.66rem] font-semibold tracking-[.12em] text-muted uppercase">{children}</div>;
+export const MenuLabel = ({ children }) => <div className="px-2.5 pt-2 pb-1 text-tag font-semibold tracking-[.12em] text-muted uppercase">{children}</div>;
 export const MenuDivider = () => <hr className="my-1 border-0 border-t border-line" />;

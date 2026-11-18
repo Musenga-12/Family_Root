@@ -7,7 +7,8 @@ import { Button, Card, Icon, Switch, Tabs, Tag } from "../components/ui";
 import { useT } from "../lib/i18n";
 import { useSession } from "../lib/session";
 import { useStore } from "../lib/store";
-import { CtaBand, FaqList, FeatureGrid, HeroArt, Section, SectionHead, Steps, TrustGrid } from "./public/parts";
+import { CtaBand, FaqList, FeatureGrid, Section, SectionHead, Steps, TrustGrid } from "./public/parts";
+import { HeroPhotos, TopicPhotos } from "./public/photos";
 
 function HeroActions() {
   const t = useT();
@@ -40,7 +41,7 @@ function Hero() {
         <div>
           <Tag tone="mint" icon="shield">{t("home.eyebrow")}</Tag>
           <h1 className="mt-4 text-[clamp(2.2rem,5vw,3.7rem)]! leading-[1.08]">
-            {t("home.title")} <span className="block text-pine-700 italic dark:text-mint">{t("home.title2")}</span>
+            {t("home.title")} <span className="block text-terra-ink italic">{t("home.title2")}</span>
           </h1>
           <p className="mt-5 max-w-140 text-[1.08rem] text-muted">{t("home.sub")}</p>
           <div className="mt-7 flex flex-wrap gap-3"><HeroActions /></div>
@@ -51,7 +52,7 @@ function Hero() {
             ))}
           </ul>
         </div>
-        <HeroArt />
+        <HeroPhotos />
       </div>
     </section>
   );
@@ -122,6 +123,10 @@ export default function Landing() {
     <PublicLayout title={t("home.eyebrow")}>
       <Hero />
       <Intro />
+      <Section className="mt-16" aria-labelledby="keepTitle">
+        <SectionHead eyebrow={t("home.keep.eyebrow")} icon="photo_library" title={<span id="keepTitle">{t("home.keep.title")}</span>} sub={t("home.keep.sub")} />
+        <TopicPhotos />
+      </Section>
       <Section className="mt-16" aria-labelledby="featTitle">
         <SectionHead eyebrow={t("home.feat.eyebrow")} icon="auto_awesome" title={<span id="featTitle">{t("home.feat.title")}</span>} sub={t("home.feat.sub")}>
           <Button icon="arrow_forward" to="/features">{t("home.feat.all")}</Button>

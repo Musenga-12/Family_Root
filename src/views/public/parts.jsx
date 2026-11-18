@@ -12,14 +12,18 @@ export const Section = ({ id, className, children, ...rest }) => (
 );
 
 /** Heading band at the top of each public page. */
-export function PageIntro({ eyebrow, icon, title, sub, children }) {
+/** Top of a public page. `photo` (optional) sits beside the text on wide screens and below it on phones. */
+export function PageIntro({ eyebrow, icon, title, sub, photo, children }) {
   return (
     <div className="border-b border-line bg-[linear-gradient(160deg,var(--sec-soft),var(--color-bg)_70%)]">
-      <div className="mx-auto max-w-300 px-4 pt-12 pb-10 sm:px-7">
-        <Eyebrow icon={icon}>{eyebrow}</Eyebrow>
-        <h1 className="mt-3 max-w-200 text-[clamp(1.9rem,4vw,2.9rem)]!">{title}</h1>
-        {sub && <p className="mt-3 max-w-170 text-[1.05rem] text-muted">{sub}</p>}
-        {children}
+      <div className={cx("mx-auto max-w-300 px-4 pt-12 pb-10 sm:px-7", photo && "grid items-center gap-8 md:grid-cols-[minmax(0,1.1fr)_minmax(0,.9fr)]")}>
+        <div className="min-w-0">
+          <Eyebrow icon={icon}>{eyebrow}</Eyebrow>
+          <h1 className="mt-3 max-w-200 text-[clamp(1.9rem,4vw,2.9rem)]!">{title}</h1>
+          {sub && <p className="mt-3 max-w-170 text-[1.05rem] text-muted">{sub}</p>}
+          {children}
+        </div>
+        {photo}
       </div>
     </div>
   );
@@ -160,72 +164,5 @@ export function CtaBand() {
         </div>
       </Card>
     </Section>
-  );
-}
-
-/* ---------- Hero illustration ---------- */
-
-/** A relative on the tree: a ring with a simple head-and-shoulders figure. */
-function Person({ x, y, r = 22, tone = "var(--color-pine-700)" }) {
-  return (
-    <g transform={`translate(${x} ${y})`}>
-      <circle r={r + 4} fill="var(--color-surface)" />
-      <circle r={r} fill={tone} />
-      <circle cy={-r * 0.22} r={r * 0.32} fill="#fff" opacity=".92" />
-      <path d={`M${-r * 0.55} ${r * 0.62} a${r * 0.55} ${r * 0.48} 0 0 1 ${r * 1.1} 0`} fill="#fff" opacity=".92" />
-    </g>
-  );
-}
-
-/** Grandparents at the roots, parents on the branches, children at the top: a family growing from its roots. */
-export function HeroArt() {
-  const t = useT();
-  const branch = { stroke: "var(--color-pine-800)", strokeLinecap: "round", fill: "none" };
-  return (
-    <div className="relative">
-      <svg viewBox="0 0 480 440" role="img" aria-label={t("home.artAlt")} className="block h-auto w-full">
-        <defs>
-          <radialGradient id="heroGlow" cx="50%" cy="45%" r="55%">
-            <stop offset="0" stopColor="var(--color-mint)" stopOpacity=".45" />
-            <stop offset="1" stopColor="var(--color-mint)" stopOpacity="0" />
-          </radialGradient>
-        </defs>
-        <circle cx="240" cy="200" r="215" fill="url(#heroGlow)" />
-        {/* leaves */}
-        {[[150, 150, 70], [330, 150, 70], [240, 95, 80], [195, 205, 55], [290, 205, 55]].map(([cx, cy, r]) => (
-          <circle key={`${cx}-${cy}`} cx={cx} cy={cy} r={r} fill="var(--color-gold)" opacity=".16" />
-        ))}
-        {/* ground */}
-        <path d="M40 340 Q240 318 440 340" stroke="var(--color-line)" strokeWidth="3" fill="none" />
-        {/* trunk and branches */}
-        <path d="M226 340 C229 290 224 250 230 205 L250 205 C256 250 251 290 254 340 Z" fill="var(--color-pine-800)" />
-        <path d="M236 228 C205 212 175 192 150 160" strokeWidth="11" {...branch} />
-        <path d="M244 228 C275 212 305 192 330 160" strokeWidth="11" {...branch} />
-        <path d="M240 212 C240 175 240 140 240 112" strokeWidth="10" {...branch} />
-        <path d="M150 160 C140 140 128 128 112 118" strokeWidth="6" {...branch} />
-        <path d="M330 160 C340 140 352 128 368 118" strokeWidth="6" {...branch} />
-        {/* roots */}
-        <path d="M236 338 C220 362 190 376 150 384" strokeWidth="7" {...branch} />
-        <path d="M244 338 C262 362 292 376 330 384" strokeWidth="7" {...branch} />
-        <path d="M240 340 C239 360 238 378 240 398" strokeWidth="5" {...branch} opacity=".7" />
-        {/* the family */}
-        <Person x={150} y={388} r={24} tone="var(--color-gold-ink)" />
-        <Person x={330} y={388} r={24} tone="var(--color-gold-ink)" />
-        <Person x={150} y={160} r={26} />
-        <Person x={330} y={160} r={26} />
-        <Person x={240} y={100} r={24} tone="var(--color-pine-600)" />
-        <Person x={112} y={112} r={18} tone="var(--color-pine-600)" />
-        <Person x={368} y={112} r={18} tone="var(--color-pine-600)" />
-      </svg>
-      {/* What families keep on the tree: a voice and a confirmed date. */}
-      <div aria-hidden="true" className="absolute top-[52%] -left-1 flex animate-pop items-center gap-2.5 rounded-2xl border border-line bg-surface px-3.5 py-2.5 shadow-pop sm:-left-4">
-        <span className="grid size-9 place-items-center rounded-full bg-rec/15 text-rec"><Icon name="graphic_eq" /></span>
-        <span><strong className="block text-small">{t("home.art.voice")}</strong><small className="text-xsmall text-muted">{t("home.art.voiceSub")}</small></span>
-      </div>
-      <div aria-hidden="true" className="absolute top-[8%] -right-1 flex animate-pop items-center gap-2.5 rounded-2xl border border-line bg-surface px-3.5 py-2.5 shadow-pop sm:-right-3">
-        <span className="grid size-9 place-items-center rounded-full bg-gold-100 text-gold-ink"><Icon name="favorite" /></span>
-        <span><strong className="block text-small">{t("home.art.date")}</strong><small className="text-xsmall text-muted">{t("home.art.dateSub")}</small></span>
-      </div>
-    </div>
   );
 }

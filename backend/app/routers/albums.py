@@ -7,6 +7,7 @@ from app.auth import get_current_user, require_role
 from app.db import get_session
 from app.models import Album, AlbumBase, Memory, User
 from app.routers.uploads import file_url
+from app.validation import reject_nulls
 from app.visibility import Kin, can_see
 
 router = APIRouter(prefix="/albums", tags=["albums"])
@@ -102,8 +103,8 @@ def create_album(body: AlbumCreate, user: User = Depends(get_current_user), db: 
 @router.patch("/{aid}", response_model=AlbumOut, dependencies=[Depends(require_role(*EDITORS))])
 def update_album(aid: str, body: AlbumUpdate, user: User = Depends(get_current_user), db: Session = Depends(get_session)):
     a = get_album(db, user, aid)
-    for k, v in body.model_dump(exclude_unset=True).items():
-        setattr(a, k, v)
+    for k, v in reject_nulls(body.model_dump(exclude_unset=True), "title").items():
+        setattr(a, k, v.strip() if k == "title" else v)
     db.add(a)
     db.commit()
     db.refresh(a)

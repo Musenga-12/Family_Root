@@ -15,6 +15,7 @@ from app.db import get_session
 from app.models import RECORD_CATEGORIES, VISIBILITY, LegacyRecord, Person, RecordAttachment, RecordBase, Upload, User, now
 from app.routers.memories import DATE_RE
 from app.routers.uploads import family_upload, file_url
+from app.validation import reject_nulls
 from app.visibility import Kin, can_see
 
 router = APIRouter(prefix="/records", tags=["legacy"])
@@ -47,7 +48,7 @@ def _seal(v):
     try:
         d = date.fromisoformat(v)
     except ValueError:
-        raise ValueError("use YYYY-MM-DD")
+        raise ValueError("use YYYY-MM-DD") from None
     if d <= date.today():
         raise ValueError("the opening date must be in the future")
     return v
@@ -238,7 +239,7 @@ def update_record(rid: str, body: RecordUpdate, user: User = Depends(get_current
     if not may_edit(user, r):
         raise HTTPException(403, "A sealed capsule can only be changed by its author" if is_sealed(r)
                             else "Only the person who added this, an Admin or a Custodian can change it")
-    data = body.model_dump(exclude_unset=True)
+    data = reject_nulls(body.model_dump(exclude_unset=True), "title", "category", "date", "approx", "text", "visibility")
     if "custodian" in data:
         check_custodian(db, user, data["custodian"])
     if "text" in data and not (data["text"] or "").strip():
@@ -288,7 +289,7 @@ def attach(rid: str, body: AttachmentIn, user: User = Depends(get_current_user),
     r = get_record(db, user, rid)
     if not may_edit(user, r):
         raise HTTPException(403, "Only the person who added this, an Admin or a Custodian can add files")
-    u = family_upload(db, user, body.upload_id)
+    u = family_upload(db, user, body.upload_id, own=True)
     if not (u.content_type.startswith("image/") or u.content_type == "application/pdf"):
         raise HTTPException(422, "Attach an image or a PDF")
     if not db.get(RecordAttachment, (rid, u.id)):

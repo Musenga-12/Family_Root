@@ -4,9 +4,7 @@ import AudioPlayer from "../components/AudioPlayer";
 import { CancelButton, Dialog } from "../components/Modal";
 import { useCloseModal, useModal } from "../components/modalContext";
 import { useToast } from "../components/toastContext";
-import {
-  Avatar, Button, Card, Check, Chip, Chips, Empty, Eyebrow, Field, Hero, Icon, IconButton, Input, PeopleChecks, Photo, PhotoOverlay, Record, Select, Stat, Tabs, Tag, Textarea,
-} from "../components/ui";
+import { Avatar, Button, Card, Check, Chip, Chips, Empty, Eyebrow, Field, Icon, IconButton, Input, PageHeader, PeopleChecks, Photo, PhotoOverlay, Record, Select, Stat, Tabs, Tag, Textarea } from "../components/ui";
 import { cx, dateWord, fmtDate, monthName, uid } from "../lib/format";
 import { useT } from "../lib/i18n";
 import { useStore } from "../lib/store";
@@ -37,7 +35,7 @@ function Item({ t, compact }) {
       <span className="absolute top-4.5 -left-12 grid size-7.5 place-items-center rounded-full border-2 border-sec-line bg-surface text-sec-ink sm:-left-14.5 sm:size-8.5">
         <Icon name={t.icon} className="text-[17px]!" />
       </span>
-      <span className="absolute top-14 -left-16.5 hidden w-12.5 text-center text-[.62rem] font-bold tracking-[.06em] text-muted sm:block">
+      <span className="absolute top-14 -left-16.5 hidden w-12.5 text-center text-tag font-bold tracking-[.06em] text-muted sm:block">
         {t.approx ? `${dateWord("approx")} ${y}` : monthName(+m - 1).toUpperCase()}
       </span>
       <article className={cx("grid min-w-0 gap-2.5 rounded-[18px] border border-line bg-surface p-4.5", t.approx && "border-dashed")}>
@@ -61,7 +59,7 @@ function Item({ t, compact }) {
         )}
         {details && <div className="flex flex-wrap items-center justify-between gap-2.5">
           <div className="flex items-center gap-1">{t.people.map(person).filter(Boolean).map((p) => <Avatar key={p.id} p={p} round />)}</div>
-          {t.approx ? <Tag tone="rose" icon="help" title={tr("tl.approxTitle")}>{tr("tl.approxTag")}</Tag>
+          {t.approx ? <Tag tone="gold" icon="help" title={tr("tl.approxTitle")}>{tr("tl.approxTag")}</Tag>
             : t.verified ? <Tag icon="verified">{t.source ? tr("tl.confirmedBy", { source: t.source }) : tr("tl.confirmedTag")}</Tag>
             : <Tag tone="outline" icon="person">{tr("tl.reported")}</Tag>}
         </div>}
@@ -160,29 +158,20 @@ export default function Timeline() {
 
   return (
     <>
-      <Hero>
-        <div className="flex flex-wrap items-start justify-between gap-5">
-          <div className="max-w-140">
-            <Tag tone="sec">{tr("tl.chronicle", { now: NOW })}</Tag>
-            <h1 className="mt-4">{tr("h1.timeline")}</h1>
-            <p className="mt-2 text-muted">{tr("tl.sub", { span })}</p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2.5">
-            <label className="sr-only" htmlFor="tlBranch">{tr("tl.filterBranch")}</label>
-            <Select id="tlBranch" className="w-auto!" value={f.branch} onChange={(e) => setF({ ...f, branch: e.target.value })}>
-              <option value="all">{tr("tl.allLineages")}</option>
-              {branches.map((b) => <option key={b} value={b}>{tr("tl.branch", { b })}</option>)}
-            </Select>
-            <Button icon="print" onClick={() => window.print()}>{tr("tl.print")}</Button>
-            <Button variant="primary" icon="add" onClick={() => open(<AddMilestoneDialog />)}>{tr("tl.add")}</Button>
-          </div>
-        </div>
-        <div className="mt-4 flex flex-wrap gap-2.5">
+      <PageHeader icon="hourglass_top" eyebrow={tr("tl.chronicle", { now: NOW })} title={tr("h1.timeline")} description={tr("tl.sub", { span })}
+        actions={<>
+          <Button variant="primary" icon="add" onClick={() => open(<AddMilestoneDialog />)}>{tr("tl.add")}</Button>
+          <Button icon="print" onClick={() => window.print()}>{tr("tl.print")}</Button>
+          <label className="sr-only" htmlFor="tlBranch">{tr("tl.filterBranch")}</label>
+          <Select id="tlBranch" className="w-auto!" value={f.branch} onChange={(e) => setF({ ...f, branch: e.target.value })}>
+            <option value="all">{tr("tl.allLineages")}</option>
+            {branches.map((b) => <option key={b} value={b}>{tr("tl.branch", { b })}</option>)}
+          </Select>
+        </>}
+        aside={<div className="flex flex-wrap gap-2.5">
           <Stat value={ms.length} label={tr("tl.total")} />
-          <Stat value={4} label={tr("tl.gens")} />
           {TYPES.map(([t]) => <Stat key={t} value={n(t)} label={tr(`mtype.${t}`)} />)}
-        </div>
-      </Hero>
+        </div>} />
 
       <Card className="mt-4 p-3.5!">
         <FilterRow label={tr("tl.eraJumps")}>
@@ -219,7 +208,7 @@ export default function Timeline() {
                 return (
                   <div key={e.id}>
                     <section id={e.id} aria-labelledby={`${e.id}-h`} className="relative mt-2 mb-4.5 scroll-mt-24">
-                      <span className="absolute -top-1 -left-13 grid size-10 place-items-center rounded-[14px] bg-sec font-serif text-[.75rem] font-bold text-sec-on sm:-left-17.5 sm:size-14 sm:text-[.95rem]">
+                      <span className="absolute -top-1 -left-13 grid size-10 place-items-center rounded-[14px] bg-sec font-serif text-xsmall font-bold text-sec-on sm:-left-17.5 sm:size-14 sm:text-[.95rem]">
                         {e.badge}
                       </span>
                       <Eyebrow>{tr("tl.eraChapter")}</Eyebrow>

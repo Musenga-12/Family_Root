@@ -265,10 +265,11 @@ def read_all(user: User = Depends(get_current_user), db: Session = Depends(get_s
 def start_thread(body: NewThreadIn, user: User = Depends(get_current_user), db: Session = Depends(get_session)):
     """Send a first message. With one recipient, the existing private chat is reused (and un-hidden) if there is one."""
     ctx = Ctx(db, user)
-    by_person = {u.person_id: u for u in ctx.users.values() if u.person_id}
+    active = {uid: u for uid, u in ctx.users.items() if not u.removed_at}  # removed members can't sign in to read it
+    by_person = {u.person_id: u for u in active.values() if u.person_id}
     recipients: list[User] = []
     for pid in dict.fromkeys(body.to):
-        u = by_person.get(pid) or (ctx.users.get(int(pid[1:])) if pid.startswith("u") and pid[1:].isdigit() else None)
+        u = by_person.get(pid) or (active.get(int(pid[1:])) if pid.startswith("u") and pid[1:].isdigit() else None)
         if not u:
             raise HTTPException(422, f"{pid} doesn't have a FamilyRoots account yet, so they can't receive messages")
         if u.id != user.id:

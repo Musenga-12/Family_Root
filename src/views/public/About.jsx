@@ -3,12 +3,14 @@ import PublicLayout from "../../components/PublicLayout";
 import { Card, Icon } from "../../components/ui";
 import { useT } from "../../lib/i18n";
 import { CtaBand, PageIntro, Section } from "./parts";
+import { PagePhoto } from "./photos";
 
 export default function About() {
   const t = useT();
   return (
     <PublicLayout title={t("about.title")}>
-      <PageIntro eyebrow={t("about.title")} icon="info" title={t("about.h1")} sub={t("about.sub")} />
+      <PageIntro eyebrow={t("about.title")} icon="info" title={t("about.h1")} sub={t("about.sub")}
+        photo={<PagePhoto slot="about" alt={t("about.photoAlt")} eager />} />
       <Section className="mt-12 grid gap-6 md:grid-cols-2">
         <Card>
           <h2 className="text-[1.4rem]!">{t("about.why.title")}</h2>

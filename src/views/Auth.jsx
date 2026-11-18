@@ -7,10 +7,11 @@ import PublicLayout from "../components/PublicLayout";
 import { authApi, connected } from "../lib/api";
 import { useSession } from "../lib/session";
 import { useToast } from "../components/toastContext";
-import { Button, Card, Check, ErrorText, Field, Icon, IconBox, Input, InputIcon, Photo, Tabs, Tag } from "../components/ui";
+import { Button, Card, Check, ErrorText, Field, Icon, IconBox, Input, InputIcon, Tabs, Tag } from "../components/ui";
 import { cx, emailOk } from "../lib/format";
 import { rich, useT } from "../lib/i18n";
 import { useStore } from "../lib/store";
+import { PagePhoto } from "./public/photos";
 
 // Titles and subtitles are au.role.<key> and au.role.<key>Sub.
 const ROLES = [["elder", "elderly"], ["parent", "family_restroom"], ["youth", "sentiment_satisfied"]];
@@ -43,7 +44,7 @@ function RoleGrid({ role, onPick }) {
             className={cx("relative grid cursor-pointer gap-1 rounded-[14px] border-2 p-3 text-left", on ? "border-sec bg-sec-soft shadow-[0_6px_18px_-10px_var(--sec)]" : "lift border-line bg-surface")}>
             <Icon name={icon} />
             <strong className="text-[.92rem]">{t(`au.role.${k}`)}</strong>
-            <small className="text-[.7rem] text-muted">{t(`au.role.${k}Sub`)}</small>
+            <small className="text-xsmall text-muted">{t(`au.role.${k}Sub`)}</small>
             {on && <Icon name="check_circle" size="sm" className="absolute top-2 right-2 text-pine-700" />}
           </button>
         );
@@ -122,7 +123,7 @@ function CreateAccount({ onEnter, onPending, setTab, join, invite }) {
         <div className="grid grid-cols-4 gap-1" aria-hidden="true">
           {[1, 2, 3, 4].map((i) => <i key={i} className={cx("h-1.25 rounded", f.pass && i <= Math.max(1, s) ? STRENGTH_COLOR[Math.max(1, s)] : "bg-surface-3")} />)}
         </div>
-        <span id="caPassHelp" className="text-[.74rem] text-muted">
+        <span id="caPassHelp" className="text-xsmall text-muted">
           {f.pass ? t("au.passLen", { label: t("au.strength")[s], n: f.pass.length }) : t("au.passHelp")}
         </span>
         <ErrorText id="ca-passErr">{errors.pass}</ErrorText>
@@ -383,7 +384,7 @@ export default function Auth({ mode }) {
 
       <div className="mx-auto grid max-w-260 overflow-hidden rounded-[26px] bg-surface shadow-pop md:grid-cols-[minmax(0,.85fr)_minmax(0,1fr)]">
         <div className="flex flex-col gap-5.5 bg-[radial-gradient(circle_at_20%_10%,var(--color-pine-700),var(--color-pine-900)_60%)] p-5 text-white sm:p-7">
-          <Photo p1="#a98a68" p2="#3c4f40" icon="family_restroom" sample="auth" aspect="aspect-[4/3.4]" alt={t("au.photoAlt")} />
+          <PagePhoto slot="auth" alt={t("au.photoAlt")} aspect="aspect-[4/3.4]" className="rounded-2xl! shadow-none!" eager />
           <div className="mt-auto grid gap-2">
             {[["lock", "au.f1"], ["block", "au.f2"], ["accessibility_new", "au.f3"]].map(([i, k]) => (
               <div key={k} className="flex gap-2.5 rounded-xl bg-white/10 px-3 py-2.5 text-[.8rem]">

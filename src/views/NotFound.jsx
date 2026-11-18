@@ -1,7 +1,7 @@
 /* Unknown address: say so plainly, then offer search and the most-used places (recognition over recall). */
 import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Button, Card, Eyebrow, Hero, Icon, Input, InputIcon } from "../components/ui";
+import { Button, Card, Icon, Input, InputIcon, PageHeader } from "../components/ui";
 import { useT } from "../lib/i18n";
 import { NAV } from "../lib/nav";
 
@@ -15,10 +15,9 @@ export default function NotFound() {
   const pages = NAV.flatMap((g) => g.items);
   return (
     <>
-      <Hero>
-        <Eyebrow icon="explore_off">{t("nf.eyebrow")}</Eyebrow>
-        <h1 className="mt-2">{t("nf.title")}</h1>
-        <p className="mt-2 max-w-155 text-muted">{before}<code className="rounded bg-surface-3 px-1.5">{pathname}</code>{after}</p>
+      {/* Same top as every other screen; the search sits where the main actions go. */}
+      <PageHeader icon="explore_off" eyebrow={t("nf.eyebrow")} title={t("nf.title")}
+        description={<>{before}<code className="rounded bg-surface-3 px-1.5">{pathname}</code>{after}</>}>
         <form role="search" className="mt-4 flex max-w-130 flex-wrap gap-2.5" onSubmit={(e) => { e.preventDefault(); navigate(`/directory${q.trim() ? "?q=" + encodeURIComponent(q.trim()) : ""}`); }}>
           <InputIcon icon="search" className="min-w-55 flex-1">
             <label className="sr-only" htmlFor="nfQ">{t("dir.search")}</label>
@@ -26,12 +25,12 @@ export default function NotFound() {
           </InputIcon>
           <Button type="submit" variant="primary" icon="search">{t("common.search")}</Button>
         </form>
-      </Hero>
+      </PageHeader>
       <Card className="mt-6">
         <h2 className="text-[1.2rem]!">{t("nf.goTo")}</h2>
         <ul className="m-0 mt-3 grid list-none grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-2 p-0">
           {pages.map(([id, , icon]) => (
-            <li key={id} data-sec={id}><Button to={`/${id}`} block className="justify-start!"><Icon name={icon} size="sm" className="text-sec-ink" />{t(`nav.${id}`)}</Button></li>
+            <li key={id} data-sec={id}><Button to={`/${id}`} block className="justify-start! text-left!"><Icon name={icon} size="sm" className="text-sec-ink" />{t(`nav.${id}`)}</Button></li>
           ))}
         </ul>
       </Card>

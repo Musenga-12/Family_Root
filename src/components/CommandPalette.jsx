@@ -76,11 +76,11 @@ export default function CommandPalette({ onClose, actions }) {
           {flat.length === 0 && <p className="px-3 py-8 text-center text-small text-muted">{t("palette.empty", { q })}</p>}
           {groups.map(([g, items]) => items.length > 0 && (
             <div key={g} role="group" aria-label={g}>
-              <div className="flex items-center justify-between px-2.5 pt-2.5 pb-1 text-[.66rem] font-semibold tracking-[.12em] text-muted uppercase">
+              <div className="flex items-center justify-between px-2.5 pt-2.5 pb-1 text-tag font-semibold tracking-[.12em] text-muted uppercase">
                 {g}
                 {g === t("palette.recent") && (
                   <button type="button" onClick={() => { clearRecent(); inputRef.current?.focus(); }}
-                    className="cursor-pointer rounded border-0 bg-transparent px-1 text-[.66rem] font-semibold tracking-normal text-sec-ink normal-case hover-fill">
+                    className="cursor-pointer rounded border-0 bg-transparent px-1 text-tag font-semibold tracking-normal text-sec-ink normal-case hover-fill">
                     {t("common.clear")}
                   </button>
                 )}

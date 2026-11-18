@@ -3,13 +3,11 @@ import { useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useModal } from "../components/modalContext";
 import { useToast } from "../components/toastContext";
-import {
-  Avatar, Button, Card, Chip, Chips, Empty, Eyebrow, Hero, Icon, IconBox, IconButton, Input, InputIcon, Photo, Record, SectionTitle, Select, Stat, Tabs, Tag,
-} from "../components/ui";
+import { Avatar, Button, Card, Chip, Chips, Empty, Eyebrow, Icon, IconBox, IconButton, Input, InputIcon, PageHeader, Photo, Record, SectionTitle, Select, Stat, Tabs, Tag } from "../components/ui";
 import { ME } from "../data";
 import InviteDialog from "../dialogs/InviteDialog";
 import MessageDialog from "../dialogs/MessageDialog";
-import { THIS_YEAR, cx, fmtDate } from "../lib/format";
+import { cx, fmtDate } from "../lib/format";
 import { useT } from "../lib/i18n";
 import { age, daysToBirthday, fullName, initials, useStore, year } from "../lib/store";
 
@@ -34,14 +32,15 @@ function PersonCard({ p, selected, list, onOpen }) {
   const days = !p.died && daysToBirthday(p);
   const status = p.id === ME ? <Tag tone="sec">{t("dir.youTag", { role: kin(p.role).toUpperCase() })}</Tag>
     : p.died ? <Tag tone="gold" icon="local_florist">{t("dir.memoriam")}</Tag>
-    : p.pending ? <Tag tone="rose">{t("dir.proofs")}</Tag>
-    : days <= 14 ? <Tag tone="gold" icon="cake">{t("dir.days", { n: days })}</Tag>
-    : <Tag>{kin(p.role).toUpperCase()}</Tag>;
+    : p.pending ? <Tag tone="gold" icon="help">{t("dir.proofs")}</Tag>
+    : days <= 14 ? <Tag tone="terra" icon="cake">{t("dir.days", { n: days })}</Tag>
+    : null; // How they're related is already on the card ("Kinship: Son"), so no second label.
   const life = p.died ? `${year(p.born)} – ${year(p.died)}` : t("dir.life", { year: year(p.born), age: age(p) });
   const primary = p.died ? <Button wrap variant="soft" size="sm" icon="play_circle" onClick={() => navigate("/stories")}>{t("dir.listen")}</Button>
     : p.id === ME ? <Button wrap variant="soft" size="sm" icon="badge" to={`/tree?person=${p.id}`}>{t("dir.profile")}</Button>
     : p.minor ? <Button wrap variant="soft" size="sm" icon="folder_shared" onClick={() => onOpen(p.id)}>{t("dir.folio")}</Button>
-    : <Button wrap variant="primary" size="sm" icon="chat"
+    // A secondary button: it repeats on every card, so a filled one would make the whole grid shout.
+    : <Button wrap variant="soft" size="sm" icon="chat"
         onClick={() => open(<MessageDialog person={p} title={t("dir.msgTitle", { name: p.first })} sub={t("dir.msgSub")} label={t("dir.msgLabel")} sendLabel={t("dir.send")} />)}>
         {t("dir.message")}
       </Button>;
@@ -59,13 +58,13 @@ function PersonCard({ p, selected, list, onOpen }) {
       <Avatar p={p} size="lg" />
       <div>
         <h3 className="text-[1.1rem]!">{fullName(p)}</h3>
-        <div className="flex items-center gap-1 text-[.76rem] text-muted"><Icon name="location_on" size="xs" /> {p.city} • {life}</div>
+        <div className="flex items-center gap-1 text-xsmall text-muted"><Icon name="location_on" size="xs" /> {p.city} • {life}</div>
         {!list && (
-          <div className="mt-2 flex flex-wrap gap-1.5">{(p.tags || []).slice(0, 2).map((tag) => <Tag key={tag} tone="outline">{tag}</Tag>)}</div>
+          <div className="mt-2 flex flex-wrap gap-1.5">{(p.tags || []).filter((tag) => tag !== p.occupation).slice(0, 2).map((tag) => <Tag key={tag} tone="outline">{tag}</Tag>)}</div>
         )}
       </div>
       {!list && (
-        <div className="flex justify-between gap-2 rounded-[10px] bg-surface-2 p-2.5 text-[.74rem]">
+        <div className="flex justify-between gap-2 rounded-[10px] bg-surface-2 p-2.5 text-xsmall">
           <span>{kids.length ? t(kids.length > 1 ? "dir.childrenMany" : "dir.childrenOne", { n: kids.length, names: kids.map((k) => k.first).join(", ") }) : p.occupation}</span>
           <span className="text-sec-ink">{t("dir.kinship", { rel: relationToMe(p) })}</span>
         </div>
@@ -122,9 +121,9 @@ function Dossier({ id, onClose }) {
           <Tag tone="dark">{degree ? t(`dir.degree.${degree}`) : t("dir.self")}</Tag>
         </div>
         <div className="my-2.5 flex items-center justify-center gap-2">
-          <span className="grid size-9 place-items-center rounded-full bg-sec text-[.7rem] font-bold text-sec-on">{t("dir.youShort")}</span>
+          <span className="grid size-9 place-items-center rounded-full bg-sec text-xsmall font-bold text-sec-on">{t("dir.youShort")}</span>
           <span className="h-0.5 w-12.5 bg-sec" />
-          <span className="grid size-9 place-items-center rounded-full bg-sec-soft text-[.7rem] font-bold text-sec-ink ring-2 ring-sec">{initials(p)}</span>
+          <span className="grid size-9 place-items-center rounded-full bg-sec-soft text-xsmall font-bold text-sec-ink ring-2 ring-sec">{initials(p)}</span>
         </div>
         <p className="text-center text-xsmall text-muted">{t("dir.path", { name: p.first, rel: relationToMe(p) })}</p>
       </Card>
@@ -161,7 +160,7 @@ function Dossier({ id, onClose }) {
         {!p.died && (
           <Button variant="primary" block icon="forum"
             onClick={() => open(<MessageDialog person={p} title={t("dir.msgTitle", { name: p.first })} sub={t("dir.msgSub")} label={t("dir.msgLabel")} sendLabel={t("dir.send")} />)}>
-            {t("dir.dialogue")}
+            {t("dir.dialogue", { name: p.first })}
           </Button>
         )}
         <Button variant="soft" block icon="download" onClick={downloadExtract}>{t("dir.downloadExtract", { name: p.first })}</Button>
@@ -205,7 +204,7 @@ function PeopleTable({ list, selected, sort, onSort, onOpen }) {
                 <th scope="row" className="px-3.5 py-2 font-normal">
                   <button type="button" onClick={(e) => { e.stopPropagation(); onOpen(p.id); }} aria-pressed={p.id === selected}
                     className="flex cursor-pointer items-center gap-2.5 rounded-lg border-0 bg-transparent p-0 text-left text-ink">
-                    <Avatar p={p} className="size-8! rounded-lg! text-[.7rem]!" />
+                    <Avatar p={p} className="size-8! rounded-lg! text-xsmall!" />
                     <span><strong className="block font-semibold">{fullName(p)}</strong>{p.fav && <span className="text-xsmall text-gold-ink"><Icon name="star" size="xs" fill /> {t("dir.starredTag")}</span>}</span>
                   </button>
                 </th>
@@ -279,29 +278,16 @@ export default function Directory() {
 
   return (
     <>
-      <div className="flex flex-wrap items-center justify-between gap-2.5">
-        <div className="flex items-center gap-2.5">
-          <Tag tone="sec">{t("dir.verified", { year: THIS_YEAR })}</Tag><span className="text-small text-muted">{t("dir.synced", { n: branches.length })}</span>
-        </div>
-        <div className="flex flex-wrap items-center gap-2.5">
-          <Button icon="download" onClick={exportCsv}>{t("dir.export")}</Button>
+      <PageHeader icon="groups" eyebrow={t("dir.roll")} title={t("h1.directory")}
+        description={t("dir.intro", { n: people.length, g: gens.length, b: branches.length })}
+        actions={<>
           <Button variant="primary" icon="person_add" onClick={() => open(<InviteDialog />)}>{t("dir.invite")}</Button>
-        </div>
-      </div>
-
-      <Hero className="mt-4 flex flex-wrap items-center gap-6">
-        <div className="min-w-65 flex-1">
-          <Eyebrow icon="menu_book">{t("dir.roll")}</Eyebrow>
-          <h1 className="mt-2">{t("h1.directory")}</h1>
-          <p className="mt-2 text-muted">
-            {t("dir.intro", { n: people.length, g: gens.length })}
-          </p>
-        </div>
-        <div className="flex gap-2.5">
+          <Button icon="download" onClick={exportCsv}>{t("dir.export")}</Button>
+        </>}
+        aside={<div className="flex gap-2.5">
           <Stat value={living} label={t("dir.living")} />
           <Stat value={people.length - living} label={t("dir.memorial")} />
-        </div>
-      </Hero>
+        </div>} />
 
       <Card className="mt-4" aria-label={t("dir.filters")}>
         <div className="flex flex-wrap items-center gap-3">

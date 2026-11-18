@@ -28,6 +28,16 @@ def verify_password(password: str, hashed: str) -> bool:
     return hasher.verify(password, hashed)
 
 
+_dummy_hash: str | None = None
+
+
+def waste_password_check(password: str) -> None:
+    """Take as long as a real check when there is no account, so response times don't reveal which emails exist."""
+    global _dummy_hash
+    _dummy_hash = _dummy_hash or hasher.hash(secrets.token_urlsafe(16))
+    hasher.verify(password, _dummy_hash)
+
+
 def create_token(user_id: int) -> str:
     exp = now() + timedelta(minutes=settings.access_token_minutes)
     return jwt.encode({"sub": str(user_id), "typ": "access", "iat": int(now().timestamp()), "exp": exp},
@@ -56,7 +66,10 @@ def user_from_token(token: str, db: Session) -> User | None:
         return None
     if payload.get("typ") != "access":  # a file link can't be used to sign in
         return None
-    user = db.get(User, int(payload["sub"]))
+    try:
+        user = db.get(User, int(payload.get("sub", "")))
+    except ValueError:
+        return None
     if not user or user.removed_at:  # removed members lose access at once
         return None
     if user.password_changed_at and payload.get("iat", 0) < int(user.password_changed_at.timestamp()):

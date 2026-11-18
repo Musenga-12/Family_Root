@@ -73,13 +73,13 @@ function Sidebar({ open, onClose, onDismiss }) {
           <span className="grid size-8.5 shrink-0 place-items-center rounded-full bg-pine-900 text-mint"><Icon name="park" /></span>
           <span className={cx(compact && "md:sr-only")}>
             <strong className="block font-serif text-[1.15rem] leading-[1.1]">FamilyRoots</strong>
-            <small className="text-[.62rem] font-semibold tracking-[.16em] text-pine-700 uppercase">{t("brand.tagline")}</small>
+            <small className="text-tag font-semibold tracking-[.16em] text-pine-700 uppercase">{t("brand.tagline")}</small>
           </span>
         </Link>
         <nav data-tour="nav">
           {NAV.map((g) => (
             <div key={g.group}>
-              <div className={cx("px-2.5 pt-3 pb-1.5 text-[.66rem] font-semibold tracking-[.14em] text-muted uppercase", compact && "md:sr-only")}>
+              <div className={cx("px-2.5 pt-3 pb-1.5 text-tag font-semibold tracking-[.14em] text-muted uppercase", compact && "md:sr-only")}>
                 {t(g.key)}
               </div>
               <ul className="m-0 grid list-none gap-0.5 p-0">
@@ -94,18 +94,17 @@ function Sidebar({ open, onClose, onDismiss }) {
                         "group relative -ml-3.5 flex min-h-11 items-center gap-3.5 rounded-r-full py-1.5 pr-3 pl-6 text-[.92rem] no-underline transition-[background-color,box-shadow,color] duration-200",
                         compact && "md:ml-0 md:justify-center md:rounded-full md:px-0",
                         isActive
-                          ? cx("bg-sec font-bold text-sec-on",
-                            "shadow-[0_6px_18px_-6px_var(--sec),inset_0_1px_0_rgb(255_255_255/.25)]")
+                          ? "bg-sec-soft font-bold text-sec-ink shadow-[inset_4px_0_0_var(--sec)]"
                           : "text-ink hover:bg-sec-hover hover:text-sec-ink hover:shadow-[inset_0_0_0_1px_var(--sec-hover-line)] active:bg-sec active:text-sec-on",
                       )}>
                       {({ isActive }) => <>
                         <Icon name={icon} fill={isActive}
-                          className={cx("shrink-0 text-[21px]!", isActive ? "text-sec-on" : "text-muted group-hover:text-sec-ink group-active:text-sec-on")} />
+                          className={cx("shrink-0 text-[21px]!", isActive ? "text-sec-ink" : "text-muted group-hover:text-sec-ink group-active:text-sec-on")} />
                         <span className={cx("min-w-0 flex-1", compact && "md:sr-only")}>{t(`nav.${id}`)}</span>
                         {/* A small dot on the open page, so it is marked by shape as well as colour. */}
-                        {isActive && !compact && <span aria-hidden="true" className="size-2 shrink-0 rounded-full bg-sec-on shadow-[0_0_0_3px_rgb(255_255_255/.25)]" />}
+                        {isActive && !compact && <span aria-hidden="true" className="size-2 shrink-0 rounded-full bg-sec" />}
                         {id === "messages" && unread > 0 && (
-                          <span className={cx("grid h-5 min-w-5 place-items-center rounded-full bg-rose px-1 text-[.66rem] font-bold text-white", isActive && "ring-2 ring-white", compact && "md:absolute md:top-1 md:right-1")}>
+                          <span className={cx("grid h-5 min-w-5 place-items-center rounded-full bg-rec px-1 text-tag font-bold text-white", isActive && "ring-2 ring-surface", compact && "md:absolute md:top-1 md:right-1")}>
                             {unread}<span className="sr-only"> {t("shell.unread")}</span>
                           </span>
                         )}
@@ -118,11 +117,8 @@ function Sidebar({ open, onClose, onDismiss }) {
           ))}
         </nav>
         <div className="mt-auto grid gap-2">
-          <div className={cx("flex items-center gap-1.5 rounded-[10px] bg-mint-100 px-3 py-2.5 text-[.78rem] font-semibold text-pine-800 dark:text-mint", compact && "md:justify-center md:px-0")}>
-            <Icon name="lock" size="sm" /> <span className={cx(compact && "md:sr-only")}>{t("side.protected")}</span>
-          </div>
           <button type="button" onClick={() => setPref("sidebar", compact ? "full" : "compact")}
-            className="pressable hidden cursor-pointer items-center justify-center gap-1.5 rounded-[10px] border border-line bg-surface px-3 py-2 text-[.78rem] text-muted hover-fill md:flex">
+            className="pressable hidden cursor-pointer items-center justify-center gap-1.5 rounded-[10px] border border-line bg-surface px-3 py-2 text-xsmall text-muted hover-fill md:flex">
             <Icon name={compact ? "left_panel_open" : "left_panel_close"} size="sm" />
             <span className={cx(compact && "sr-only")}>{t(compact ? "side.expand" : "side.collapse")}</span>
           </button>
@@ -330,14 +326,27 @@ function OfflineBanner() {
   );
 }
 
-/** While screens move onto the family server one by one, say plainly which data a signed-in person is looking at. */
+const NOTICE_KEY = "fr-notice-hidden";
+/** While screens move onto the family server one by one, say plainly which data a signed-in person is looking at.
+ *  One short line with the full explanation one tap away; it can be hidden for the rest of the visit. */
 function ServerNotice() {
   const { me } = useSession();
   const t = useT();
-  if (!me) return null;
+  const [more, setMore] = useState(false);
+  const [hidden, setHidden] = useState(() => { try { return sessionStorage.getItem(NOTICE_KEY) === "1"; } catch { return false; } });
+  if (!me || hidden) return null;
+  const hide = () => { setHidden(true); try { sessionStorage.setItem(NOTICE_KEY, "1"); } catch { /* storage blocked */ } };
   return (
-    <div role="note" data-no-print className="flex flex-wrap items-center gap-2.5 border-b border-line bg-sec-soft px-4 py-2 text-small text-sec-ink sm:px-7">
-      <Icon name="info" size="sm" /> <span>{t("session.interim", { name: me.name.split(" ")[0], family: me.family_name })}</span>
+    <div role="note" data-no-print className="flex items-start gap-2.5 border-b border-line bg-sec-soft px-4 py-1.5 text-small text-sec-ink sm:px-7">
+      <Icon name="info" size="sm" className="mt-1.5" />
+      <p className="m-0 min-w-0 flex-1 py-1.5">
+        {more ? t("session.interim", { name: me.name.split(" ")[0], family: me.family_name }) : t("session.interimShort")}{" "}
+        <button type="button" aria-expanded={more} onClick={() => setMore(!more)}
+          className="cursor-pointer rounded border-0 bg-transparent p-0 font-semibold text-sec-ink underline underline-offset-2 hover-fill">
+          {more ? t("session.less") : t("session.more")}
+        </button>
+      </p>
+      <IconButton icon="close" label={t("session.hide")} title={t("session.hide")} className="size-9!" onClick={hide} />
     </div>
   );
 }
@@ -424,13 +433,16 @@ function Topbar({ menuOpen, menuRef, onMenu, onPalette, onTour, speech }) {
       <button type="button" onClick={() => toast(t("shell.oneArchive"), { sub: t("shell.oneArchiveSub"), icon: "info" })}
         className="pressable hidden cursor-pointer items-center gap-4 rounded-xl border border-line bg-surface px-3 py-1.5 text-left text-ink hover-fill min-[1500px]:flex">
         <span>
-          <small className="block text-[.6rem] font-semibold tracking-[.12em] text-muted uppercase">{t("top.activeArchive")}</small>
+          <small className="block text-tag font-semibold tracking-[.12em] text-muted uppercase">{t("top.activeArchive")}</small>
           <strong className="text-[.92rem] font-semibold">{t("shell.familyName")}</strong>
         </span>
         <Icon name="expand_more" size="sm" />
       </button>
+      {/* On a phone the search box would shrink to a few letters, so it becomes a button that opens quick search. */}
+      <IconButton icon="search" label={t("top.palette")} className="sm:hidden" onClick={onPalette} />
+      <span className="flex-1 sm:hidden" />
       <form role="search" data-tour="search" onSubmit={(e) => { e.preventDefault(); navigate(`/directory${q.trim() ? "?q=" + encodeURIComponent(q.trim()) : ""}`); }}
-        className="flex min-w-0 flex-1 items-center gap-2 rounded-xl border border-line bg-surface px-3 text-muted transition-[border-color,box-shadow] hover:border-sec-edge focus-within:border-sec focus-within:text-sec-ink focus-within:shadow-[0_0_0_4px_var(--sec-line)] sm:max-w-90">
+        className="flex min-w-0 flex-1 items-center gap-2 rounded-xl border border-line bg-surface px-3 text-muted max-sm:hidden transition-[border-color,box-shadow] hover:border-sec-edge focus-within:border-sec focus-within:text-sec-ink focus-within:shadow-[0_0_0_4px_var(--sec-line)] sm:max-w-90">
         <Icon name="search" size="sm" />
         <label className="sr-only" htmlFor="globalSearchInput">{t("top.search")}</label>
         <input id="globalSearchInput" type="search" value={q} onChange={(e) => setQ(e.target.value)} autoComplete="off"
@@ -471,7 +483,7 @@ function Topbar({ menuOpen, menuRef, onMenu, onPalette, onTour, speech }) {
       <IconButton icon="notifications" label={unread ? `${t("top.notifications")}, ${unread}` : t("top.notifications")} className="max-sm:hidden"
         onClick={() => open(<NotificationsDialog onRead={() => setUnread(0)} />)}>
         {unread > 0 && (
-          <span className="absolute top-1 right-1 grid h-4 min-w-4 place-items-center rounded-full bg-rose text-[.62rem] font-bold text-white">{unread}</span>
+          <span className="absolute -top-0.5 -right-0.5 grid h-5 min-w-5 place-items-center rounded-full bg-rec px-1 text-tag font-bold text-white">{unread}</span>
         )}
       </IconButton>
 

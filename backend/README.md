@@ -8,7 +8,7 @@ The backend for the FamilyRoots React app in the parent folder.
 cd backend
 py -m venv .venv
 .venv\Scripts\Activate.ps1
-pip install -r requirements.txt
+pip install -r requirements.txt -r requirements-dev.txt   # dev: tests and lint
 copy .env.example .env      # then edit SECRET_KEY
 python seed.py              # optional: loads the Mackenzie sample family
 ```
@@ -58,6 +58,9 @@ app/
     suggestions.py    /people/{id}/suggestions, /suggestions ("Suggest a correction")
   realtime.py    /ws live updates for open chats
   visibility.py  who can see "All Family Branches" / "Immediate Family" / "Only Me (draft)" items
+  ratelimit.py   attempt limits on sign-in, sign-up and password reset
+  validation.py  shared checks for PATCH bodies
+tests/           pytest suite (runs on a temporary copy of the sample family)
 uploads/         stored files (git-ignored)
 seed.py          sample data loader
 seed_data.json   copy of SEED from src/data.js
@@ -161,11 +164,43 @@ after updating.
 Copy `routers/people.py`: add the table to `models.py`, create `routers/<name>.py`, and register it in `main.py`.
 Always filter by `user.family_id` so one family can never see another's data.
 
-## Supabase information
+## Tests and lint
 
-Project name:familyroots
-Password : YLZC?+#5MavDiMp
+```powershell
+cd backend
+.venv\Scripts\Activate.ps1
+python -m pytest -q      # about 270 tests, 1-3 minutes
+ruff check .
+```
 
-## for testing
-Project:familyroots-staging
-pwd:Familyroots123@@@
+Every test runs on a fresh copy of the sample family in a temporary folder; `familyroots.db` and `uploads/` are never
+opened. Tests cover sign-in and tokens, roles on every route, other families, the privacy rules, uploads, messages,
+the archive's create/change/remove/restore flows, administration, and the responses the React app relies on.
+
+## Running for other people (production)
+
+Set `ENVIRONMENT=production` in `.env`. The server then refuses to start until:
+
+- `SECRET_KEY` is a long random value: `python -c "import secrets; print(secrets.token_urlsafe(48))"`.
+  Changing it signs everyone out once.
+- `FRONTEND_ORIGIN` and `API_BASE_URL` are the real public addresses (not localhost).
+
+In production `/docs` is switched off, and password-reset links are no longer written to the log (until email
+sending exists, an Admin makes one with `POST /members/{id}/reset-link`). `GET /health` reports
+`{"status": "ok", "database": "ok"}`, or 503 if the database doesn't answer.
+
+Single process only, for now: the live chat (`realtime.py`) and the attempt limits (`ratelimit.py`) keep their state
+in memory. Behind a proxy, start uvicorn with `--proxy-headers` so limits apply per visitor, not per proxy.
+Uploaded files live on the server's disk under `UPLOAD_DIR`: back that folder up together with the database.
+
+## Limits and rules worth knowing
+
+- **Attempt limits** (per visitor, answered with 429 and `Retry-After`): sign-in 20 per 5 minutes and 10 per
+  15 minutes per email address; sign-up 10 an hour; forgot password 5 and reset 10 per 15 minutes; family-code check
+  10 per 5 minutes; invitation links 20 per 5 minutes. `RATE_LIMIT_ENABLED=false` turns them off.
+- **Uploads** are checked by their contents, not only the type the browser names. A memory, story, milestone, record
+  or message can only use a file **you** uploaded. `GET /uploads/{id}` answers for your own uploads; everyone else
+  gets a file's link with the item it belongs to, so the item's visibility decides who can open it.
+- **The archive export** (`/admin/export`) follows the same privacy rules as the screens.
+- **PATCH** can't empty a required field (`{"title": null}` is a 422 naming the field).
+- **Errors** are always JSON `{"detail": ...}`, never a stack trace; the details go to the server log.

@@ -5,9 +5,7 @@ import AudioPlayer from "../components/AudioPlayer";
 import { CancelButton, Dialog } from "../components/Modal";
 import { useCloseModal, useModal } from "../components/modalContext";
 import { useToast } from "../components/toastContext";
-import {
-  Avatar, Button, Card, Chip, Chips, Empty, Eyebrow, Field, Icon, IconBox, IconButton, Input, InputIcon, Record, Select, Tag,
-} from "../components/ui";
+import { Avatar, Button, Card, Chip, Chips, Empty, Eyebrow, Field, Icon, IconBox, IconButton, Input, InputIcon, PageHeader, Record, Select, Tag } from "../components/ui";
 import { ME } from "../data";
 import AddPersonDialog from "../dialogs/AddPersonDialog";
 import MessageDialog from "../dialogs/MessageDialog";
@@ -53,7 +51,7 @@ function PNode({ p, selected, dim, onSelect }) {
       aria-label={`${fullName(p)}, ${relationToMe(p)}, ${life}`}
       className={cx(
         "lift relative flex w-full min-w-45 cursor-pointer items-center gap-2.5 rounded-[14px] border-2 px-3 py-2.5 text-left",
-        p.died ? "border-[#ead49f] bg-[#fffcf5] dark:border-gold/50 dark:bg-gold-100" : "border-[#b7e4cf] bg-surface dark:border-mint-200",
+        p.died ? "border-gold/45 bg-gold-100/45 dark:border-gold/50 dark:bg-gold-100" : "border-mint-200 bg-surface",
         selected && "border-sec! shadow-[0_0_0_3px_var(--sec-line)]",
         dim && "opacity-30",
       )}>
@@ -91,7 +89,7 @@ function Canvas({ genFilter, selected, onSelect, isDim }) {
                 return (
                   <div key={a.id} className="flex items-center gap-3.5">
                     {node(a)}
-                    <div className="flex flex-col items-center justify-center gap-1 text-center text-[.7rem] text-gold-ink">
+                    <div className="flex flex-col items-center justify-center gap-1 text-center text-xsmall text-gold-ink">
                       <span className="grid size-8.5 place-items-center rounded-full bg-gold-100"><Icon name="favorite" size="sm" /></span>
                       {rich(t("tree.golden", { year: a.married, n: years }).replace("<br>", " "))}
                     </div>
@@ -103,13 +101,13 @@ function Canvas({ genFilter, selected, onSelect, isDim }) {
               const kids = children(a.id).length;
               return (
                 <div key={a.id} className={cx("relative grid min-w-47.5 content-start gap-2.5 rounded-2xl p-3", hl ? "bg-sec-soft outline-2 outline-sec" : "bg-surface-2")}>
-                  <span className="text-[.64rem] font-bold tracking-widest text-muted uppercase">
+                  <span className="text-tag font-bold tracking-widest text-muted uppercase">
                     {a.parents.length ? t("tree.household", { name: a.first }) : kin(a.role)}{a.pending && ` • ${t("tree.unconfirmed")}`}
                   </span>
                   {node(a)}
                   {b && (
                     <>
-                      <span className="flex items-center gap-1 pl-1.5 text-[.7rem] text-muted"><Icon name="favorite" size="xs" /> {t("tree.partnerSince", { year: b.married || a.married })}</span>
+                      <span className="flex items-center gap-1 pl-1.5 text-xsmall text-muted"><Icon name="favorite" size="xs" /> {t("tree.partnerSince", { year: b.married || a.married })}</span>
                       {node(b)}
                     </>
                   )}
@@ -235,7 +233,7 @@ function Profile({ id, onClose }) {
         <h2>{fullName(p)}</h2>
         <p className="text-small text-muted">{p.occupation} • {p.died ? `${fmtDate(p.born, p.bornApprox)} – ${fmtDate(p.died)}` : t("tree.born", { date: fmtDate(p.born, p.bornApprox) })}</p>
         {p.verified ? <Tag icon="verified">{t("tree.verifiedTag")}</Tag>
-          : (p.pending || p.bornApprox) && <Tag tone="rose" icon="help">{t("tree.approxTag")}</Tag>}
+          : (p.pending || p.bornApprox) && <Tag tone="gold" icon="help">{t("tree.approxTag")}</Tag>}
       </div>
       <div className="mt-4 rounded-[14px] bg-sec-soft p-3.5 text-[.84rem]">
         <Eyebrow>{t("tree.kinship")}</Eyebrow>
@@ -384,18 +382,13 @@ export default function Tree() {
 
   return (
     <>
-      <div className="flex flex-wrap items-start justify-between gap-2.5">
-        <div>
-          <Eyebrow icon="park">{t("tree.canvas")} <Tag tone="outline">{t("tree.branch")}</Tag></Eyebrow>
-          <h1 className="mt-2">{t("h1.tree")}</h1>
-        </div>
-        <div className="flex flex-wrap items-center gap-2.5">
-          <Button aria-pressed={listMode} icon={listMode ? "account_tree" : "list"} onClick={() => setListMode(!listMode)}>
-            {listMode ? t("tree.toCanvas") : t("tree.toList")} <span className="text-xsmall text-muted">(Alt+L)</span>
-          </Button>
+      <PageHeader icon="account_tree" eyebrow={t("tree.canvas")} title={t("h1.tree")} description={t("tree.sub")}
+        actions={<>
           <Button variant="primary" icon="person_add" onClick={() => open(<AddPersonDialog />)}>{t("tree.add")}</Button>
-        </div>
-      </div>
+          <Button aria-pressed={listMode} icon={listMode ? "account_tree" : "list"} onClick={() => setListMode(!listMode)}>
+            {listMode ? t("tree.toCanvas") : t("tree.toList")} <kbd className="text-xsmall text-muted">Alt+L</kbd>
+          </Button>
+        </>} />
 
       <div role="toolbar" aria-label={t("tree.controls")} className="mt-4.5 flex flex-wrap items-center gap-2.5 rounded-[14px] border border-line bg-surface p-2.5">
         <Chips role="group" aria-label={t("tree.filterGen")}>
@@ -418,7 +411,7 @@ export default function Tree() {
         </Select>
       </div>
 
-      <div aria-label={t("tree.legend")} className="mt-2.5 flex flex-wrap items-center gap-x-4.5 gap-y-2 rounded-xl bg-surface-2 px-3.5 py-2.5 text-[.76rem] text-muted">
+      <div aria-label={t("tree.legend")} className="mt-2.5 flex flex-wrap items-center gap-x-4.5 gap-y-2 rounded-xl bg-surface-2 px-3.5 py-2.5 text-xsmall text-muted">
         <strong className="text-xsmall">{t("tree.legendTitle")}</strong>
         <span><i className="mr-1.5 inline-block size-3 rounded-full border-2 border-pine-600 align-middle" />{t("tree.legendLiving")}</span>
         <span><i className="mr-1.5 inline-block size-3 rounded-full border-2 border-gold align-middle" />{t("tree.legendMemory")}</span>

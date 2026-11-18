@@ -98,11 +98,11 @@ export default function AudioPlayer({ id, duration = 0, label: labelProp, dark }
               i / bars.length < frac ? (dark ? "bg-mint" : "bg-sec") : (dark ? "bg-white/20" : "bg-sec-line"))} />
         ))}
       </div>
-      <span className={cx("font-mono text-[.74rem] whitespace-nowrap tabular-nums", dark ? "text-on-dark" : "text-muted")}>
+      <span className={cx("font-mono text-xsmall whitespace-nowrap tabular-nums", dark ? "text-on-dark" : "text-muted")}>
         {fmtDur(t)} / {fmtDur(dur)}
       </span>
       <button type="button" onClick={changeRate} aria-label={tr("audio.speedValue", { rate })} title={tr("stories.speed")}
-        className={cx("shrink-0 cursor-pointer rounded-md border px-1.5 py-0.5 font-mono text-[.7rem] font-semibold",
+        className={cx("shrink-0 cursor-pointer rounded-md border px-1.5 py-0.5 font-mono text-xsmall font-semibold",
           dark ? "border-white/20 bg-transparent text-on-dark hover:bg-white/10" : "hover-fill border-sec-line bg-sec-soft text-sec-ink")}>
         {rate}×
       </button>

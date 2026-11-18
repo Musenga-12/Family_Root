@@ -8,13 +8,19 @@ from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import BaseModel, EmailStr, Field
 from sqlmodel import Session, select
 
-from app.auth import create_reset_link, create_token, get_current_user, hash_password, use_reset_token, verify_password
+from app.auth import (create_reset_link, create_token, get_current_user, hash_password, use_reset_token, verify_password,
+                      waste_password_check)
+from app.config import settings
 from app.db import get_session
 from app.models import DEFAULT_PREFS, Family, Invite, JoinRequest, User, UserPrefs, now
+from app.ratelimit import limit, limiter
 from app.routers.notifications import family_users, notify
 
 router = APIRouter(tags=["auth"])
 log = logging.getLogger("familyroots")
+
+# Attempts allowed per visitor (IP address) in a time window, in seconds; see app/ratelimit.py.
+SIGN_IN_LIMIT = limit("sign-in", 20, 5 * 60)
 
 
 class RegisterIn(BaseModel):
@@ -97,7 +103,7 @@ def onboarding_done(db: Session, user: User) -> bool:
     return not p or (p.data or {}).get("onboarding") != "pending"
 
 
-@router.post("/auth/register", response_model=RegisterOut, status_code=201)
+@router.post("/auth/register", response_model=RegisterOut, status_code=201, dependencies=[Depends(limit("register", 10, 60 * 60))])
 def register(body: RegisterIn, response: Response, db: Session = Depends(get_session)):
     email, name = body.email.lower(), body.name.strip()
     if db.exec(select(User).where(User.email == email)).first():
@@ -152,11 +158,14 @@ def register(body: RegisterIn, response: Response, db: Session = Depends(get_ses
 
 def sign_in(db: Session, email: str, password: str) -> TokenOut:
     email = email.strip().lower()
+    limiter.hit(f"sign-in-email:{email}", 10, 15 * 60)  # also per account, so spreading guesses over many addresses doesn't help
     user = db.exec(select(User).where(User.email == email)).first()
     if not user:
         req = pending_request(db, email)
         if req and req.password_hash and verify_password(password, req.password_hash):
             raise HTTPException(403, "Your request to join is waiting for an Admin. You'll be able to sign in once it's approved.")
+        if not (req and req.password_hash):
+            waste_password_check(password)
     if not user or not verify_password(password, user.password_hash):
         raise HTTPException(401, "Email or password is incorrect")
     if user.removed_at:
@@ -167,19 +176,20 @@ def sign_in(db: Session, email: str, password: str) -> TokenOut:
     return TokenOut(access_token=create_token(user.id))
 
 
-@router.post("/auth/login", response_model=TokenOut)
+@router.post("/auth/login", response_model=TokenOut, dependencies=[Depends(SIGN_IN_LIMIT)])
 def login(body: LoginIn, db: Session = Depends(get_session)):
     return sign_in(db, body.email, body.password)
 
 
-@router.post("/auth/token", response_model=TokenOut, summary="Sign in from the Authorize button in /docs")
+@router.post("/auth/token", response_model=TokenOut, summary="Sign in from the Authorize button in /docs",
+             dependencies=[Depends(SIGN_IN_LIMIT)])
 def token(form: Annotated[OAuth2PasswordRequestForm, Depends()], db: Session = Depends(get_session)):
     """The same as /auth/login, but as an OAuth2 password form so Swagger UI can call it.
     Put the email address in `username`. The React app uses /auth/login."""
     return sign_in(db, form.username, form.password)
 
 
-@router.post("/auth/family-code/verify")
+@router.post("/auth/family-code/verify", dependencies=[Depends(limit("family-code", 10, 5 * 60))])
 def verify_code(body: CodeIn, db: Session = Depends(get_session)):
     family = family_by_code(db, body.code)
     if not family:
@@ -300,18 +310,23 @@ def set_password(db: Session, user: User, password: str) -> None:
     db.add(user)
 
 
-@router.post("/auth/forgot-password", status_code=202)
+@router.post("/auth/forgot-password", status_code=202, dependencies=[Depends(limit("forgot-password", 5, 15 * 60))])
 def forgot_password(body: ForgotIn, db: Session = Depends(get_session)):
     """Always answers the same way, so nobody can use it to find out who has an account."""
     user = db.exec(select(User).where(User.email == body.email.strip().lower(), User.removed_at == None)).first()  # noqa: E711
     if user:
         link, _ = create_reset_link(db, user)
-        # TODO: email the link. Until sending is set up, it is written to the server console.
-        log.warning("Password reset link for %s: %s", user.email, link)
+        # TODO: email the link. Until sending is set up, it is written to the server console on a developer's
+        # computer only: a server's logs are read by more people than the account holder, so there it isn't logged
+        # and an Admin makes a link instead (POST /members/{id}/reset-link).
+        if settings.production:
+            log.warning("Password reset requested for user %s (email sending is not set up)", user.id)
+        else:
+            log.warning("Password reset link for %s: %s", user.email, link)
     return {"detail": "If that email has an account, a link to choose a new password is on its way."}
 
 
-@router.post("/auth/reset-password", response_model=TokenOut)
+@router.post("/auth/reset-password", response_model=TokenOut, dependencies=[Depends(limit("reset-password", 10, 15 * 60))])
 def reset_password(body: ResetIn, db: Session = Depends(get_session)):
     user = use_reset_token(db, body.token)
     if not user or user.removed_at:
@@ -321,7 +336,7 @@ def reset_password(body: ResetIn, db: Session = Depends(get_session)):
     return TokenOut(access_token=create_token(user.id))
 
 
-@router.post("/auth/change-password", response_model=TokenOut)
+@router.post("/auth/change-password", response_model=TokenOut, dependencies=[Depends(limit("change-password", 10, 15 * 60))])
 def change_password(body: ChangeIn, user: User = Depends(get_current_user), db: Session = Depends(get_session)):
     """Returns a fresh token for this device; other devices are signed out."""
     if not verify_password(body.current_password, user.password_hash):

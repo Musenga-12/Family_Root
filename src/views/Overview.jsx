@@ -2,7 +2,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import AudioPlayer from "../components/AudioPlayer";
-import { useToggleEasy } from "../lib/useToggleEasy";
 import { CancelButton, Dialog } from "../components/Modal";
 import { useCloseModal, useModal } from "../components/modalContext";
 import { useToast } from "../components/toastContext";
@@ -12,7 +11,7 @@ import {
 import { ME } from "../data";
 import AddMemoryDialog from "../dialogs/AddMemoryDialog";
 import InviteDialog from "../dialogs/InviteDialog";
-import { THIS_YEAR, cx, fmtDate, fmtDur, monthName } from "../lib/format";
+import { cx, fmtDate, fmtDur, monthName } from "../lib/format";
 import { rich, useT } from "../lib/i18n";
 import { age, daysToBirthday, fullName, useStore } from "../lib/store";
 
@@ -112,7 +111,7 @@ function MemoryShuffle() {
         <div><Eyebrow icon="auto_awesome">{t("otd.eyebrow")}</Eyebrow><h2 id="otdH" className="mt-1 text-[1.1rem]!">{t("otd.title")}</h2></div>
         <IconButton icon="shuffle" label={t("otd.shuffle")} title={t("otd.shuffle")} onClick={() => setI(i + 1 + Math.floor(Math.random() * (list.length - 1)))} />
       </div>
-      <Photo key={m.id} as={Link} to={`/memories?q=${encodeURIComponent(m.title)}`} p1={m.p1} p2={m.p2} icon={m.icon} img={m.img} sample={m.id} aria-label={m.alt}
+      <Photo key={m.id} as={Link} to={`/memories?q=${encodeURIComponent(m.title)}`} p1={m.p1} p2={m.p2} icon={m.icon} img={m.img} sample={m.id} alt={m.alt}
         aspect="aspect-video" className="mt-3 animate-fade">
         <PhotoOverlay><strong className="block font-serif">{m.title}</strong><small>{fmtDate(m.date, m.approx)} · {m.place}</small></PhotoOverlay>
       </Photo>
@@ -130,7 +129,7 @@ function MiniNode({ p, tag }) {
       <Avatar p={p} round />
       <span>
         <strong className="block text-[.86rem]">{p.first}{p.id === ME && ` (${t("common.you")})`}</strong>
-        <small className="text-[.7rem] text-pine-700">{tag}</small>
+        <small className="text-xsmall text-pine-700">{tag}</small>
       </span>
     </button>
   );
@@ -173,11 +172,10 @@ function RsvpDialog({ value, onSave }) {
 }
 
 export default function Overview() {
-  const { state: st, update, person, easy, kin } = useStore();
+  const { state: st, update, person, kin } = useStore();
   const toast = useToast();
   const { open } = useModal();
   const navigate = useNavigate();
-  const toggleEasy = useToggleEasy();
   const [reply, setReply] = useState("");
   const [rsvp, setRsvp] = useState("yes");
   const t = useT();
@@ -210,28 +208,17 @@ export default function Overview() {
         <div className="flex flex-wrap items-center gap-5">
           <Avatar p={me} size="xl" round />
           <div className="min-w-0 flex-1 max-sm:basis-full">
-            <div className="flex flex-wrap items-center gap-2.5"><Tag tone="sec">{t("ov.line")}</Tag><span className="text-small text-muted">{t("ov.synced")}</span></div>
-            <h1 id="welcome" className="mt-2">{t(greet)}, {me.first}</h1>
-            <p className="mt-1 font-serif text-[1.1rem] text-pine-700 italic">{t("h1.overview", { name: me.first })}</p>
-            <p className="mt-2 text-muted">
-              {t("ov.stats", { n: st.people.length })}<span className="text-pine-700">{t("ov.peace")}</span>
-            </p>
-          </div>
-          <div className="grid justify-items-start gap-2 sm:justify-items-end">
-            <button type="button" onClick={toggleEasy}
-              className="pressable inline-flex min-h-10 cursor-pointer items-center gap-1.5 rounded-full border border-sec-line bg-surface px-3.5 py-1.5 text-[.82rem] font-medium hover-fill easy:min-h-12">
-              <Icon name="visibility" size="sm" /> {easy ? t("ov.easyOn") : t("ov.easyOff")}
-            </button>
-            <span className="text-small text-muted">{t("ov.years", { year: THIS_YEAR })}</span>
+            <h1 id="welcome">{t(greet)}, {me.first}</h1>
+            <p className="mt-2 text-muted">{t("ov.stats", { n: st.people.length })}</p>
           </div>
         </div>
         <div role="group" aria-label={t("ov.primary")}
           className="mt-5.5 grid grid-cols-2 gap-3 rounded-2xl border border-line bg-surface p-3 sm:grid-cols-4">
           {/* Each shortcut wears the colour of the section it leads to. */}
           <Button variant="primary" sec="memories" size="lg" icon="add_photo_alternate" onClick={() => open(<AddMemoryDialog />)}>{t("ov.addMemory")}</Button>
-          <Button variant="primary" sec="stories" size="lg" icon="mic" to="/stories?record=1">{t("ov.recordStory")}</Button>
-          <Button variant="primary" sec="tree" size="lg" icon="account_tree" to="/tree">{t("ov.exploreTree")}</Button>
-          <Button variant="primary" sec="directory" size="lg" icon="person_add" onClick={() => open(<InviteDialog />)}>{t("ov.invite")}</Button>
+          <Button sec="stories" size="lg" icon="mic" to="/stories?record=1">{t("ov.recordStory")}</Button>
+          <Button sec="tree" size="lg" icon="account_tree" to="/tree">{t("ov.exploreTree")}</Button>
+          <Button sec="directory" size="lg" icon="person_add" onClick={() => open(<InviteDialog />)}>{t("ov.invite")}</Button>
         </div>
       </Hero>
 
@@ -326,29 +313,30 @@ export default function Overview() {
           </Card>
         </div>
 
-        <aside className="grid min-w-0 grid-cols-[minmax(0,1fr)] content-start gap-5.5">
+        <aside className="grid min-w-0 grid-cols-[minmax(0,1fr)] content-start gap-5.5 [&>*]:min-w-0">
           <Card sec="calendar" aria-labelledby="gath">
             <SectionTitle><h2 id="gath" className="flex items-center gap-2.5 text-[1.2rem]!"><Icon name="event" /> {t("ov.gatherings")}</h2></SectionTitle>
-            <div className="grid gap-3.5">
+            {/* Longer languages (e.g. Kinyarwanda) wrap inside the narrow side column instead of widening it. */}
+            <div className="grid grid-cols-[minmax(0,1fr)] gap-3.5">
               {nb && <div className="flex gap-3 rounded-[14px] border border-sec-line bg-sec-soft p-3.5">
                 <DateBadge month={monthName(nbDate.getMonth()).toUpperCase()} day={nbDate.getDate()} />
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-start justify-between gap-2.5"><strong>{t("ov.birthday", { name: nb.first, n: age(nb) + 1 })}</strong><Tag tone="rose" className="shrink-0">{t("ov.inDays", { n: daysToBirthday(nb) })}</Tag></div>
+                  <div className="flex flex-wrap items-start justify-between gap-2.5"><strong>{t("ov.birthday", { name: nb.first, n: age(nb) + 1 })}</strong><Tag tone="terra" icon="cake" className="shrink-0">{t("ov.inDays", { n: daysToBirthday(nb) })}</Tag></div>
                   <p className="text-small text-muted">{kin(nb.role)}</p>
                   <div className="mt-2 flex flex-wrap gap-2.5">
-                    <Button size="sm" icon="mic" iconSize="xs" onClick={() => navigate(`/stories?record=1&for=${encodeURIComponent(nb.first)}`)}>{t("ov.voiceCard")}</Button>
-                    <Button size="sm" icon="attach_file" iconSize="xs" onClick={() => open(<AddMemoryDialog />)}>{t("ov.attach")}</Button>
+                    <Button size="sm" wrap icon="mic" iconSize="xs" onClick={() => navigate(`/stories?record=1&for=${encodeURIComponent(nb.first)}`)}>{t("ov.voiceCard")}</Button>
+                    <Button size="sm" wrap icon="attach_file" iconSize="xs" onClick={() => open(<AddMemoryDialog />)}>{t("ov.attach")}</Button>
                   </div>
                 </div>
               </div>}
               <div className="flex gap-3 rounded-[14px] border border-sec-line bg-sec-soft p-3.5">
                 <DateBadge month={monthName(7).toUpperCase()} day="14" mint />
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-start justify-between gap-2.5"><strong>{t("ov.reunion")}</strong><Tag tone="dark" className="shrink-0">{t("ov.attending", { n: 18 })}</Tag></div>
+                  <div className="flex flex-wrap items-start justify-between gap-2.5"><strong>{t("ov.reunion")}</strong><Tag tone="dark" className="shrink-0">{t("ov.attending", { n: 18 })}</Tag></div>
                   <p className="text-small text-muted">{t("ov.reunionWhere")}</p>
-                  <div className="mt-2 flex items-center justify-between gap-2.5 text-small">
+                  <div className="mt-2 flex flex-wrap items-center justify-between gap-2.5 text-small">
                     <span className="text-pine-700"><Icon name="check_circle" size="xs" /> {t(`ov.rsvp.${rsvp}`)}</span>
-                    <Button variant="ghost" size="sm"
+                    <Button variant="ghost" size="sm" wrap
                       onClick={() => open(<RsvpDialog value={rsvp} onSave={(v) => { setRsvp(v); toast(t("ov.rsvp.saved"), { sub: t(`ov.rsvp.${v}`) }); }} />)}>
                       {t("ov.rsvp.review")}
                     </Button>
@@ -365,7 +353,7 @@ export default function Overview() {
             </SectionTitle>
             {recentMem && <>
             <Photo as={Link} to="/memories" p1={recentMem.p1} p2={recentMem.p2} icon={recentMem.icon} img={recentMem.img} sample={recentMem.id}
-              aria-label={recentMem.alt} aspect="aspect-16/10">
+              alt={recentMem.alt} aspect="aspect-16/10">
               <PhotoOverlay>
                 <Tag tone="gold">{t("ov.featured")}</Tag>
                 <strong className="mt-1.5 block font-serif text-[1.15rem]">{recentMem.title}</strong>
@@ -401,7 +389,7 @@ export default function Overview() {
 function DateBadge({ month, day, mint }) {
   return (
     <div className={`h-fit w-12 shrink-0 rounded-[10px] py-1.5 text-center ${mint ? "bg-mint-200 text-pine-900" : "bg-gold-100 text-gold-ink"}`}>
-      <small className="block text-[.62rem] font-bold tracking-[.08em]">{month}</small>
+      <small className="block text-tag font-bold tracking-[.08em]">{month}</small>
       <strong className="font-serif text-[1.2rem]">{day}</strong>
     </div>
   );

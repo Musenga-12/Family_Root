@@ -3,9 +3,7 @@ import { useState } from "react";
 import { CancelButton, Dialog, DraftNote } from "../components/Modal";
 import { useCloseModal, useModal } from "../components/modalContext";
 import { useToast } from "../components/toastContext";
-import {
-  Avatar, Button, Card, Check, Chip, Chips, Empty, Eyebrow, Field, Hero, Icon, IconBox, IconButton, Input, InputIcon, Select, Stat, Tag, Textarea, Visibility,
-} from "../components/ui";
+import { Avatar, Button, Card, Check, Chip, Chips, Empty, Field, Icon, IconBox, IconButton, Input, InputIcon, PageHeader, Select, Stat, Tag, Textarea, Visibility } from "../components/ui";
 import { ME } from "../data";
 import { cx, fmtDate, todayISO, uid } from "../lib/format";
 import { rich, useT } from "../lib/i18n";
@@ -86,7 +84,7 @@ function RecordDialog({ r }) {
       <dl className="m-0 grid gap-2 text-small sm:grid-cols-2">
         <div><dt className="text-xsmall font-semibold text-muted uppercase">{t("lg.source")}</dt><dd className="m-0">{r.source || t("lg.notRecorded")}</dd></div>
         <div><dt className="text-xsmall font-semibold text-muted uppercase">{t("lg.custodian")}</dt>
-          <dd className="m-0 flex items-center gap-2"><Avatar p={person(r.custodian)} className="size-7! rounded-lg! text-[.62rem]!" />{fullName(person(r.custodian))}</dd></div>
+          <dd className="m-0 flex items-center gap-2"><Avatar p={person(r.custodian)} className="size-7! rounded-lg! text-tag!" />{fullName(person(r.custodian))}</dd></div>
       </dl>
       {r.status === "review" && <p className="flex items-start gap-2 rounded-xl bg-gold-100 p-3 text-small text-gold-ink"><Icon name="info" size="sm" /> {t("lg.reviewHint")}</p>}
     </Dialog>
@@ -198,22 +196,16 @@ export default function Legacy() {
 
   return (
     <>
-      <Hero className="flex flex-wrap items-center gap-6">
-        <div className="min-w-65 flex-1">
-          <Eyebrow icon="menu_book">{t("lg.eyebrow")}</Eyebrow>
-          <h1 className="mt-2">{t("nav.legacy")}</h1>
-          <p className="mt-2 max-w-160 text-muted">{t("lg.sub")}</p>
-          <div className="mt-4 flex flex-wrap gap-2.5">
-            <Button variant="primary" icon="library_add" onClick={() => open(<AddRecordDialog />)}>{t("lg.add")}</Button>
-            {review > 0 && <Button icon="pending" onClick={() => { setReviewOnly(true); setCat("all"); }}>{review > 1 ? t("lg.reviewMany", { n: review }) : t("lg.reviewOne")}</Button>}
-          </div>
-        </div>
-        <div className="flex flex-wrap gap-2.5">
+      <PageHeader icon="menu_book" eyebrow={t("lg.eyebrow")} title={t("nav.legacy")} description={t("lg.sub")}
+        actions={<>
+          <Button variant="primary" icon="library_add" onClick={() => open(<AddRecordDialog />)}>{t("lg.add")}</Button>
+          {review > 0 && <Button icon="pending" onClick={() => { setReviewOnly(true); setCat("all"); }}>{review > 1 ? t("lg.reviewMany", { n: review }) : t("lg.reviewOne")}</Button>}
+        </>}
+        aside={<div className="flex flex-wrap gap-2.5">
           <Stat value={records.length} label={t("lg.records")} />
           <Stat value={review} label={t("lg.awaiting")} />
           <Stat value={capsules} label={t("lg.capsules")} />
-        </div>
-      </Hero>
+        </div>} />
 
       <Card className="mt-4" aria-label={t("lg.filters")}>
         <div className="flex flex-wrap items-center gap-3">

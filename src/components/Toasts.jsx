@@ -54,8 +54,8 @@ function Toast({ t, onDismiss }) {
       <Icon name={t.icon || (t.error ? "error" : "check_circle")} className={t.error ? "text-[#ffb4ab]" : "text-mint"} />
       <div className="min-w-0 flex-1">
         <strong>{t.title}</strong>
-        {t.sub && <small className="block text-[.76rem] text-on-dark">{t.sub}</small>}
-        {paused && t.duration != null && <small className="block text-[.68rem] text-on-dark/80">{tr("toast.paused")}</small>}
+        {t.sub && <small className="block text-xsmall text-on-dark">{t.sub}</small>}
+        {paused && t.duration != null && <small className="block text-tag text-on-dark/80">{tr("toast.paused")}</small>}
       </div>
       {t.action && (
         <button type="button" onClick={() => { t.onAction?.(); onDismiss(); }}

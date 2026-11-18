@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { useState } from "react";
 import { useModal } from "../components/modalContext";
 import { useToast } from "../components/toastContext";
-import { Avatar, Button, Card, Empty, Eyebrow, Hero, Icon, IconBox, IconButton, Record, SectionTitle, Select, Stat, Tag } from "../components/ui";
+import { Avatar, Button, Card, Empty, Icon, IconBox, IconButton, PageHeader, Record, SectionTitle, Select, Stat, Tag } from "../components/ui";
 import { ME } from "../data";
 import InviteDialog from "../dialogs/InviteDialog";
 import { fmtDate, todayISO, uid } from "../lib/format";
@@ -40,7 +40,7 @@ function RequestCard({ r }) {
         <Tag tone="gold" icon="pending">{t("adm.waiting")}</Tag>
       </div>
       {r.note && <p className="rounded-xl bg-surface-2 p-3 text-small">“{r.note}”</p>}
-      <p className="flex items-center gap-2 text-small"><Avatar p={person(r.vouchedBy)} className="size-7! rounded-lg! text-[.62rem]!" /> {t("adm.vouched", { name: fullName(person(r.vouchedBy)) })}</p>
+      <p className="flex items-center gap-2 text-small"><Avatar p={person(r.vouchedBy)} className="size-7! rounded-lg! text-tag!" /> {t("adm.vouched", { name: fullName(person(r.vouchedBy)) })}</p>
       <div className="flex flex-wrap items-end gap-2">
         <label className="grid gap-1 text-xsmall font-semibold" htmlFor={`role-${r.id}`}>{t("adm.giveRole")}
           <Select id={`role-${r.id}`} className="w-auto!" value={role} onChange={(e) => setRole(e.target.value)}>
@@ -88,19 +88,13 @@ export default function Admin() {
 
   return (
     <>
-      <Hero className="flex flex-wrap items-center gap-6">
-        <div className="min-w-65 flex-1">
-          <Eyebrow icon="admin_panel_settings">{t("adm.eyebrow")}</Eyebrow>
-          <h1 className="mt-2">{t("nav.admin")}</h1>
-          <p className="mt-2 max-w-160 text-muted">{t("adm.sub")}</p>
-          <div className="mt-4"><Button variant="primary" icon="person_add" onClick={() => open(<InviteDialog />)}>{t("fab.invite")}</Button></div>
-        </div>
-        <div className="flex flex-wrap gap-2.5">
+      <PageHeader icon="admin_panel_settings" eyebrow={t("adm.eyebrow")} title={t("nav.admin")} description={t("adm.sub")}
+        actions={<Button variant="primary" icon="person_add" onClick={() => open(<InviteDialog />)}>{t("fab.invite")}</Button>}
+        aside={<div className="flex flex-wrap gap-2.5">
           <Stat value={members.length} label={t("adm.members")} />
           <Stat value={state.requests.length} label={t("adm.requests")} />
           <Stat value={proofs.length + reviews.length} label={t("adm.toVerify")} />
-        </div>
-      </Hero>
+        </div>} />
 
       <div className="mt-6 grid grid-cols-[minmax(0,1fr)] items-start gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
         <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-6 [&>*]:min-w-0">
@@ -126,7 +120,7 @@ export default function Admin() {
                       <tr key={m.id} className="border-t border-line">
                         <th scope="row" className="px-3.5 py-2 font-normal">
                           <span className="flex items-center gap-2.5">
-                            {p ? <Avatar p={p} className="size-8! rounded-lg! text-[.7rem]!" /> : <span className="grid size-8 place-items-center rounded-lg bg-sec-soft text-sec-ink"><Icon name="person" size="sm" /></span>}
+                            {p ? <Avatar p={p} className="size-8! rounded-lg! text-xsmall!" /> : <span className="grid size-8 place-items-center rounded-lg bg-sec-soft text-sec-ink"><Icon name="person" size="sm" /></span>}
                             <span><strong className="block font-semibold">{nameOf(m)}{m.id === ME && t("adm.you")}</strong><small className="text-xsmall text-muted">{p ? kin(p.role) : t("adm.newMember")}</small></span>
                           </span>
                         </th>
@@ -154,13 +148,16 @@ export default function Admin() {
           <section aria-labelledby="invH">
             <SectionTitle><h2 id="invH">{t("adm.invites")}</h2></SectionTitle>
             {state.invites.length ? (
-              <ul className="m-0 grid list-none gap-2 p-0">
+              <ul className="m-0 grid list-none grid-cols-[minmax(0,1fr)] gap-2 p-0">
                 {state.invites.map((inv) => (
                   <li key={inv.id}>
                     <Record icon="mail" className="flex-wrap">
                       <div className="min-w-0 flex-1 basis-50"><strong>{inv.name}</strong><p className="truncate text-xsmall text-muted">{t("adm.sentBy", { email: inv.email, relation: kin(inv.relation), date: fmtDate(inv.sent), name: person(inv.by)?.first || t("adm.youLower") })}</p></div>
-                      <Button size="sm" icon="forward_to_inbox" onClick={() => resend(inv)}>{t("adm.resend")}</Button>
-                      <Button size="sm" variant="ghost" icon="close" onClick={() => cancelInvite(inv)}>{t("common.cancel")}</Button>
+                      {/* On a phone the two buttons take their own line instead of pushing past the screen edge. */}
+                      <div className="flex flex-wrap gap-2 max-sm:basis-full max-sm:pl-12">
+                        <Button size="sm" icon="forward_to_inbox" onClick={() => resend(inv)}>{t("adm.resend")}</Button>
+                        <Button size="sm" variant="ghost" icon="close" onClick={() => cancelInvite(inv)}>{t("common.cancel")}</Button>
+                      </div>
                     </Record>
                   </li>
                 ))}

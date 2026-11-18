@@ -15,7 +15,7 @@ const fmt = (s) => `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(Math
 
 function RecButton({ label, caption, big, dark, live, disabled, icon, onClick }) {
   return (
-    <figure className="m-0 grid justify-items-center gap-1.5 text-[.74rem] text-muted">
+    <figure className="m-0 grid justify-items-center gap-1.5 text-xsmall text-muted">
       <button type="button" aria-label={label} disabled={disabled} onClick={onClick}
         className={cx(
           "grid cursor-pointer place-items-center rounded-full enabled:hover:scale-105 enabled:active:scale-95 disabled:cursor-not-allowed disabled:opacity-40",
@@ -63,7 +63,7 @@ export default function RecordingStudio({ promptIdx, setPromptIdx, forName }) {
     if (!c) return;
     const g = c.getContext("2d"), w = c.width, h = c.height;
     g.clearRect(0, 0, w, h);
-    g.fillStyle = getComputedStyle(c).getPropertyValue("--sec").trim() || "#c2410c";
+    g.fillStyle = getComputedStyle(c).getPropertyValue("--sec").trim() || "#245b4a";
     const r = rec.current, live = statusRef.current === "recording";
     let data = null;
     if (r?.analyser) { data = new Uint8Array(r.analyser.frequencyBinCount); r.analyser.getByteFrequencyData(data); }
@@ -292,7 +292,7 @@ export default function RecordingStudio({ promptIdx, setPromptIdx, forName }) {
 
         <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] content-start gap-3.5">
           <div className="grid justify-items-center gap-3.5 rounded-2xl bg-surface-2 p-5.5 text-center" aria-live="polite">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-surface px-2.5 py-1 text-[.74rem] font-semibold">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-surface px-2.5 py-1 text-xsmall font-semibold">
               <span className={cx("size-2 rounded-full", status === "recording" ? "animate-blink bg-[#e0443a]" : "bg-faint")} /> {statusText}
             </span>
             <div role="timer" aria-label={t("rs.time")} className="font-serif text-[2.6rem] tabular-nums">{fmt(seconds)}</div>

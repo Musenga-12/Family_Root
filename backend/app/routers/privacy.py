@@ -14,7 +14,7 @@ from app.models import (PRIVACY_CATEGORIES, VISIBILITY, AccessLog, Album, Consen
                         Message, Milestone, MinorSetting, Person, Story, ThreadMember, User, UserPrivacy, iso, now)
 from app.realtime import hub
 from app.routers.notifications import notify
-from app.visibility import Kin, age_of, is_minor
+from app.visibility import Kin, age_of, can_see, is_minor
 
 router = APIRouter(tags=["privacy"])
 GRACE_DAYS = 30
@@ -355,20 +355,35 @@ def export_mine(user: User = Depends(get_current_user), db: Session = Depends(ge
 
 @router.get("/admin/export", dependencies=[Depends(require_role("Admin"))])
 def export_family(user: User = Depends(get_current_user), db: Session = Depends(get_session)):
-    """The whole family archive (Settings: "Export the archive"). Admins only. Files are listed, not included."""
+    """The whole family archive (Settings: "Export the archive"). Admins only. Files are listed, not included.
+    Privacy choices still apply (see visibility.py: Admins get no exception): others' drafts and items shared with
+    someone else's immediate family are left out, and people appear as the Admin sees them in the tree."""
+    from app.routers.people import out as person_out
+
     fid = user.family_id
+    kin = Kin(db, fid)
+    people = db.exec(select(Person).where(Person.family_id == fid, Person.deleted_at == None)).all()  # noqa: E711
+    memories = [m for m in db.exec(select(Memory).where(Memory.family_id == fid, Memory.deleted_at == None)).all()  # noqa: E711
+                if can_see(user, kin, m.visibility, m.owner_user_id, m.owner, m.tagged)]
+    shown = {m.id for m in memories}
+    albums = [a.model_dump(mode="json") | {"items": [i for i in a.items if i in shown]}
+              for a in db.exec(select(Album).where(Album.family_id == fid)).all()]
+    stories = [s for s in db.exec(select(Story).where(Story.family_id == fid, Story.deleted_at == None)).all()  # noqa: E711
+               if can_see(user, kin, s.visibility, s.owner_user_id, s.by, [])]
+    records = [r for r in db.exec(select(LegacyRecord).where(LegacyRecord.family_id == fid, LegacyRecord.deleted_at == None)).all()  # noqa: E711
+               if can_see(user, kin, r.visibility, r.owner_user_id, r.custodian, [r.custodian] if r.custodian else [])]
     return {
         "exported": iso(now()),
         "family": db.get(Family, fid).model_dump(mode="json", exclude={"id"}),
-        "people": dump(db.exec(select(Person).where(Person.family_id == fid, Person.deleted_at == None)).all()),  # noqa: E711
-        "memories": dump(db.exec(select(Memory).where(Memory.family_id == fid, Memory.deleted_at == None)).all()),  # noqa: E711
-        "albums": dump(db.exec(select(Album).where(Album.family_id == fid)).all()),
-        "stories": dump(db.exec(select(Story).where(Story.family_id == fid, Story.deleted_at == None)).all()),  # noqa: E711
+        "people": [person_out(db, user, p, set(), kin).model_dump(mode="json", exclude={"fav"}) for p in people],
+        "memories": dump(memories),
+        "albums": albums,
+        "stories": dump(stories),
         "milestones": dump(db.exec(select(Milestone).where(Milestone.family_id == fid, Milestone.deleted_at == None)).all()),  # noqa: E711
         "events": dump(db.exec(select(Event).where(Event.family_id == fid)).all()),
         # Sealed capsules stay sealed, even in an export.
         "records": [r.model_dump(mode="json") | ({"text": "", "source": None} if r.sealedUntil and r.sealedUntil > date.today().isoformat() else {})
-                    for r in db.exec(select(LegacyRecord).where(LegacyRecord.family_id == fid, LegacyRecord.deleted_at == None)).all()],  # noqa: E711
+                    for r in records],
         "members": [{"name": u.name, "role": u.role, "person_id": u.person_id}
                     for u in db.exec(select(User).where(User.family_id == fid, User.removed_at == None)).all()],  # noqa: E711
     }

@@ -50,7 +50,7 @@ export function NewChatDialog({ onCreated }) {
       <fieldset className="m-0 grid gap-1.5 border-0 p-0">
         <legend className="mb-1.5 text-small font-semibold">{tr("msg.to")} {to.length > 1 && <span className="font-normal text-muted">{tr("msg.groupOf", { n: to.length + 1 })}</span>}</legend>
         <PeopleChecks people={people} value={to} onChange={setTo} />
-        {errors.to && <span role="alert" className="text-[.76rem] text-rose"><Icon name="error" size="xs" /> {errors.to}</span>}
+        {errors.to && <span role="alert" className="text-xsmall text-rose"><Icon name="error" size="xs" /> {errors.to}</span>}
       </fieldset>
       {to.length > 1 && (
         <Field id="nmName" label={tr("msg.groupName")} hint={tr("common.optional")}><Input id="nmName" value={name} onChange={(e) => setName(e.target.value)} placeholder={tr("msg.groupPh")} /></Field>
@@ -82,7 +82,7 @@ export function ChatInfoDialog({ id, onJump }) {
         <ul className="m-0 grid list-none gap-1.5 p-0">
           {t.members.map((m) => {
             const p = person(m);
-            return <li key={m} className="flex items-center gap-2.5 text-small"><Avatar round p={p} className="size-8! text-[.66rem]!" /><span><strong>{m === ME ? tr("msg.you") : fullName(p)}</strong><small className="block text-xsmall text-muted">{p && kin(p.role)} · {p?.city}</small></span></li>;
+            return <li key={m} className="flex items-center gap-2.5 text-small"><Avatar round p={p} className="size-8! text-tag!" /><span><strong>{m === ME ? tr("msg.you") : fullName(p)}</strong><small className="block text-xsmall text-muted">{p && kin(p.role)} · {p?.city}</small></span></li>;
           })}
         </ul>
       </section>

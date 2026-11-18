@@ -10,6 +10,7 @@ from sqlmodel import Session, select
 from app.auth import get_current_user, require_role
 from app.db import get_session
 from app.models import AccessLog, Person, PersonBase, PersonFavorite, User, now
+from app.validation import reject_nulls
 from app.visibility import Kin, age_of
 
 router = APIRouter(prefix="/people", tags=["people"])
@@ -175,7 +176,8 @@ def create_person(body: PersonCreate, user: User = Depends(get_current_user), db
 @router.patch("/{pid}", response_model=PersonOut, dependencies=[Depends(require_role(*EDITORS))])
 def update_person(pid: str, body: PersonUpdate, user: User = Depends(get_current_user), db: Session = Depends(get_session)):
     p = get_person(db, user, pid)
-    data = body.model_dump(exclude_unset=True)
+    data = reject_nulls(body.model_dump(exclude_unset=True), "first", "last", "gen", "bornApprox", "pending", "verified",
+                        "minor", "tags", "parents")
     if "parents" in data or "spouse" in data:
         check_relatives(db, user, pid, data.get("parents"), data.get("spouse"))
     for k, v in data.items():

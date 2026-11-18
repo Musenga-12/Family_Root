@@ -1,14 +1,25 @@
 """Database engine and the per-request session dependency."""
 from collections.abc import Generator
 
-from sqlalchemy import inspect, text
+from sqlalchemy import event, inspect, text
 from sqlmodel import Session, SQLModel, create_engine
 
 from app.config import settings
 
-# check_same_thread is only needed for SQLite.
-connect_args = {"check_same_thread": False} if settings.database_url.startswith("sqlite") else {}
-engine = create_engine(settings.database_url, connect_args=connect_args)
+SQLITE = settings.database_url.startswith("sqlite")
+# check_same_thread is only needed for SQLite; pre_ping replaces dropped connections on a database server.
+engine = create_engine(settings.database_url, connect_args={"check_same_thread": False} if SQLITE else {},
+                       pool_pre_ping=not SQLITE)
+
+if SQLITE:
+    @event.listens_for(engine, "connect")
+    def _sqlite_pragmas(dbapi_conn, _record) -> None:
+        # Wait a moment instead of failing when another request is writing. Foreign keys are deliberately not switched
+        # on here: the models have no relationship()s, so SQLAlchemy may insert a child row before its parent within
+        # one flush (seed.py does), which SQLite would then refuse. tests/test_contract.py checks integrity instead.
+        cur = dbapi_conn.cursor()
+        cur.execute("PRAGMA busy_timeout=5000")
+        cur.close()
 
 
 def add_missing_columns() -> None:
@@ -26,11 +37,25 @@ def add_missing_columns() -> None:
                     conn.execute(text(f'ALTER TABLE "{table.name}" ADD COLUMN "{col.name}" {ctype}'))
 
 
+def add_missing_indexes() -> None:
+    """Like add_missing_columns, for indexes added to models.py after a table was made. Only ever adds an index."""
+    insp = inspect(engine)
+    with engine.begin() as conn:
+        for table in SQLModel.metadata.sorted_tables:
+            if not insp.has_table(table.name):
+                continue
+            have = {i["name"] for i in insp.get_indexes(table.name)}
+            for index in table.indexes:
+                if index.name not in have:
+                    index.create(conn, checkfirst=True)
+
+
 def create_db() -> None:
     from app import models  # noqa: F401  (registers the tables)
 
     SQLModel.metadata.create_all(engine)
     add_missing_columns()
+    add_missing_indexes()
 
 
 def get_session() -> Generator[Session, None, None]:

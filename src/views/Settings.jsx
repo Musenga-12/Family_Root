@@ -2,7 +2,7 @@
 import { useNavigate } from "react-router-dom";
 import { useModal } from "../components/modalContext";
 import { useToast } from "../components/toastContext";
-import { Button, Card, Eyebrow, Field, Hero, Icon, IconBox, Select, Switch, Tabs, Tag } from "../components/ui";
+import { Button, Card, Eyebrow, Field, Icon, IconBox, PageHeader, Select, Switch, Tabs, Tag } from "../components/ui";
 import { cue } from "../lib/feedback";
 import { cx } from "../lib/format";
 import { LANGS, useT } from "../lib/i18n";
@@ -12,11 +12,11 @@ import { useStore } from "../lib/store";
 import { THEME_ICON, usePrefActions } from "../lib/usePrefActions";
 
 const THEME_SWATCH = {
-  light: { background: "#fcf5ee", color: "#c2410c" },
-  dark: { background: "#15100c", color: "#ffb27a" },
-  system: { background: "linear-gradient(90deg, #fcf5ee 50%, #15100c 50%)", color: "#e05a14" },
+  light: { background: "#f7f5ef", color: "#245b4a" },
+  dark: { background: "#151d19", color: "#a9cdb9" },
+  system: { background: "linear-gradient(90deg, #f7f5ef 50%, #151d19 50%)", color: "#39745c" },
 };
-const ACCENTS = [["heritage", "#c2410c", "#ffb27a"], ["blue", "#102a6b", "#93b6ff"], ["forest", "#143d30", "#9fe6c6"], ["ocean", "#143a52", "#9fd4f0"], ["plum", "#3d1f48", "#e2bdf0"], ["clay", "#4c2617", "#f6c7a6"]];
+const ACCENTS = [["family", "#245b4a", "#a9cdb9"], ["heritage", "#c2410c", "#ffb27a"], ["blue", "#102a6b", "#93b6ff"], ["ocean", "#143a52", "#9fd4f0"], ["plum", "#3d1f48", "#e2bdf0"], ["clay", "#4c2617", "#f6c7a6"]];
 
 function Section({ icon, title, children }) {
   return (
@@ -49,13 +49,8 @@ export default function Settings() {
 
   return (
     <>
-      <Hero className="flex flex-wrap items-center gap-6">
-        <div className="min-w-65 flex-1">
-          <Eyebrow icon="tune">{t("settings.eyebrow")}</Eyebrow>
-          <h1 className="mt-2">{t("h1.settings")}</h1>
-          <p className="mt-2 text-muted">{t("settings.sub")}</p>
-        </div>
-        {/* Live preview of the current theme + accent */}
+      {/* The aside is a live preview of the current theme + accent. */}
+      <PageHeader icon="tune" eyebrow={t("settings.eyebrow")} title={t("h1.settings")} description={t("settings.sub")} aside={
         <div aria-label={t("settings.preview")} className="w-full max-w-85 rounded-2xl border border-line bg-surface p-4 shadow-card">
           <div className="flex items-center justify-between"><Eyebrow>{t("settings.preview")}</Eyebrow><Tag tone="mint" icon={THEME_ICON[prefs.theme]}>{t(`theme.${prefs.theme}`)}</Tag></div>
           <p className="mt-2 text-small text-muted">{t("settings.previewText")}</p>
@@ -64,8 +59,7 @@ export default function Settings() {
             <Button variant="mint" size="sm">{t("settings.swatch.mint")}</Button>
             <Tag tone="gold">{t("settings.swatch.gold")}</Tag><Tag tone="rose">{t("settings.swatch.rose")}</Tag>
           </div>
-        </div>
-      </Hero>
+        </div>} />
 
       <div className="mt-5 grid items-start gap-5 lg:grid-cols-2">
         <Section icon="palette" title={t("settings.appearance")}>
@@ -123,7 +117,7 @@ export default function Settings() {
                 <button key={l.code} type="button" role="radio" aria-checked={prefs.lang === l.code} onClick={() => setLang(l.code)}
                   className={cx("flex cursor-pointer items-center gap-3 rounded-2xl border-2 p-3 text-left text-ink",
                     prefs.lang === l.code ? "border-sec bg-sec-soft shadow-[0_6px_18px_-10px_var(--sec)]" : "lift border-line bg-surface")}>
-                  <span className="grid size-9 place-items-center rounded-lg bg-sec text-[.78rem] font-bold text-sec-on">{l.short}</span>
+                  <span className="grid size-9 place-items-center rounded-lg bg-sec text-xsmall font-bold text-sec-on">{l.short}</span>
                   <strong className="flex-1">{l.name}</strong>
                   {prefs.lang === l.code && <Icon name="check_circle" className="text-pine-700" />}
                 </button>

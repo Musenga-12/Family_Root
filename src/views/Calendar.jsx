@@ -3,12 +3,13 @@ import { useMemo, useState } from "react";
 import { CancelButton, Dialog } from "../components/Modal";
 import { useCloseModal, useModal } from "../components/modalContext";
 import { useToast } from "../components/toastContext";
-import { Avatar, Button, Card, Chip, Chips, Empty, Eyebrow, Field, Hero, Icon, IconButton, Input, Tabs, Tag } from "../components/ui";
+import { Avatar, Button, Card, Chip, Chips, Empty, Eyebrow, Field, Icon, IconButton, Input, PageHeader, Tabs, Tag } from "../components/ui";
 import { cx, uid } from "../lib/format";
 import { localeOf, useT } from "../lib/i18n";
 import { useStore } from "../lib/store";
 
-const KINDS = { birthday: ["cake", "gold"], anniversary: ["favorite", "rose"], gathering: ["groups", "mint"] };
+// Birthdays wear the warm terracotta used for birthdays everywhere else (Overview, Directory).
+const KINDS = { birthday: ["cake", "terra"], anniversary: ["favorite", "rose"], gathering: ["groups", "mint"] };
 const pad = (n) => String(n).padStart(2, "0");
 const iso = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 
@@ -136,14 +137,8 @@ export default function Calendar() {
 
   return (
     <>
-      <Hero className="flex flex-wrap items-center gap-6">
-        <div className="min-w-65 flex-1">
-          <Eyebrow icon="calendar_month">{t("cal.eyebrow")}</Eyebrow>
-          <h1 className="mt-2">{t("h1.calendar")}</h1>
-          <p className="mt-2 text-muted">{t("cal.sub")}</p>
-        </div>
-        <Button variant="primary" icon="add" onClick={() => open(<AddGatheringDialog initialDate={selected} />)}>{t("cal.add")}</Button>
-      </Hero>
+      <PageHeader icon="calendar_month" eyebrow={t("cal.eyebrow")} title={t("h1.calendar")} description={t("cal.sub")}
+        actions={<Button variant="primary" icon="add" onClick={() => open(<AddGatheringDialog initialDate={selected} />)}>{t("cal.add")}</Button>} />
 
       <Card className="mt-4 flex flex-wrap items-center gap-3 p-3.5!">
         <Tabs label={t("cal.view")} value={view} onChange={setView} items={[["month", t("cal.month")], ["agenda", t("cal.agenda")]]} />
@@ -167,7 +162,7 @@ export default function Calendar() {
             </div>
             <div role="grid" aria-label={first.toLocaleDateString(locale, { month: "long", year: "numeric" })} onKeyDown={onGridKey}
               className="grid grid-cols-7 gap-1">
-              {weekdays.map((w) => <div key={w} role="columnheader" className="pb-1 text-center text-[.7rem] font-semibold tracking-wider text-muted uppercase">{w}</div>)}
+              {weekdays.map((w) => <div key={w} role="columnheader" className="pb-1 text-center text-xsmall font-semibold tracking-wider text-muted uppercase">{w}</div>)}
               {cells.map((d, i) => {
                 if (!d) return <div key={`x${i}`} />;
                 const evs = byDate[d] || [];
@@ -181,13 +176,13 @@ export default function Calendar() {
                     <span className={cx("grid size-7 place-items-center rounded-full text-small font-semibold", d === today && "bg-sec text-sec-on")}>{+d.slice(8)}</span>
                     <span className="flex flex-wrap gap-0.5">
                       {evs.slice(0, 3).map((e) => (
-                        <span key={e.id} title={e.title} className={cx("hidden max-w-full truncate rounded px-1 text-[.62rem] font-semibold sm:block",
-                          e.kind === "birthday" ? "bg-gold-100 text-gold-ink" : e.kind === "anniversary" ? "bg-rose-100 text-rose" : "bg-mint-200 text-pine-900")}>
+                        <span key={e.id} title={e.title} className={cx("hidden max-w-full truncate rounded px-1 text-tag font-semibold sm:block",
+                          e.kind === "birthday" ? "bg-terra-100 text-terra-ink" : e.kind === "anniversary" ? "bg-rose-100 text-rose" : "bg-mint-200 text-pine-900")}>
                           {e.person?.first || e.title}
                         </span>
                       ))}
                       {evs.length > 0 && <span className="size-1.5 rounded-full bg-sec sm:hidden" />}
-                      {evs.length > 3 && <span className="hidden text-[.62rem] text-muted sm:inline">+{evs.length - 3}</span>}
+                      {evs.length > 3 && <span className="hidden text-tag text-muted sm:inline">+{evs.length - 3}</span>}
                     </span>
                   </button>
                 );

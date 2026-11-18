@@ -10,6 +10,7 @@ from app.auth import get_current_user, require_role
 from app.db import get_session
 from app.models import VISIBILITY, Memory, MemoryBase, MemoryFavorite, Person, User, now
 from app.routers.uploads import family_upload, file_url
+from app.validation import reject_nulls
 from app.visibility import Kin, can_see
 
 router = APIRouter(prefix="/memories", tags=["memories"])
@@ -172,7 +173,7 @@ def create_memories(body: MemoryCreate, user: User = Depends(get_current_user), 
         body.visibility = Kin(db, user.family_id).category(user.person_id, "memories")
     if not body.consent and not body.visibility.startswith("Only"):
         raise HTTPException(422, "Confirm that everyone pictured agreed to share this, or keep it as Only Me (draft)")
-    uploads = [family_upload(db, user, uid, kind="image") for uid in dict.fromkeys(body.upload_ids)]
+    uploads = [family_upload(db, user, uid, kind="image", own=True) for uid in dict.fromkeys(body.upload_ids)]
     tagged = check_tagged(db, user, body.tagged) or ([user.person_id] if user.person_id else [])
     p1, p2 = (body.p1, body.p2) if body.p1 and body.p2 else random.choice(PALETTES)
 
@@ -195,7 +196,8 @@ def update_memory(mid: str, body: MemoryUpdate, user: User = Depends(get_current
     m = get_memory(db, user, mid)
     if not may_edit(user, m):
         raise HTTPException(403, "Only the person who added this, an Admin or a Custodian can change it")
-    data = body.model_dump(exclude_unset=True, exclude={"consent"})
+    data = reject_nulls(body.model_dump(exclude_unset=True, exclude={"consent"}),
+                        "title", "date", "approx", "type", "visibility", "alt", "audio", "tagged")
     if m.visibility.startswith("Only") and "visibility" in data and not data["visibility"].startswith("Only") and not body.consent:
         raise HTTPException(422, "Confirm consent before sharing a draft with the family")
     if "tagged" in data:

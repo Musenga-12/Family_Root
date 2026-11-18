@@ -5,9 +5,7 @@ import AudioPlayer from "../components/AudioPlayer";
 import { CancelButton, Dialog, DraftNote } from "../components/Modal";
 import { useCloseModal, useModal } from "../components/modalContext";
 import { useToast } from "../components/toastContext";
-import {
-  Avatar, Button, Card, Chip, Chips, Empty, Field, Hero, Icon, IconBox, Input, InputIcon, SectionTitle, Select, Tabs, Tag, Textarea,
-} from "../components/ui";
+import { Avatar, Button, Card, Chip, Chips, Empty, Field, Icon, IconBox, Input, InputIcon, PageHeader, SectionTitle, Select, Tabs, Tag, Textarea } from "../components/ui";
 import { ME } from "../data";
 import { fmtDate, uid } from "../lib/format";
 import { useT } from "../lib/i18n";
@@ -165,21 +163,15 @@ export default function Stories() {
 
   return (
     <>
-      <Hero className="flex flex-wrap items-center gap-6">
-        <div className="min-w-65 flex-1">
-          <Tag tone="sec" icon="mic">{t("st.vault")}</Tag>
-          <h1 className="mt-4">{t("h1.stories")}</h1>
-          <p className="mt-2 text-muted">{t("st.intro")}</p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2.5">
-          <Button icon="lightbulb" onClick={() => {
+      <PageHeader icon="mic" eyebrow={t("st.vault")} title={t("h1.stories")} description={t("st.intro")}
+        actions={<>
+          <Button variant="primary" icon="mic" onClick={goToStudio}>{t("st.record")}</Button>
+          <Button icon="edit" onClick={() => open(<WriteStoryDialog />)}>{t("st.write")}</Button>
+          <Button variant="ghost" icon="lightbulb" onClick={() => {
             document.getElementById("promptCard").scrollIntoView({ behavior: "smooth", block: "center" });
             document.querySelector("[data-alt-prompt]")?.focus({ preventScroll: true });
           }}>{t("st.browse")}</Button>
-          <Button icon="edit" onClick={() => open(<WriteStoryDialog />)}>{t("st.write")}</Button>
-          <Button variant="primary" icon="mic" onClick={goToStudio}>{t("st.record")}</Button>
-        </div>
-      </Hero>
+        </>} />
 
       <RecordingStudio promptIdx={promptIdx} setPromptIdx={choosePrompt} forName={forName} />
 

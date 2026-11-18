@@ -15,7 +15,7 @@ const YEAR = new Date().getFullYear();
 /* Footer links take the shared hover/press colours (hover-fill), so both themes match the rest of the app. */
 const linkBase = "inline-flex items-center gap-1.5 rounded-md border-0 bg-transparent px-1.5 py-1 text-left no-underline cursor-pointer transition-colors duration-200 hover-fill";
 const siteLink = cx(linkBase, "-mx-1.5 min-h-9 text-small text-muted easy:min-h-11");
-const appLink = cx(linkBase, "min-h-8 text-[.76rem] font-medium text-ink");
+const appLink = cx(linkBase, "min-h-8 text-xsmall font-medium text-ink");
 
 // [path, labelKey, icon]
 const VISITOR = [["/login", "pub.login", "login"], ["/register", "pub.register", "person_add"], ["/join", "au.tabCode", "key"],
@@ -51,7 +51,7 @@ export function SiteFooter() {
             <span className="grid size-10 place-items-center rounded-full bg-pine-900 text-mint"><Icon name="park" /></span>
             <span>
               <strong className="block font-serif text-[1.25rem] leading-[1.1]">FamilyRoots</strong>
-              <small className="text-[.62rem] font-semibold tracking-[.16em] text-pine-700 uppercase">{t("brand.tagline")}</small>
+              <small className="text-tag font-semibold tracking-[.16em] text-pine-700 uppercase">{t("brand.tagline")}</small>
             </span>
           </Link>
           <p className="m-0 max-w-90 text-small leading-relaxed text-muted">{t("footer.desc")}</p>
@@ -83,11 +83,12 @@ export function SiteFooter() {
 export function AppFooter({ status }) {
   const t = useT();
   return (
-    <footer data-no-print className="flex flex-wrap items-center justify-between gap-x-5 gap-y-2 border-t border-line bg-surface-2 px-4 py-3 pr-24 text-[.76rem] text-muted sm:px-7 sm:pr-24">
-      <span className="min-w-0"><Icon name="verified_user" size="sm" className="text-pine-700" /> {t("footer.privacy")} • {t("footer.gens")} • {status}</span>
+    <footer data-no-print className="flex flex-wrap items-center justify-between gap-x-5 gap-y-2 border-t border-line bg-surface-2 px-4 py-3 pr-24 text-xsmall text-muted sm:px-7 sm:pr-24">
+      <span className="min-w-0"><Icon name="verified_user" size="sm" className="text-pine-700" /> {t("footer.privacy")} • {status}</span>
       <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
-        <Link to="/privacy" className={appLink}>{t("footer.guidelines")}</Link>
-        <Link to="/settings" className={appLink}>{t("footer.support")}</Link>
+        <Link to="/privacy" className={appLink}>{t("nav.privacy")}</Link>
+        <Link to="/settings" className={appLink}>{t("nav.settings")}</Link>
+        <Link to="/contact" className={appLink}>{t("pub.nav.contact")}</Link>
         <span>{t("footer.rights", { year: YEAR })}</span>
       </span>
     </footer>

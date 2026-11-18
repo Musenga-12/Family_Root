@@ -1,0 +1,6 @@
+# Lint baseline for the backend: `ruff check .` (from backend/, with the dev requirements installed).
+line-length = 160
+
+[lint]
+select = ["E", "F", "W", "B"]
+ignore = ["B008"]  # FastAPI's Depends()/Query() in argument defaults is the framework's intended style

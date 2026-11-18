@@ -43,7 +43,7 @@ function ChatPreview({ x, anchor }) {
           <small className="block truncate text-xsmall text-muted">{chatSubtitle(x, person)}</small>
         </span>
       </div>
-      {x.unread > 0 && <span className="justify-self-start rounded-full bg-sec px-2 py-0.5 text-[.7rem] font-bold text-sec-on">{t("msg.unreadN", { n: x.unread })}</span>}
+      {x.unread > 0 && <span className="justify-self-start rounded-full bg-sec px-2 py-0.5 text-xsmall font-bold text-sec-on">{t("msg.unreadN", { n: x.unread })}</span>}
       <ol className="m-0 grid list-none gap-2 p-0">
         {recent.map((m) => {
           const quoted = m.replyTo && x.messages.find((y) => y.id === m.replyTo);
@@ -101,7 +101,7 @@ function ChatRow({ x, active, onOpen }) {
         <span className="min-w-0 flex-1">
           <span className="flex items-baseline justify-between gap-2">
             <strong className={cx("truncate", x.unread ? "font-bold" : "font-semibold")}>{x.title}</strong>
-            <small className={cx("shrink-0 text-[.7rem] tabular-nums", x.unread && !x.muted ? "font-bold text-sec-ink" : "text-muted")}>{last ? listTime(last.at) : ""}</small>
+            <small className={cx("shrink-0 text-xsmall tabular-nums", x.unread && !x.muted ? "font-bold text-sec-ink" : "text-muted")}>{last ? listTime(last.at) : ""}</small>
           </span>
           <span className="mt-0.5 flex items-center gap-1.5">
             {last?.by === ME && !last.deleted && <Icon name="done_all" className={cx("text-[15px]!", last.status === "read" ? "text-sec-ink" : "text-faint")} />}
@@ -111,7 +111,7 @@ function ChatRow({ x, active, onOpen }) {
             {x.muted && <Icon name="notifications_off" size="xs" className="text-faint" title={t("msg.muted")} />}
             {x.pinned && <Icon name="push_pin" size="xs" className="text-faint" />}
             {x.unread > 0 && (
-              <span className={cx("grid h-5 min-w-5 shrink-0 place-items-center rounded-full px-1.5 text-[.66rem] font-bold", x.muted ? "bg-surface-3 text-muted" : "bg-sec text-sec-on")}>{x.unread}</span>
+              <span className={cx("grid h-5 min-w-5 shrink-0 place-items-center rounded-full px-1.5 text-tag font-bold", x.muted ? "bg-surface-3 text-muted" : "bg-sec text-sec-on")}>{x.unread}</span>
             )}
           </span>
         </span>
@@ -223,7 +223,7 @@ export default function Messages() {
                     className={cx("pressable inline-flex min-h-10 shrink-0 cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1.5 text-[.82rem] font-semibold easy:min-h-12",
                       on ? "border-transparent bg-sec text-sec-on shadow-[0_4px_12px_-6px_var(--sec)]" : "hover-fill border-sec-line bg-surface text-ink")}>
                     <Icon name={icon} size="xs" />{t(`msg.f.${k}`)}
-                    {counts[k] > 0 && <span className={cx("rounded-full px-1.5 text-[.68rem]", on ? "bg-sec-on/25" : k === "unread" ? "bg-sec text-sec-on" : "bg-surface-3")}>{counts[k]}</span>}
+                    {counts[k] > 0 && <span className={cx("rounded-full px-1.5 text-tag", on ? "bg-black/25" : k === "unread" ? "bg-sec text-sec-on" : "bg-surface-3")}>{counts[k]}</span>}
                   </button>
                 );
               })}

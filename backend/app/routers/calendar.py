@@ -8,11 +8,12 @@ from datetime import date, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from pydantic import BaseModel, Field, field_validator
-from sqlmodel import Session, func, select
+from sqlmodel import Session, select
 
 from app.auth import get_current_user, require_role
 from app.db import get_session
 from app.models import RSVP_ANSWERS, Event, EventBase, EventRsvp, Milestone, Person, User, now
+from app.validation import reject_nulls
 from app.visibility import Kin
 
 router = APIRouter(tags=["calendar"])
@@ -30,7 +31,7 @@ def _date(v: str | None) -> str | None:
     try:
         date.fromisoformat(v)
     except ValueError:
-        raise ValueError("use YYYY-MM-DD")
+        raise ValueError("use YYYY-MM-DD") from None
     return v
 
 
@@ -178,7 +179,7 @@ def parse_range(frm: str | None, to: str | None) -> tuple[date, date]:
         a = date.fromisoformat(frm) if frm else date.today()
         b = date.fromisoformat(to) if to else a + timedelta(days=30)
     except ValueError:
-        raise HTTPException(422, "from and to must be YYYY-MM-DD")
+        raise HTTPException(422, "from and to must be YYYY-MM-DD") from None
     if b < a:
         raise HTTPException(422, "to must not be before from")
     if (b - a).days > MAX_RANGE_DAYS:
@@ -279,7 +280,7 @@ def update_event(eid: str, body: EventUpdate, user: User = Depends(get_current_u
     e = get_event(db, user, eid)
     if not may_edit(user, e):
         raise HTTPException(403, "Only the organiser, an Admin or a Custodian can change this gathering")
-    for k, v in body.model_dump(exclude_unset=True).items():
+    for k, v in reject_nulls(body.model_dump(exclude_unset=True), "title", "date", "extra_guests").items():
         setattr(e, k, v.strip() if isinstance(v, str) else v)
     db.add(e)
     db.commit()

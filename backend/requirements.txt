@@ -1,5 +1,7 @@
 fastapi[standard]>=0.115
-sqlmodel>=0.0.22
+# 0.0.45+ reads times back from SQLite as UTC; older versions return them without a time zone, which breaks
+# password-reset links and shifts every time in the API by the server's offset.
+sqlmodel>=0.0.45
 pydantic-settings>=2.6
 pyjwt>=2.9
 pwdlib[argon2]>=0.2

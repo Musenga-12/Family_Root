@@ -111,7 +111,7 @@ function Bubble({ t, m, prev, next, q, flash, onReply, onJump, onOpenImage, setR
     <li ref={setRef} className={cx("flex flex-col", mine ? "items-end" : "items-start", first ? "mt-2.5" : "mt-0.5", reactions.length && "mb-3")}>
       <div className={cx("group/msg relative flex max-w-[min(85%,560px)] items-end gap-2", mine && "flex-row-reverse")}>
         {/* Group chats: the sender's avatar beside their last bubble in a run. */}
-        {t.group && !mine && (last ? <Avatar round p={who} className="size-7! text-[.6rem]!" /> : <span className="w-7 shrink-0" />)}
+        {t.group && !mine && (last ? <Avatar round p={who} className="size-7! text-tag!" /> : <span className="w-7 shrink-0" />)}
 
         <article tabIndex={0} aria-label={label}
           onDoubleClick={() => !m.deleted && react("❤️")}
@@ -139,7 +139,7 @@ function Bubble({ t, m, prev, next, q, flash, onReply, onJump, onOpenImage, setR
               {m.text && <p className="whitespace-pre-wrap [overflow-wrap:anywhere]"><Highlight text={m.text} q={q} /><span aria-hidden="true" className={cx("inline-block", mine ? "w-20" : "w-14")} /></p>}
             </>
           )}
-          <span className={cx("absolute right-2.5 bottom-1 flex items-center gap-1 text-[.68rem] tabular-nums", mine ? "text-on-dark" : "text-muted")}>
+          <span className={cx("absolute right-2.5 bottom-1 flex items-center gap-1 text-tag tabular-nums", mine ? "text-on-dark" : "text-muted")}>
             {m.starred && <Icon name="star" fill className="text-[12px]!" />}
             {clock(m.at)}
             {mine && !m.deleted && <Ticks status={m.status} />}
@@ -183,7 +183,7 @@ function Bubble({ t, m, prev, next, q, flash, onReply, onJump, onOpenImage, setR
               title={ids.map((id) => (id === ME ? tr("msg.you") : person(id)?.first)).join(", ")}
               aria-label={tr("msg.reactLabel", { e, n: ids.length, names: ids.map((id) => (id === ME ? tr("msg.youLower") : person(id)?.first)).join(", ") }) + (ids.includes(ME) ? tr("msg.tapRemove") : "")}
               className={cx("flex cursor-pointer items-center gap-0.5 rounded-full border px-1.5 py-px text-[.8rem] shadow-card", ids.includes(ME) ? "border-sec bg-sec-soft" : "border-line bg-surface")}>
-              {e}{ids.length > 1 && <span className="text-[.68rem] font-semibold text-muted">{ids.length}</span>}
+              {e}{ids.length > 1 && <span className="text-tag font-semibold text-muted">{ids.length}</span>}
             </button>
           ))}
         </div>
@@ -302,7 +302,7 @@ function Composer({ t, replyTo, setReplyTo, boxRef }) {
           </button>
         )}
       </form>
-      <p className="mt-1.5 px-2 text-[.68rem] text-faint max-sm:hidden">{tr("msg.keys")}</p>
+      <p className="mt-1.5 px-2 text-tag text-faint max-sm:hidden">{tr("msg.keys")}</p>
     </div>
   );
 }

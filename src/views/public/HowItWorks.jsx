@@ -3,6 +3,7 @@ import PublicLayout from "../../components/PublicLayout";
 import { Button, Icon } from "../../components/ui";
 import { useT } from "../../lib/i18n";
 import { CtaBand, PageIntro, Section, Steps } from "./parts";
+import { PagePhoto } from "./photos";
 
 // Where each of the three ways in starts (an invitation starts from the link in the relative's message).
 const WAY_LINKS = ["/register", null, "/join"];
@@ -11,7 +12,8 @@ export default function HowItWorks() {
   const t = useT();
   return (
     <PublicLayout title={t("how.title")}>
-      <PageIntro eyebrow={t("how.title")} icon="route" title={t("how.h1")} sub={t("how.sub")} />
+      <PageIntro eyebrow={t("how.title")} icon="route" title={t("how.h1")} sub={t("how.sub")}
+        photo={<PagePhoto slot="how" alt={t("how.photoAlt")} eager />} />
       <Section className="mt-6"><Steps /></Section>
       <Section className="mt-14" aria-labelledby="ways">
         <h2 id="ways" className="text-[clamp(1.4rem,2.6vw,1.9rem)]!">{t("how.ways.title")}</h2>

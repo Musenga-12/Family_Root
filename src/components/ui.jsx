@@ -76,6 +76,9 @@ const TAG_TONES = {
   default: "bg-surface-3 text-pine-800",
   mint: "bg-mint-200 text-pine-900",
   gold: "bg-gold-100 text-gold-ink",
+  // Warm accents, used sparingly: terracotta for warm moments (birthdays), sage for supporting information.
+  terra: "bg-terra-100 text-terra-ink",
+  sage: "bg-sage-100 text-pine-800 dark:text-mint",
   rose: "bg-rose-100 text-rose",
   dark: "bg-pine-900 text-mint",
   outline: "border border-line bg-transparent text-muted",
@@ -103,7 +106,7 @@ export function Chip({ pressed, count, icon, className, children, ...rest }) {
     <button type="button" aria-pressed={pressed} className={cx(chipCls(pressed), className)} {...rest}>
       {icon && <Icon name={icon} size="xs" />}{children}
       {count !== undefined && (
-        <span className={cx("rounded-full px-1.75 text-[.7rem]", pressed ? "bg-sec-on/25" : "bg-sec-soft text-sec-ink")}>{count}</span>
+        <span className={cx("rounded-full px-1.75 text-xsmall", pressed ? "bg-black/25" : "bg-sec-soft text-sec-ink")}>{count}</span>
       )}
     </button>
   );
@@ -160,6 +163,24 @@ export function Hero({ as: As = "section", className, children, ...rest }) {
   );
 }
 
+/** The top of every screen, so they all start the same way: a short label, the screen's title (its menu name),
+ *  one plain sentence, the main actions (always under the sentence, so they're in the same place on every screen),
+ *  and an optional `aside` on the right for counts or a preview. `children` go between the sentence and the actions. */
+export function PageHeader({ icon, eyebrow, title, description, actions, aside, className, children, ...rest }) {
+  return (
+    <Hero className={cx("flex flex-wrap items-center gap-x-6 gap-y-4", className)} {...rest}>
+      <div className="min-w-65 flex-1 max-sm:min-w-0">
+        {eyebrow && <Eyebrow icon={icon}>{eyebrow}</Eyebrow>}
+        <h1 className={eyebrow ? "mt-2" : undefined}>{title}</h1>
+        {description && <p className="mt-2 max-w-160 text-muted">{description}</p>}
+        {children}
+        {actions && <div className="mt-4 flex flex-wrap items-center gap-2.5">{actions}</div>}
+      </div>
+      {aside}
+    </Hero>
+  );
+}
+
 export function Eyebrow({ icon, className, children }) {
   return (
     <span className={cx("inline-flex items-center gap-1.5 text-tag font-semibold tracking-[.14em] text-sec-ink uppercase", className)}>
@@ -176,7 +197,7 @@ export function Stat({ value, label }) {
   return (
     <div className="rounded-[14px] border border-line border-l-4 border-l-sec bg-surface px-4.5 py-3.5">
       <strong className="block font-serif text-2xl">{value}</strong>
-      <span className="text-[.66rem] font-semibold tracking-widest text-muted uppercase">{label}</span>
+      <span className="text-tag font-semibold tracking-widest text-muted uppercase">{label}</span>
     </div>
   );
 }
@@ -211,7 +232,7 @@ export function Avatar({ p, size = "md", round, className }) {
   if (!p) return <span className={cx("relative inline-grid shrink-0 place-items-center bg-faint font-bold text-white", AVATAR_SIZES[size], className)}>?</span>;
   const badge = p.id === ME ? "home" : p.died ? "local_florist" : null;
   return (
-    <span role="img" aria-label={fullName(p)} style={{ background: p.color }}
+    <span role="img" aria-label={fullName(p)} style={{ background: `color-mix(in oklab, ${p.color} 72%, #000)` }}
       className={cx(
         "relative inline-grid shrink-0 place-items-center font-bold tracking-[.02em] text-white",
         AVATAR_SIZES[size], round && "rounded-full!", p.died && "filter-[grayscale(.85)_sepia(.3)]", className,
@@ -262,7 +283,7 @@ const inputCls = cx(
 
 export function ErrorText({ id, children }) {
   if (!children) return null;
-  return <span id={id} className="flex items-center gap-1 text-[.76rem] text-rose"><Icon name="error" size="xs" /> {children}</span>;
+  return <span id={id} className="flex items-center gap-1 text-xsmall text-rose"><Icon name="error" size="xs" /> {children}</span>;
 }
 
 export function Field({ id, label, hint, help, error, className, children }) {
@@ -274,7 +295,7 @@ export function Field({ id, label, hint, help, error, className, children }) {
         </label>
       )}
       {children}
-      {help && <span className="text-[.74rem] text-muted">{help}</span>}
+      {help && <span className="text-xsmall text-muted">{help}</span>}
       <ErrorText id={id && `${id}Err`}>{error}</ErrorText>
     </div>
   );

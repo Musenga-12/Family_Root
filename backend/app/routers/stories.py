@@ -16,6 +16,7 @@ from app.db import get_session
 from app.models import STORY_CATEGORIES, VISIBILITY, Family, Reflection, Story, StoryBase, StoryLove, User, now
 from app.routers.notifications import notify
 from app.routers.uploads import family_upload, file_url, save_upload
+from app.validation import reject_nulls
 from app.visibility import Kin, can_see
 
 router = APIRouter(prefix="/stories", tags=["stories"])
@@ -205,7 +206,7 @@ def read_story(sid: str, user: User = Depends(get_current_user), db: Session = D
 @router.post("", response_model=StoryOut, status_code=201, dependencies=[Depends(require_role(*EDITORS))])
 def create_story(body: StoryCreate, user: User = Depends(get_current_user), db: Session = Depends(get_session)):
     if body.upload_id:
-        family_upload(db, user, body.upload_id, kind="audio")
+        family_upload(db, user, body.upload_id, kind="audio", own=True)
     s = build_story(user, title=body.title, text=body.text, category=body.category,
                     visibility=normalize_visibility(body.visibility, family_name(db, user), my_default(db, user)), tag=body.tag,
                     prompt=body.prompt, recorded=body.recorded, upload_id=body.upload_id, duration=body.duration)
@@ -249,7 +250,9 @@ def update_story(sid: str, body: StoryUpdate, user: User = Depends(get_current_u
     s = get_story(db, user, sid)
     if not may_edit(user, s):
         raise HTTPException(403, "Only the storyteller, an Admin or a Custodian can change this story")
-    data = body.model_dump(exclude_unset=True)
+    data = reject_nulls(body.model_dump(exclude_unset=True), "title", "category", "visibility", "excerpt")
+    if "title" in data:
+        data["title"] = data["title"].strip()
     if "category" in data:
         check_category(data["category"])
     if "visibility" in data:

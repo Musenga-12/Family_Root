@@ -13,6 +13,7 @@ from app.auth import create_reset_link, get_current_user, hash_password, require
 from app.config import settings
 from app.db import get_session
 from app.models import ROLES, Family, Invite, JoinRequest, LegacyRecord, Person, User, iso, now
+from app.ratelimit import limit
 from app.routers.auth import start_onboarding
 
 router = APIRouter(tags=["admin"])
@@ -373,7 +374,7 @@ def restore_invite(iid: str, user: User = Depends(get_current_user), db: Session
     return invite_out(user, inv)
 
 
-@router.get("/invites/by-token/{token}", response_model=InviteInfo)
+@router.get("/invites/by-token/{token}", response_model=InviteInfo, dependencies=[Depends(limit("invite-link", 20, 5 * 60))])
 def invite_info(token: str, db: Session = Depends(get_session)):
     """Public: lets the sign-up page greet the invited person and fill in their name and email."""
     inv = db.exec(select(Invite).where(Invite.token == token)).first()

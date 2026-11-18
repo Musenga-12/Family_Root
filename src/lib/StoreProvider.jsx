@@ -27,7 +27,7 @@ function pref(key, val) {
 
 /* Display preferences (theme, accent, language, text size…), stored together as JSON. */
 const DEFAULT_PREFS = {
-  theme: "system", accent: "heritage", accentV: 3, lang: "en", text: "md", motion: "full", sidebar: "full",
+  theme: "system", accent: "family", accentV: 4, lang: "en", text: "md", motion: "full", sidebar: "full",
   notify: { birthdays: true, stories: true, digest: "weekly" }, visibility: "All Family Branches",
   sound: false, haptics: false, speechRate: 1, tourDone: false,
 };
@@ -44,7 +44,10 @@ function loadPrefs() {
     if (!saved.accentV && saved.accent === "forest") delete saved.accent;
     // v3: heritage orange replaced blue as the default, so a stored "blue" (the old default) moves to it.
     if ((saved.accentV || 0) < 3 && saved.accent === "blue") delete saved.accent;
-    return { ...DEFAULT_PREFS, ...saved, accentV: 3 };
+    // v4: family green is the brand and the default. The old default (heritage orange) and the old "forest" option
+    // move to it; anyone who chose another accent keeps it, and heritage orange stays available in Settings.
+    if ((saved.accentV || 0) < 4 && ["heritage", "forest"].includes(saved.accent)) delete saved.accent;
+    return { ...DEFAULT_PREFS, ...saved, accentV: 4 };
   } catch { return DEFAULT_PREFS; }
 }
 

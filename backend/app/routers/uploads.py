@@ -26,6 +26,27 @@ AUDIO_TYPES = {"audio/webm": ".webm", "audio/ogg": ".ogg", "audio/mpeg": ".mp3",
 DOC_TYPES = {"application/pdf": ".pdf"}  # scanned certificates and letters for the Legacy Archive
 
 
+def _mp3(head: bytes) -> bool:
+    return head[:3] == b"ID3" or (len(head) > 1 and head[0] == 0xFF and head[1] & 0xE0 == 0xE0)
+
+
+# What the first bytes of each kind of file look like. The browser's Content-Type is only a claim; this makes sure
+# a file stored as a photo really is one (the file is later served to everyone in the family under that type).
+SIGNATURES = {
+    "image/jpeg": lambda h: h[:3] == b"\xff\xd8\xff",
+    "image/png": lambda h: h[:8] == b"\x89PNG\r\n\x1a\n",
+    "image/gif": lambda h: h[:6] in (b"GIF87a", b"GIF89a"),
+    "image/webp": lambda h: h[:4] == b"RIFF" and h[8:12] == b"WEBP",
+    "application/pdf": lambda h: h[:5] == b"%PDF-",
+    "audio/webm": lambda h: h[:4] == b"\x1a\x45\xdf\xa3",
+    "audio/ogg": lambda h: h[:4] == b"OggS",
+    "audio/mpeg": _mp3,
+    "audio/mp4": lambda h: h[4:8] == b"ftyp",
+    "audio/wav": lambda h: h[:4] == b"RIFF" and h[8:12] == b"WAVE",
+    "audio/x-wav": lambda h: h[:4] == b"RIFF" and h[8:12] == b"WAVE",
+}
+
+
 class UploadOut(BaseModel):
     id: str
     filename: str
@@ -45,11 +66,14 @@ def to_out(u: Upload) -> UploadOut:
     return UploadOut(id=u.id, filename=u.filename, content_type=u.content_type, size=u.size, url=file_url(u.id))
 
 
-def family_upload(db: Session, user: User, upload_id: str, kind: str | None = None) -> Upload:
-    """An upload from the user's own family, optionally checked to be an image or audio."""
+def family_upload(db: Session, user: User, upload_id: str, kind: str | None = None, own: bool = False) -> Upload:
+    """An upload from the user's own family, optionally checked to be an image or audio. With `own`, it must be one
+    this user uploaded: attaching someone else's file would show it to people its owner didn't choose."""
     u = db.get(Upload, upload_id)
     if not u or u.family_id != user.family_id:
         raise HTTPException(404, f"Upload {upload_id} not found")
+    if own and u.owner_user_id != user.id:
+        raise HTTPException(422, "You can only attach files you uploaded")
     if kind and not u.content_type.startswith(kind + "/"):
         raise HTTPException(422, f"Upload {upload_id} is not {kind}")
     return u
@@ -80,20 +104,20 @@ async def save_upload(file: UploadFile, user: User, db: Session, kind: str | Non
     try:
         with dest.open("wb") as out:
             while chunk := await file.read(CHUNK):
+                if size == 0 and not SIGNATURES[ctype](chunk):
+                    raise HTTPException(415, "This file's contents don't match its type. Choose the original photo, scan or recording.")
                 size += len(chunk)
                 if size > limit * CHUNK:
                     raise HTTPException(413, f"File is larger than {limit} MB")
                 out.write(chunk)
-    except HTTPException:
-        dest.unlink(missing_ok=True)
+        if size == 0:
+            raise HTTPException(422, "The file is empty")
+        u.size, u.path = size, rel.as_posix()
+        db.add(u)
+        db.commit()
+    except BaseException:
+        dest.unlink(missing_ok=True)  # never leave a file on disk without its row
         raise
-    if size == 0:
-        dest.unlink(missing_ok=True)
-        raise HTTPException(422, "The file is empty")
-
-    u.size, u.path = size, rel.as_posix()
-    db.add(u)
-    db.commit()
     db.refresh(u)
     return u
 
@@ -106,7 +130,12 @@ async def upload_file(file: UploadFile, user: User = Depends(get_current_user), 
 
 @router.get("/{upload_id}", response_model=UploadOut)
 def upload_info(upload_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_session)):
-    return to_out(family_upload(db, user, upload_id))
+    """Your own uploads. Everyone else gets a file's link with the memory, story or message it belongs to, so the
+    item's visibility decides who can open it."""
+    u = db.get(Upload, upload_id)
+    if not u or u.family_id != user.family_id or u.owner_user_id != user.id:
+        raise HTTPException(404, f"Upload {upload_id} not found")
+    return to_out(u)
 
 
 @router.get("/{upload_id}/file", include_in_schema=True)
@@ -119,4 +148,4 @@ def download(upload_id: str, token: str = Query(...), db: Session = Depends(get_
         raise HTTPException(404, "File not found")
     # Private family files: browsers may cache them, shared caches may not.
     return FileResponse(path, media_type=u.content_type, filename=u.filename, content_disposition_type="inline",
-                        headers={"Cache-Control": "private, max-age=3600"})
+                        headers={"Cache-Control": "private, max-age=3600", "X-Content-Type-Options": "nosniff"})

@@ -10,6 +10,7 @@ from app.db import get_session
 from app.models import MILESTONE_TYPES, Milestone, MilestoneBase, User, now
 from app.routers.memories import DATE_RE, PALETTES, check_tagged
 from app.routers.uploads import family_upload, file_url
+from app.validation import reject_nulls
 
 router = APIRouter(prefix="/milestones", tags=["timeline"])
 EDITORS = ("Admin", "Custodian", "Contributor")
@@ -130,7 +131,7 @@ def read_milestone(mid: str, user: User = Depends(get_current_user), db: Session
 @router.post("", response_model=MilestoneOut, status_code=201, dependencies=[Depends(require_role(*EDITORS))])
 def create_milestone(body: MilestoneCreate, user: User = Depends(get_current_user), db: Session = Depends(get_session)):
     if body.upload_id:
-        family_upload(db, user, body.upload_id, kind="image")
+        family_upload(db, user, body.upload_id, kind="image", own=True)
     m = Milestone(**body.model_dump(exclude={"people", "verified"}), family_id=user.family_id,
                   icon=MILESTONE_TYPES[body.type], people=check_tagged(db, user, body.people),
                   # A curator's confirmed date counts as verified; a contributor's waits for review.
@@ -148,11 +149,13 @@ def update_milestone(mid: str, body: MilestoneUpdate, user: User = Depends(get_c
     m = get_milestone(db, user, mid)
     if not may_edit(user, m):
         raise HTTPException(403, "Only the person who added this, an Admin or a Custodian can change it")
-    data = body.model_dump(exclude_unset=True)
+    data = reject_nulls(body.model_dump(exclude_unset=True), "type", "title", "date", "approx", "text", "people")
+    if "title" in data:
+        data["title"] = data["title"].strip()
     if "people" in data:
         data["people"] = check_tagged(db, user, data["people"])
-    if data.get("upload_id"):
-        family_upload(db, user, data["upload_id"], kind="image")
+    if data.get("upload_id") and data["upload_id"] != m.upload_id:
+        family_upload(db, user, data["upload_id"], kind="image", own=True)
     if "type" in data:
         m.icon = MILESTONE_TYPES[data["type"]]
     if {"date", "approx", "source"} & data.keys() and user.role not in MODERATORS:

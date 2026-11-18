@@ -16,6 +16,7 @@ import { useSession } from "../lib/session";
 import { FEATURES } from "../lib/site";
 import { useStore } from "../lib/store";
 import { usePrefActions } from "../lib/usePrefActions";
+import { PagePhoto } from "./public/photos";
 
 const STEPS = ["hello", "profile", "family", "discover", "done"];
 const DISCOVER = ["tree", "memories", "stories", "timeline", "messages", "calendar"];
@@ -291,6 +292,7 @@ export default function Welcome() {
         <Progress i={i} />
         <Card className="mt-6 p-6! sm:p-9!">
           <div ref={headRef} key={step} tabIndex={-1} className="animate-fade outline-none">
+            {step === "hello" && <PagePhoto slot="welcome" alt={t("ob.photoAlt")} aspect="aspect-[16/7] max-sm:aspect-16/9" className="mb-6 rounded-2xl! shadow-card!" eager />}
             {step === "hello" && <Hello name={firstName} family={me?.family_name} admin={!!me?.family_code} />}
             {step === "profile" && <Profile draft={draft} setDraft={setDraft} error={nameError} demo={demo} />}
             {step === "family" && <Family me={me} demo={demo} />}

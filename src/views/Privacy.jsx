@@ -3,7 +3,7 @@ import { useState } from "react";
 import { CancelButton, Dialog } from "../components/Modal";
 import { useCloseModal, useModal } from "../components/modalContext";
 import { useToast } from "../components/toastContext";
-import { Avatar, Button, Card, Chip, Chips, Eyebrow, Field, Hero, Icon, IconBox, Input, Record, Switch, Tabs, Tag } from "../components/ui";
+import { Avatar, Button, Card, Chip, Chips, Field, Icon, IconBox, Input, PageHeader, Record, Switch, Tabs, Tag } from "../components/ui";
 import { ME } from "../data";
 import { fmtDate, fmtWhen, todayISO } from "../lib/format";
 import { rich, useT } from "../lib/i18n";
@@ -99,12 +99,7 @@ export default function Privacy() {
           <Button variant="primary" icon="undo" onClick={cancelDeletion}>{t("pv.cancelDeletion")}</Button>
         </div>
       )}
-      <Hero className="flex flex-wrap items-center gap-6">
-        <div className="min-w-65 flex-1">
-          <Eyebrow icon="verified_user">{t("pv.eyebrow")}</Eyebrow>
-          <h1 className="mt-2">{t("nav.privacy")}</h1>
-          <p className="mt-2 max-w-160 text-muted">{t("pv.sub")}</p>
-        </div>
+      <PageHeader icon="verified_user" eyebrow={t("pv.eyebrow")} title={t("nav.privacy")} description={t("pv.sub")} aside={
         <Card className="w-full max-w-85 p-4!" aria-labelledby="cousinH">
           <h2 id="cousinH" className="flex items-center gap-2 text-base!"><Icon name="visibility" size="sm" /> {t("pv.cousin")}</h2>
           <ul className="m-0 mt-2 grid list-none gap-1 p-0 text-small">
@@ -113,8 +108,7 @@ export default function Privacy() {
               return <li key={k} className="flex items-center gap-2"><Icon name={yes ? "check" : "visibility_off"} size="xs" className={yes ? "text-sec-ink" : "text-faint"} /><span className={yes ? "" : "text-muted line-through"}>{t(`pv.cat.${k}`)}</span><span className="sr-only">{t(yes ? "pv.visible" : "pv.hidden")}</span></li>;
             })}
           </ul>
-        </Card>
-      </Hero>
+        </Card>} />
 
       <div className="mt-6 grid grid-cols-[minmax(0,1fr)] items-start gap-5 [&>*]:min-w-0 lg:grid-cols-2">
         <Card aria-labelledby="visH" className="grid gap-4">
@@ -123,7 +117,7 @@ export default function Privacy() {
             <div key={k} className="grid gap-2 border-t border-line pt-3.5 first-of-type:border-0 first-of-type:pt-0">
               <div className="flex items-start gap-2.5"><Icon name={icon} className="text-sec-ink" /><div><strong className="block text-[.9rem]">{t(`pv.cat.${k}`)}</strong><span className="text-xsmall text-muted">{t(`pv.cat.${k}Help`)}</span></div></div>
               <Tabs role="radiogroup" label={t("pv.whoSeesIt", { name: t(`pv.cat.${k}`) })} value={pv.categories[k]} onChange={(v) => setCategory(k, v)} className="grid! grid-cols-3"
-                items={LEVELS.map(([v, l]) => [v, t(l)])} itemClassName="text-[.78rem]! px-2!" />
+                items={LEVELS.map(([v, l]) => [v, t(l)])} itemClassName="text-xsmall! px-2!" />
             </div>
           ))}
           <p className="text-xsmall text-muted">{rich(t("pv.newUploads", { level: label(prefs.visibility) }))}{" "}
@@ -192,7 +186,7 @@ export default function Privacy() {
             <ol className="m-0 mt-3 grid list-none gap-2 p-0">
               {state.accessLog.map((l) => (
                 <li key={l.id} className="flex items-start gap-2.5 text-small">
-                  <Avatar p={person(l.who)} className="size-8! rounded-lg! text-[.66rem]!" />
+                  <Avatar p={person(l.who)} className="size-8! rounded-lg! text-tag!" />
                   <span><strong>{person(l.who)?.first}</strong> {l.action ? t(`pv.log.${l.action}`, { title: l.title }) : l.what}<small className="block text-xsmall text-muted">{fmtWhen(l.at)}</small></span>
                 </li>
               ))}

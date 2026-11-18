@@ -5,8 +5,8 @@
   "start_url": "./#/overview",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#fcf5ee",
-  "theme_color": "#c2410c",
+  "background_color": "#f7f5ef",
+  "theme_color": "#245b4a",
   "categories": ["lifestyle", "social"],
   "icons": [
     { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
