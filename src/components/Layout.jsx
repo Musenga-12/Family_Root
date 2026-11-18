@@ -505,7 +505,7 @@ function Topbar({ menuOpen, menuRef, onMenu, onPalette, onTour, speech }) {
         </div>
         <MenuDivider />
         <MenuItem icon="home" onClick={() => navigate("/")}>{t("menu.landing")}</MenuItem>
-        <MenuItem icon="logout" onClick={() => { session.signOut(); toast(t("shell.signedOut"), { sub: t("shell.signedOutSub"), icon: "logout" }); navigate("/auth"); }}>{t("menu.signout")}</MenuItem>
+        <MenuItem icon="logout" onClick={() => { session.signOut(); toast(t("shell.signedOut"), { sub: t("shell.signedOutSub"), icon: "logout" }); navigate("/login"); }}>{t("menu.signout")}</MenuItem>
       </Menu>
     </header>
   );

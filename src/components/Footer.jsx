@@ -1,10 +1,13 @@
 /* Footers, one per kind of page:
-     SiteFooter – the full footer of the public welcome page: brand, links into the app, help and privacy, copyright.
+     SiteFooter – the full footer of the public pages: brand, the site's pages, account links that follow the sign-in
+                  state, support and legal pages, copyright.
      AppFooter  – a slim strip under the workspace pages, so it never competes with the work on the page.
    Only real pages are linked; there is no contact address or social account in the project, so none is shown. */
 import { Link } from "react-router-dom";
 import { cx } from "../lib/format";
 import { useT } from "../lib/i18n";
+import { useSession } from "../lib/session";
+import { SITE_PAGES } from "../lib/site";
 import { Icon, IconButton, Tag } from "./ui";
 
 const YEAR = new Date().getFullYear();
@@ -14,10 +17,13 @@ const linkBase = "inline-flex items-center gap-1.5 rounded-md border-0 bg-transp
 const siteLink = cx(linkBase, "-mx-1.5 min-h-9 text-small text-muted easy:min-h-11");
 const appLink = cx(linkBase, "min-h-8 text-[.76rem] font-medium text-ink");
 
-const ARCHIVE = [["/tree", "nav.tree", "account_tree"], ["/directory", "nav.directory", "groups"], ["/memories", "nav.memories", "photo_library"],
-  ["/stories", "nav.stories", "mic"], ["/calendar", "nav.calendar", "calendar_month"]];
-const HELP = [["/auth", "land.signin", "login"], ["/overview", "land.demo", "rocket_launch"], ["/privacy", "nav.privacy", "verified_user"],
-  ["/settings", "nav.settings", "tune"]];
+// [path, labelKey, icon]
+const VISITOR = [["/login", "pub.login", "login"], ["/register", "pub.register", "person_add"], ["/join", "au.tabCode", "key"],
+  ["/forgot-password", "au.forgot", "lock_reset"]];
+const MEMBER = [["/overview", "pub.dashboard", "dashboard"], ["/settings", "nav.settings", "tune"], ["/privacy", "nav.privacy", "verified_user"]];
+const DEMO = [["/overview", "pub.openDemo", "rocket_launch"], ["/settings", "nav.settings", "tune"], ["/privacy", "nav.privacy", "verified_user"]];
+const SUPPORT = [["/contact", "pub.nav.contact", "support_agent"], ["/faq", "pub.nav.faq", "help"], ["/privacy-policy", "privacyPolicy.title", "policy"],
+  ["/terms", "terms.title", "gavel"]];
 
 function Column({ id, title, children }) {
   return (
@@ -29,12 +35,14 @@ function Column({ id, title, children }) {
 }
 
 const PageLink = ({ to, label, icon }) => (
-  <li><Link to={to} className={siteLink}><Icon name={icon} size="xs" />{label}</Link></li>
+  <li><Link to={to} className={siteLink}>{icon && <Icon name={icon} size="xs" />}{label}</Link></li>
 );
 
-/** Full footer for the public welcome page. `sections` are the page's own [id, labelKey] anchors, opened with `onSection`. */
-export function SiteFooter({ sections = [], onSection }) {
+/** Full footer for the public pages. */
+export function SiteFooter() {
   const t = useT();
+  const { status } = useSession();
+  const account = status === "signedIn" ? MEMBER : status === "demo" ? DEMO : VISITOR;
   return (
     <footer data-no-print className="mt-16 border-t border-line bg-surface-2">
       <div className="mx-auto grid max-w-300 grid-cols-2 gap-x-6 gap-y-10 px-4 pt-12 pb-10 sm:px-7 md:grid-cols-[minmax(0,1.6fr)_repeat(3,minmax(0,1fr))]">
@@ -47,21 +55,16 @@ export function SiteFooter({ sections = [], onSection }) {
             </span>
           </Link>
           <p className="m-0 max-w-90 text-small leading-relaxed text-muted">{t("footer.desc")}</p>
-          {/* The same trust badge as the welcome page's hero, so it reads as part of the app in both themes. */}
-          <Tag tone="mint" icon="verified_user" className="justify-self-start">{t("footer.privacy")}</Tag>
+          <Tag tone="mint" icon="verified_user" className="justify-self-start">{t("home.trust1")}</Tag>
         </div>
-        {sections.length > 0 && (
-          <Column id="footExplore" title={t("footer.explore")}>
-            {sections.map(([id, key]) => (
-              <li key={id}><button type="button" onClick={() => onSection?.(id)} className={siteLink}>{t(key)}</button></li>
-            ))}
-          </Column>
-        )}
-        <Column id="footArchive" title={t("footer.archive")}>
-          {ARCHIVE.map(([to, key, icon]) => <PageLink key={to} to={to} label={t(key)} icon={icon} />)}
+        <Column id="footExplore" title={t("footer.explore")}>
+          {SITE_PAGES.filter(([to]) => to !== "/contact" && to !== "/faq").map(([to, key]) => <PageLink key={to} to={to} label={t(key)} />)}
+        </Column>
+        <Column id="footAccount" title={t("pub.account")}>
+          {account.map(([to, key, icon]) => <PageLink key={to + key} to={to} label={t(key)} icon={icon} />)}
         </Column>
         <Column id="footHelp" title={t("footer.help")}>
-          {HELP.map(([to, key, icon]) => <PageLink key={to} to={to} label={t(key)} icon={icon} />)}
+          {SUPPORT.map(([to, key, icon]) => <PageLink key={to} to={to} label={t(key)} icon={icon} />)}
         </Column>
       </div>
       <div className="border-t border-line">

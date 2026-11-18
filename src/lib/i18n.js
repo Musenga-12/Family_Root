@@ -1,5 +1,6 @@
 /* Interface translations. Keys missing in a language fall back to English. Values may be strings or arrays. */
 import { createElement, useCallback } from "react";
+import { PUBLIC } from "./i18n-public";
 import { UI } from "./i18n-ui";
 import { useStore } from "./store";
 
@@ -1313,7 +1314,7 @@ const sw = {
 };
 
 const DICTS = {
-  en: { ...en, ...UI.en },
+  en: { ...en, ...UI.en, ...PUBLIC.en },
   fr: { ...fr, ...UI.fr },
   rw: { ...rw, ...UI.rw },
   sw: { ...sw, ...UI.sw },

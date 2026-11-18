@@ -1,7 +1,9 @@
-/* 5.7 Authentication and Family Onboarding */
+/* 5.7 Authentication and Family Onboarding.
+   One screen behind several addresses: /login, /register, /join (family code), /forgot-password and /reset-password.
+   /auth still works for older links (including ?reset=… and ?invite=…). */
 import { useEffect, useRef, useState } from "react";
 import { Link, Navigate, useLocation, useNavigate, useSearchParams } from "react-router-dom";
-import SiteHeader from "../components/SiteHeader";
+import PublicLayout from "../components/PublicLayout";
 import { authApi, connected } from "../lib/api";
 import { useSession } from "../lib/session";
 import { useToast } from "../components/toastContext";
@@ -75,7 +77,7 @@ function CreateAccount({ onEnter, onPending, setTab, join, invite }) {
     const bad = ["name", "email", "pass", "trust"].find((k) => e[k]);
     if (bad) { document.getElementById("ca-" + bad).focus(); return; }
     setEasy(f.easy);
-    if (!connected) { onEnter(name.split(" ")[0], t("au.requestSent")); return; }
+    if (!connected) { onEnter(name.split(" ")[0], t("au.requestSent"), { welcome: true }); return; }
     setBusy(true);
     try {
       const r = await authApi.register({
@@ -84,7 +86,7 @@ function CreateAccount({ onEnter, onPending, setTab, join, invite }) {
       });
       if (r.status === "pending") { onPending(r.family_name); return; }
       const me = await signIn(r.access_token);
-      if (me) onEnter(name.split(" ")[0], t(invite || join ? "au.signedInTo" : "au.newFamilyDone", { family: r.family_name }));
+      if (me) onEnter(name.split(" ")[0], t(invite || join ? "au.signedInTo" : "au.newFamilyDone", { family: r.family_name }), { welcome: !me.onboarding_done });
     } catch (err) {
       setErrors({ form: err.message });
     } finally {
@@ -148,12 +150,13 @@ function CreateAccount({ onEnter, onPending, setTab, join, invite }) {
       <div className="grid gap-1.5">
         <Check id="ca-trust" checked={f.trust} onChange={set("trust")} aria-invalid={!!errors.trust || undefined}>
           <strong>{t("au.trust")}</strong><br />
-          <span className="text-xsmall text-muted">{t("au.trustHelp")} <Link to="/privacy">{t("au.charter")}</Link></span>
+          <span className="text-xsmall text-muted">{t("au.trustHelp")} <Link to="/privacy-policy">{t("au.charter")}</Link> · <Link to="/terms">{t("terms.title")}</Link></span>
         </Check>
         <ErrorText>{errors.trust}</ErrorText>
       </div>
       <FormError>{errors.form}</FormError>
       <Button variant="primary" size="lg" block type="submit" busy={busy}>{t("au.create")} <Icon name="arrow_forward" size="sm" /></Button>
+      <p className="text-center text-small text-muted">{t("auth.haveAccount")} <Link to="/login">{t("pub.login")}</Link></p>
     </form>
   );
 }
@@ -165,7 +168,6 @@ function FormError({ children }) {
 }
 
 function SignIn({ onEnter }) {
-  const toast = useToast();
   const t = useT();
   const { signIn } = useSession();
   const [email, setEmail] = useState("");
@@ -182,21 +184,12 @@ function SignIn({ onEnter }) {
     try {
       const r = await authApi.login(email.trim(), pass);
       const me = await signIn(r.access_token);
-      if (me) onEnter(me.name.split(" ")[0], t("au.signedInTo", { family: me.family_name }));
+      // Someone who signed up but left before finishing the welcome steps picks them up again.
+      if (me) onEnter(me.name.split(" ")[0], t("au.signedInTo", { family: me.family_name }), { welcome: me.onboarding_done === false });
     } catch (err) {
       setErrors({ form: err.message });
     } finally {
       setBusy(false);
-    }
-  };
-  const forgot = async () => {
-    if (!connected) { toast(t("au.recovery"), { sub: t("au.recoverySub"), icon: "mail" }); return; }
-    if (!emailOk(email.trim())) { setErrors({ email: t("au.forgotNeedEmail") }); document.getElementById("siEmail").focus(); return; }
-    try {
-      const r = await authApi.forgotPassword(email.trim());
-      toast(t("au.recovery"), { sub: r.detail, icon: "mail", duration: 9000 });
-    } catch (err) {
-      toast(err.message, { error: true });
     }
   };
   return (
@@ -210,17 +203,57 @@ function SignIn({ onEnter }) {
       </Field>
       <div className="flex items-center justify-between gap-2.5 text-small">
         <Check checked={show} onChange={(e) => setShow(e.target.checked)}>{t("au.showPass")}</Check>
-        <a href="#/auth" onClick={(e) => { e.preventDefault(); forgot(); }}>
-          {t("au.forgot")}
-        </a>
+        <Link to="/forgot-password" state={{ email: email.trim() }}>{t("au.forgot")}</Link>
       </div>
       <FormError>{errors.form}</FormError>
       <Button variant="primary" size="lg" block type="submit" busy={busy}>{t("au.signIn")} <Icon name="arrow_forward" size="sm" /></Button>
+      <p className="text-center text-small text-muted">{t("auth.noAccount")} <Link to="/register">{t("pub.register")}</Link></p>
     </form>
   );
 }
 
-/** Opened from the link in a "choose a new password" message (#/auth?reset=…). */
+/** /forgot-password: ask for a link to choose a new password. The server answers the same way whether or not the
+ *  email has an account, so the confirmation never reveals who is registered. */
+function ForgotPassword() {
+  const t = useT();
+  const location = useLocation();
+  const [email, setEmail] = useState(location.state?.email || "");
+  const [error, setError] = useState("");
+  const [sent, setSent] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const submit = async () => {
+    if (!emailOk(email.trim())) { setError(t("au.forgotNeedEmail")); document.getElementById("fpEmail").focus(); return; }
+    setError("");
+    if (!connected) { setSent(t("auth.forgotDemo")); return; }
+    setBusy(true);
+    try { setSent((await authApi.forgotPassword(email.trim())).detail); }
+    catch (err) { setError(err.message); }
+    finally { setBusy(false); }
+  };
+  if (sent) {
+    return (
+      <div role="status" className="grid justify-items-center gap-3 rounded-2xl bg-surface-2 p-6 text-center">
+        <Icon name="mark_email_read" className="text-[40px]! text-sec-ink" />
+        <h2>{t("auth.forgotSent")}</h2>
+        <p className="max-w-100 text-small text-muted">{sent}</p>
+        {connected && <p className="max-w-100 text-xsmall text-muted">{t("auth.forgotDev")}</p>}
+        <Button to="/login" icon="arrow_back">{t("auth.backToLogin")}</Button>
+      </div>
+    );
+  }
+  return (
+    <form className="grid gap-4" noValidate onSubmit={(e) => { e.preventDefault(); submit(); }}>
+      <div><h2>{t("auth.forgotTitle")}</h2><p className="mt-2 text-small text-muted">{t("auth.forgotSub")}</p></div>
+      <Field id="fpEmail" label={t("au.email")} error={error}>
+        <InputIcon icon="mail"><Input id="fpEmail" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} invalid={!!error} placeholder="you@example.com" /></InputIcon>
+      </Field>
+      <Button variant="primary" size="lg" block type="submit" busy={busy}>{t("auth.forgotSend")} <Icon name="arrow_forward" size="sm" /></Button>
+      <Button variant="ghost" icon="arrow_back" to="/login">{t("auth.backToLogin")}</Button>
+    </form>
+  );
+}
+
+/** Opened from the link in a "choose a new password" message (#/reset-password?token=…, or the older #/auth?reset=…). */
 function ResetPassword({ token, onEnter }) {
   const t = useT();
   const { signIn } = useSession();
@@ -234,7 +267,7 @@ function ResetPassword({ token, onEnter }) {
     try {
       const r = await authApi.resetPassword(token, pass);
       const me = await signIn(r.access_token);
-      if (me) onEnter(me.name.split(" ")[0], t("au.resetDone"));
+      if (me) onEnter(me.name.split(" ")[0], t("au.resetDone"), { welcome: me.onboarding_done === false });
     } catch (err) {
       setErrors({ form: err.message });
     } finally {
@@ -296,31 +329,38 @@ function FamilyCode({ onAccepted }) {
 // Text for each step is au.step<n>, au.step<n>d and au.step<n>f.
 const STEPS = [["badge", 1], ["verified", 2], ["account_tree", 3]];
 
-export default function Auth() {
+// Tab -> address, so each form has its own link and the browser's Back button moves between them.
+const TAB_PATH = { signin: "/login", create: "/register", code: "/join" };
+const TITLE = { signin: "pub.login", create: "pub.register", code: "au.tabCode", forgot: "auth.forgotTitle", reset: "au.resetTitle" };
+
+/** `mode` comes from the address: signin | create | code | forgot | reset. Without one (/auth) it is picked as before. */
+export default function Auth({ mode }) {
   const toast = useToast();
   const navigate = useNavigate();
   const location = useLocation();
   const [params] = useSearchParams();
-  const { status } = useSession();
+  const { status, me } = useSession();
   const t = useT();
-  const resetToken = connected ? params.get("reset") : null;
+  const resetToken = connected ? params.get("token") || params.get("reset") : null;
   const inviteToken = connected ? params.get("invite") : null;
-  const [tab, setTabState] = useState(inviteToken ? "create" : connected ? "signin" : "create");
+  const resetting = mode === "reset" || !!resetToken;
+  const [tabState, setTabState] = useState(inviteToken ? "create" : connected ? "signin" : "create");
+  const tab = mode && TAB_PATH[mode] ? mode : tabState;
   const [join, setJoin] = useState(null);
   const [invite, setInvite] = useState(null);
   const [inviteError, setInviteError] = useState("");
   const [pending, setPending] = useState(null);
   const setTab = (v) => {
     setTabState(v);
+    // Keep ?invite=… and where you were heading when moving between the forms.
+    navigate({ pathname: TAB_PATH[v], search: location.search }, { replace: true, state: location.state });
     setTimeout(() => document.querySelector("#authPanel input")?.focus());
   };
-  // Back to the page that sent you here (e.g. a link to a relative), or the Overview.
-  const enter = (name, sub) => {
+  // New accounts go to the welcome steps; everyone else back to the page that sent them here, or the Overview.
+  const enter = (name, sub, { welcome } = {}) => {
     toast(name ? t("au.welcome", { name }) : t("au.welcomeAgain"), { sub, icon: "celebration", duration: 6000 });
-    navigate(location.state?.from || "/overview", { replace: true });
+    navigate(welcome ? "/welcome" : location.state?.from || "/overview", { replace: true });
   };
-
-  useEffect(() => { document.title = `${t("nav.auth")} – FamilyRoots`; }, [t]);
 
   // An invitation link greets the person by name and fills in their email.
   useEffect(() => {
@@ -329,13 +369,13 @@ export default function Auth() {
   }, [inviteToken]);
 
   // Already signed in (and not here to reset a password): straight into the archive.
-  if (status === "signedIn" && !resetToken) return <Navigate to={location.state?.from || "/overview"} replace />;
+  // Signing in or up lands here too, as soon as the account loads: unfinished welcome steps come first.
+  if (status === "signedIn" && !resetting) return <Navigate to={me?.onboarding_done === false ? "/welcome" : location.state?.from || "/overview"} replace />;
 
-  // A public page: its own header, outside the signed-in app shell (no sidebar, quick actions or tour).
+  // A public page: the site header and footer, outside the signed-in app shell (no sidebar, quick actions or tour).
   return (
-    <div className="min-h-screen">
-      <SiteHeader />
-      <main id="main" className="mx-auto w-full max-w-300 px-4 pt-8 pb-16 sm:px-7">
+    <PublicLayout title={t(TITLE[resetting ? "reset" : mode === "forgot" ? "forgot" : tab])}>
+      <div className="mx-auto w-full max-w-300 px-4 pt-8 sm:px-7">
       <div className="mb-6.5 grid justify-items-center gap-2.5 text-center">
         <Tag tone="sec" icon="shield">{t("au.haven")}</Tag>
         <h1>{t("au.h1a")}<br />{t("au.h1b")}</h1>
@@ -364,7 +404,12 @@ export default function Auth() {
         </div>
 
         <div className="grid content-start gap-4 p-5 sm:p-7.5">
-          {resetToken ? <ResetPassword token={resetToken} onEnter={enter} /> : pending ? (
+          {resetting ? (resetToken ? <ResetPassword token={resetToken} onEnter={enter} /> : (
+            <div className="grid gap-4">
+              <FormError>{connected ? t("auth.resetMissing") : t("auth.forgotDemo")}</FormError>
+              <Button to="/forgot-password" icon="lock_reset">{t("auth.forgotSend")}</Button>
+            </div>
+          )) : mode === "forgot" ? <ForgotPassword /> : pending ? (
             // A join request waits for an Admin: say so plainly instead of pretending the person is in.
             <div role="status" className="grid justify-items-center gap-3 rounded-2xl bg-surface-2 p-6 text-center">
               <Icon name="hourglass_top" className="text-[40px]! text-sec-ink" />
@@ -411,9 +456,9 @@ export default function Auth() {
           <h3>{t("au.guarantee")}</h3>
           <p className="text-small text-muted">{t("au.guaranteeText")}</p>
         </div>
-        <Button to="/privacy">{t("au.readCharter")}</Button>
+        <Button to="/privacy-policy">{t("au.readCharter")}</Button>
       </Card>
-      </main>
-    </div>
+      </div>
+    </PublicLayout>
   );
 }

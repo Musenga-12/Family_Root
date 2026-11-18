@@ -10,7 +10,7 @@ from sqlmodel import Session, select
 
 from app.auth import create_reset_link, create_token, get_current_user, hash_password, use_reset_token, verify_password
 from app.db import get_session
-from app.models import Family, Invite, JoinRequest, User, UserPrefs, now
+from app.models import DEFAULT_PREFS, Family, Invite, JoinRequest, User, UserPrefs, now
 from app.routers.notifications import family_users, notify
 
 router = APIRouter(tags=["auth"])
@@ -74,6 +74,8 @@ class MeOut(BaseModel):
     family_name: str
     person_id: str | None
     easy_mode: bool
+    family_code: str | None = None  # Admins only: the code relatives use to ask to join
+    onboarding_done: bool = True  # False until a new account finishes or skips the welcome steps
 
 
 def family_by_code(db: Session, code: str) -> Family | None:
@@ -82,6 +84,17 @@ def family_by_code(db: Session, code: str) -> Family | None:
 
 def pending_request(db: Session, email: str) -> JoinRequest | None:
     return db.exec(select(JoinRequest).where(JoinRequest.email == email, JoinRequest.status == "pending")).first()
+
+
+def start_onboarding(db: Session, user: User) -> None:
+    """Marks a brand-new account so the app shows its welcome steps once. Accounts without the mark
+    (everyone created before onboarding existed) count as done, so nobody is asked to repeat it."""
+    db.add(UserPrefs(user_id=user.id, data={**DEFAULT_PREFS, "notify": dict(DEFAULT_PREFS["notify"]), "onboarding": "pending"}))
+
+
+def onboarding_done(db: Session, user: User) -> bool:
+    p = db.get(UserPrefs, user.id)
+    return not p or (p.data or {}).get("onboarding") != "pending"
 
 
 @router.post("/auth/register", response_model=RegisterOut, status_code=201)
@@ -102,6 +115,8 @@ def register(body: RegisterIn, response: Response, db: Session = Depends(get_ses
                     role=inv.role, easy_mode=body.easy_mode)
         inv.accepted_at = now()
         db.add_all([user, inv])
+        db.flush()
+        start_onboarding(db, user)
         db.commit()
         db.refresh(user)
         return RegisterOut(status="active", access_token=create_token(user.id), family_name=db.get(Family, inv.family_id).name)
@@ -128,6 +143,8 @@ def register(body: RegisterIn, response: Response, db: Session = Depends(get_ses
     user = User(family_id=family.id, email=email, name=name, password_hash=hash_password(body.password),
                 role="Admin", easy_mode=body.easy_mode)  # whoever starts a family looks after it
     db.add(user)
+    db.flush()
+    start_onboarding(db, user)
     db.commit()
     db.refresh(user)
     return RegisterOut(status="active", access_token=create_token(user.id), family_name=family.name)
@@ -173,7 +190,8 @@ def verify_code(body: CodeIn, db: Session = Depends(get_session)):
 def me_out(db: Session, user: User) -> MeOut:
     family = db.get(Family, user.family_id)
     return MeOut(id=user.id, name=user.name, email=user.email, role=user.role, family_id=user.family_id,
-                 family_name=family.name, person_id=user.person_id, easy_mode=user.easy_mode)
+                 family_name=family.name, person_id=user.person_id, easy_mode=user.easy_mode,
+                 family_code=family.code if user.role == "Admin" else None, onboarding_done=onboarding_done(db, user))
 
 
 @router.get("/me", response_model=MeOut)
@@ -187,6 +205,7 @@ class MeUpdate(BaseModel):
     email: EmailStr | None = None
     easy_mode: bool | None = None
     current_password: str | None = None
+    onboarding_done: bool | None = None  # true when the welcome steps are finished or skipped
 
     model_config = {"json_schema_extra": {"examples": [{"easy_mode": True}]}}
 
@@ -206,6 +225,10 @@ def update_me(body: MeUpdate, user: User = Depends(get_current_user), db: Sessio
         user.email = email
     if body.easy_mode is not None:
         user.easy_mode = body.easy_mode
+    if body.onboarding_done is not None:
+        p = user_prefs(db, user)
+        p.data = {**(p.data or DEFAULT_PREFS), "onboarding": "done" if body.onboarding_done else "pending"}  # new dict, so the JSON column saves
+        db.add(p)
     db.add(user)
     db.commit()
     db.refresh(user)
@@ -238,7 +261,8 @@ def read_prefs(user: User = Depends(get_current_user), db: Session = Depends(get
 @router.put("/me/preferences", response_model=PrefsIO)
 def save_prefs(body: PrefsIO, user: User = Depends(get_current_user), db: Session = Depends(get_session)):
     p = user_prefs(db, user)
-    p.data = body.model_dump()
+    keep = {k: v for k, v in (p.data or {}).items() if k == "onboarding"}  # not part of this form
+    p.data = {**body.model_dump(), **keep}
     db.add(p)
     db.commit()
     return body

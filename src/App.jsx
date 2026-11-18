@@ -6,9 +6,14 @@ import { Button, Icon } from "./components/ui";
 import { useT } from "./lib/i18n";
 import { useSession } from "./lib/session";
 
+const About = lazy(() => import("./views/public/About"));
 const Auth = lazy(() => import("./views/Auth"));
+const Contact = lazy(() => import("./views/public/Contact"));
 const Calendar = lazy(() => import("./views/Calendar"));
 const Directory = lazy(() => import("./views/Directory"));
+const Faq = lazy(() => import("./views/public/Faq"));
+const Features = lazy(() => import("./views/public/Features"));
+const HowItWorks = lazy(() => import("./views/public/HowItWorks"));
 const Landing = lazy(() => import("./views/Landing"));
 const Memories = lazy(() => import("./views/Memories"));
 const Overview = lazy(() => import("./views/Overview"));
@@ -17,10 +22,13 @@ const Legacy = lazy(() => import("./views/Legacy"));
 const Messages = lazy(() => import("./views/Messages"));
 const NotFound = lazy(() => import("./views/NotFound"));
 const Privacy = lazy(() => import("./views/Privacy"));
+const PrivacyPolicy = lazy(() => import("./views/public/Legal").then((m) => ({ default: m.PrivacyPolicy })));
 const Settings = lazy(() => import("./views/Settings"));
 const Stories = lazy(() => import("./views/Stories"));
+const Terms = lazy(() => import("./views/public/Legal").then((m) => ({ default: m.Terms })));
 const Timeline = lazy(() => import("./views/Timeline"));
 const Tree = lazy(() => import("./views/Tree"));
+const Welcome = lazy(() => import("./views/Welcome"));
 
 function Loading({ label }) {
   const t = useT();
@@ -34,7 +42,7 @@ function RequireSession({ children }) {
   const location = useLocation();
   const t = useT();
   if (status === "demo" || status === "signedIn") return children;
-  if (status === "signedOut") return <Navigate to="/auth" replace state={{ from: location.pathname + location.search }} />;
+  if (status === "signedOut") return <Navigate to="/login" replace state={{ from: location.pathname + location.search }} />;
   if (status === "loading") return <Loading label={t("session.checking")} />;
   return (
     <main id="main" className="grid min-h-screen place-items-center p-6">
@@ -51,9 +59,31 @@ function RequireSession({ children }) {
 export default function App() {
   return (
     <Routes>
-      {/* The public pages (welcome, sign in / join) have their own header; every other screen uses the app shell. */}
-      <Route path="/" element={<Suspense fallback={loading}><Landing /></Suspense>} />
-      <Route path="/auth" element={<Suspense fallback={loading}><Auth /></Suspense>} />
+      {/* Public pages: open to everyone, signed in or not, with the site header and footer instead of the app shell. */}
+      <Route element={<Suspense fallback={loading}><Outlet /></Suspense>}>
+        <Route path="/" element={<Landing />} />
+        <Route path="/about" element={<About />} />
+        <Route path="/features" element={<Features />} />
+        <Route path="/how-it-works" element={<HowItWorks />} />
+        <Route path="/faq" element={<Faq />} />
+        <Route path="/contact" element={<Contact />} />
+        {/* /privacy is the members' Privacy & Consent screen, so the public policy has its own address. */}
+        <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+        <Route path="/terms" element={<Terms />} />
+        {/* Sign in and join. /auth is kept for older links (?reset=…, ?invite=…). */}
+        <Route path="/login" element={<Auth mode="signin" />} />
+        <Route path="/register" element={<Auth mode="create" />} />
+        <Route path="/join" element={<Auth mode="code" />} />
+        <Route path="/forgot-password" element={<Auth mode="forgot" />} />
+        <Route path="/reset-password" element={<Auth mode="reset" />} />
+        <Route path="/auth" element={<Auth />} />
+        {/* Welcome steps after creating an account: signed in, but outside the app shell. */}
+        <Route path="/welcome" element={<RequireSession><Welcome /></RequireSession>} />
+        <Route path="/onboarding" element={<Navigate to="/welcome" replace />} />
+        <Route path="/complete-profile" element={<Navigate to="/welcome" replace />} />
+        <Route path="/signin" element={<Navigate to="/login" replace />} />
+        <Route path="/signup" element={<Navigate to="/register" replace />} />
+      </Route>
       <Route element={<RequireSession><Layout><Suspense fallback={loading}><Outlet /></Suspense></Layout></RequireSession>}>
         <Route path="/overview" element={<Overview />} />
         <Route path="/tree" element={<Tree />} />

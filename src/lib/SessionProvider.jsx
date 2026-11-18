@@ -51,7 +51,14 @@ export function SessionProvider({ children }) {
 
   const retry = useCallback(() => { setStatus("loading"); load(); }, [load]);
 
-  const value = useMemo(() => ({ status, me, error, retry, signIn, signOut, connected }),
-    [status, me, error, retry, signIn, signOut]);
+  /** Change the account (name, Easy-to-Read, welcome steps done…) and keep the answer as the current account. */
+  const updateMe = useCallback(async (body) => {
+    const m = await authApi.updateMe(body);
+    setMe(m);
+    return m;
+  }, []);
+
+  const value = useMemo(() => ({ status, me, error, retry, signIn, signOut, updateMe, connected }),
+    [status, me, error, retry, signIn, signOut, updateMe]);
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;
 }

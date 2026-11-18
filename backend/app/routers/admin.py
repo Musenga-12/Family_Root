@@ -13,6 +13,7 @@ from app.auth import create_reset_link, get_current_user, hash_password, require
 from app.config import settings
 from app.db import get_session
 from app.models import ROLES, Family, Invite, JoinRequest, LegacyRecord, Person, User, iso, now
+from app.routers.auth import start_onboarding
 
 router = APIRouter(tags=["admin"])
 admin_only = [Depends(require_role("Admin"))]
@@ -267,8 +268,11 @@ def approve(rid: str, body: ApproveIn, user: User = Depends(get_current_user), d
         # Requests without a password (e.g. the sample data) get an unusable one; they set theirs with a reset link.
         m = User(family_id=r.family_id, email=r.email.lower(), name=r.name, role=role, easy_mode=r.easy_mode,
                  password_hash=r.password_hash or hash_password(secrets.token_urlsafe(32)))
+    new = m.id is None
     db.add(m)
     db.flush()
+    if new:
+        start_onboarding(db, m)
     r.status, r.user_id, r.decided_by, r.decided_at = "approved", m.id, user.id, now()
     db.add(r)
     db.commit()

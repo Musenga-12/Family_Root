@@ -87,4 +87,12 @@ export const authApi = {
   forgotPassword: (email) => api("/auth/forgot-password", { body: { email }, auth: false }),
   resetPassword: (token, password) => api("/auth/reset-password", { body: { token, password }, auth: false }),
   me: () => api("/me"),
+  /** body: any of { name, email, easy_mode, current_password, onboarding_done }. Resolves the updated account. */
+  updateMe: (body) => api("/me", { method: "PATCH", body }),
+};
+
+/* ---------- Invitations ---------- */
+export const inviteApi = {
+  /** body: { name, email, relation?, role? }. Resolves the invitation, including the `link` to send while email is not set up. */
+  create: (body) => api("/invites", { body }),
 };
