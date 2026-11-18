@@ -347,7 +347,10 @@ export default function Auth({ mode }) {
   const [join, setJoin] = useState(null);
   const [invite, setInvite] = useState(null);
   const [inviteError, setInviteError] = useState("");
+  // { family, mode }: the "request sent" note is forgotten once the person goes to another form (e.g. the header's
+  // "Log in" link; React keeps this component between those routes), so it can't hide the form they asked for.
   const [pending, setPending] = useState(null);
+  if (pending && pending.mode !== mode) setPending(null);
   const setTab = (v) => {
     setTabState(v);
     // Keep ?invite=… and where you were heading when moving between the forms.
@@ -404,7 +407,7 @@ export default function Auth({ mode }) {
             // A join request waits for an Admin: say so plainly instead of pretending the person is in.
             <div role="status" className="grid justify-items-center gap-3 rounded-2xl bg-surface-2 p-6 text-center">
               <Icon name="hourglass_top" className="text-[40px]! text-sec-ink" />
-              <h2>{t("au.pendingTitle", { family: pending })}</h2>
+              <h2>{t("au.pendingTitle", { family: pending.family })}</h2>
               <p className="max-w-100 text-small text-muted">{t("au.pendingSub")}</p>
               <Button onClick={() => { setPending(null); setTab("signin"); }}>{t("au.tabSignIn")}</Button>
             </div>
@@ -417,7 +420,7 @@ export default function Auth({ mode }) {
               <div id="authPanel" role="tabpanel">
                 {tab === "signin" && <SignIn onEnter={enter} />}
                 {/* Re-created when an invitation arrives, so its name and email are filled in. */}
-                {tab === "create" && <CreateAccount key={invite?.token || "new"} onEnter={enter} onPending={setPending} setTab={setTab} join={join} invite={invite} />}
+                {tab === "create" && <CreateAccount key={invite?.token || "new"} onEnter={enter} onPending={(family) => setPending({ family, mode })} setTab={setTab} join={join} invite={invite} />}
                 {tab === "code" && <FamilyCode onAccepted={(j) => { setJoin(j); setTab("create"); }} />}
               </div>
             </>
