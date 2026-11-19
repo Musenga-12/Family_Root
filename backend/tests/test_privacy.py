@@ -128,3 +128,88 @@ def test_account_closing_can_be_cancelled(client, auth):
 def test_last_admin_cannot_close_their_account(client, auth):
     assert client.post(f"{API}/me/deletion-request", headers=auth("sarah")).status_code == 200  # Mary is still an Admin
     assert client.post(f"{API}/me/deletion-request", headers=auth("mary")).status_code == 422
+
+
+def test_my_own_privacy_choices(client, auth):
+    before = client.get(f"{API}/privacy", headers=auth("james")).json()["mine"]
+    r = client.patch(f"{API}/privacy/mine", headers=auth("james"), json={"age": True, "voice": False})
+    assert r.status_code == 200
+    assert r.json()["mine"] == {**before, "age": True, "voice": False}
+    # Leaving a choice out keeps it.
+    assert client.patch(f"{API}/privacy/mine", headers=auth("james"), json={"tagging": False}).json()["mine"]["age"] is True
+
+
+def test_consent_requests_are_checked(client, auth):
+    james = auth("james")
+    assert ids(client, "/consents?status=pending", auth("mary")) == {"k3"}
+    assert client.post(f"{API}/consents", headers=james, json={"person": "nobody", "item": "Photo"}).status_code == 422
+    assert client.post(f"{API}/consents", headers=james, json={"person": "michael", "item": "Photo", "memory_id": "nope"}).status_code == 422
+    assert client.post(f"{API}/consents", headers=james, json={"person": "michael", "item": ""}).status_code == 422
+    # For a minor, the request goes to a parent.
+    c = client.post(f"{API}/consents", headers=james, json={"person": "grace", "item": "School play", "kind": "Voice"}).json()
+    assert c["guardian"] in {"michael", "emma"} and c["can_remind"] is True
+    assert client.patch(f"{API}/consents/{c['id']}", headers=auth("michael"), json={"status": "given"}).json()["status"] == "given"
+
+
+def test_reminding_about_a_pending_consent(client, auth):
+    # k3 asks James about a photo; Mary asked for it.
+    assert client.post(f"{API}/consents/k3/remind", headers=auth("james")).status_code == 403
+    assert client.post(f"{API}/consents/k1/remind", headers=auth("mary")).status_code == 422  # already given
+    assert client.post(f"{API}/consents/k3/remind", headers=auth("emma")).status_code == 404  # not hers to see
+    r = client.post(f"{API}/consents/k3/remind", headers=auth("mary"))
+    assert r.status_code == 200 and r.json()["status"] == "pending"
+    kinds = [n["kind"] for n in client.get(f"{API}/notifications", headers=auth("james")).json()["items"]]
+    assert "consent.reminder" in kinds
+
+
+def test_listening_and_downloading_show_in_the_owners_access_log(client, auth):
+    mary = auth("mary")
+    before = len(client.get(f"{API}/access-log", headers=mary).json())
+    assert client.post(f"{API}/activity", headers=auth("james"), json={"action": "listened", "kind": "story", "id": "s1"}).status_code == 204
+    log = client.get(f"{API}/access-log", headers=mary).json()
+    assert len(log) == before + 1 and (log[0]["action"], log[0]["who"]) == ("listened", "james")
+    assert log[0]["title"] == "Crossing the Atlantic in 1968"
+
+    # Your own plays, and sample items nobody owns, aren't logged.
+    assert client.post(f"{API}/activity", headers=mary, json={"action": "listened", "kind": "story", "id": "s1"}).status_code == 204
+    assert client.post(f"{API}/activity", headers=auth("james"), json={"action": "downloaded", "kind": "memory", "id": "m1"}).status_code == 204
+    assert len(client.get(f"{API}/access-log", headers=mary).json()) == before + 1
+    assert client.post(f"{API}/activity", headers=mary, json={"action": "listened", "kind": "story", "id": "nope"}).status_code == 404
+    assert client.post(f"{API}/activity", headers=mary, json={"action": "shared", "kind": "story", "id": "s1"}).status_code == 422
+
+
+def test_accounts_close_after_the_grace_period(client, auth):
+    from datetime import timedelta
+
+    from sqlmodel import Session, select
+
+    from app.db import engine
+    from app.models import Message, ThreadMember, User, UserPrivacy, now
+    from app.routers.privacy import GRACE_DAYS, close_due_accounts
+    from helpers import login
+
+    james = auth("james")
+    client.patch(f"{API}/privacy/mine", headers=james, json={"age": True})  # James has saved privacy choices
+    assert client.post(f"{API}/me/deletion-request", headers=james).status_code == 200
+    assert client.post(f"{API}/me/deletion-request", headers=auth("emma")).status_code == 200  # still within her 30 days
+
+    with Session(engine) as db:
+        assert close_due_accounts(db) == 0  # nobody's time is up yet
+        u = db.exec(select(User).where(User.email == "james@example.com")).one()
+        uid = u.id
+        u.deletion_requested_at = now() - timedelta(days=GRACE_DAYS + 1)
+        db.add(u)
+        db.commit()
+        assert db.exec(select(Message).where(Message.sender_id == uid, Message.deleted_at == None)).all()  # noqa: E711
+
+        assert close_due_accounts(db) == 1
+
+        u = db.get(User, uid)
+        assert u.removed_at is not None and u.name == "Former member" and u.email.endswith("@closed.invalid")
+        assert all(m.deleted_at and m.text == "" for m in db.exec(select(Message).where(Message.sender_id == uid)).all())
+        assert all(tm.left_at for tm in db.exec(select(ThreadMember).where(ThreadMember.user_id == uid)).all())
+        assert db.get(UserPrivacy, uid) is None
+        assert db.exec(select(User).where(User.email == "emma@example.com")).one().removed_at is None
+
+    assert login(client, "james@example.com").status_code == 401
+    assert client.get(f"{API}/people/james", headers=auth("mary")).status_code == 200  # the tree keeps the person
