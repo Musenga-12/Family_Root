@@ -2,7 +2,7 @@ import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
 import { createHash } from 'node:crypto'
 import { readFileSync, readdirSync } from 'node:fs'
-import { defineConfig } from 'vite'
+import { defineConfig } from 'vitest/config'
 
 /**
  * Normal build (dist/): emits sw.js with the full list of built files, so the installed app works offline
@@ -69,6 +69,11 @@ export default defineConfig(({ mode }) => {
     base: './',
     plugins: [react(), tailwindcss(), single ? singleFile() : serviceWorker()],
     publicDir: single ? false : 'public',
+    test: {
+      environment: 'jsdom',
+      setupFiles: ['./src/test/setup.js'],
+      clearMocks: true,
+    },
     build: single
       ? {
           outDir: 'release',
