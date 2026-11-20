@@ -156,6 +156,50 @@
   &::-webkit-scrollbar { display: none; }
 }
 
+/* The public site footer: a deep, painted band in the brand colour, so it reads as its own place under the page.
+   Text, line, surface and hover/press tokens are redefined for this band only, so the shared utilities
+   (text-ink, text-muted, hover-fill, focus ring) keep working with light-on-dark contrast in both themes and
+   every accent. A warm brushed stripe along the top separates it from the content above. */
+@utility footer-paint {
+  position: relative;
+  isolation: isolate;
+  --color-ink: #f6f4ec;
+  --color-muted: color-mix(in oklab, var(--color-mint) 30%, #e6ebe4);
+  --color-line: color-mix(in oklab, var(--color-mint) 24%, transparent);
+  --color-surface: color-mix(in oklab, #fff 9%, var(--color-pine-900));
+  --sec: var(--color-mint);
+  --sec-ink: var(--color-mint);
+  --sec-on: var(--color-pine-950);
+  --sec-hover: color-mix(in oklab, var(--color-mint) 16%, transparent);
+  --sec-hover-line: color-mix(in oklab, var(--color-mint) 45%, transparent);
+  color: var(--color-ink);
+  background-color: var(--color-pine-900);
+  background-image:
+    radial-gradient(60rem 22rem at 8% 0%, color-mix(in oklab, var(--color-mint) 16%, transparent), transparent 70%),
+    radial-gradient(40rem 20rem at 95% 100%, color-mix(in oklab, var(--color-gold) 16%, transparent), transparent 70%),
+    linear-gradient(170deg, var(--color-pine-800) 0%, var(--color-pine-900) 45%, var(--color-pine-950) 100%);
+  box-shadow: 0 -18px 40px -28px color-mix(in oklab, var(--color-pine-950) 70%, transparent);
+  &::before {
+    content: ""; position: absolute; inset: 0 0 auto; height: 4px; z-index: -1;
+    background: linear-gradient(90deg, var(--color-mint), var(--color-gold) 50%, var(--color-terra));
+  }
+  /* Pine text and badges are tuned for light surfaces; on this band they take the light accent. */
+  & :is(.text-pine-600, .text-pine-700, .text-pine-800) { color: var(--color-mint); }
+  /* Links nudge their icon forward on hover. */
+  & a.hover-fill .ms { transition: transform 0.2s cubic-bezier(0.2, 0.7, 0.3, 1); }
+  & a.hover-fill:is(:hover, :focus-visible) .ms { transform: translateX(2px); }
+}
+/* Dark theme: a deeper wash, so the band still stands apart from the dark page. */
+html.dark .footer-paint {
+  --color-surface: color-mix(in oklab, #fff 7%, var(--color-pine-950));
+  background-color: var(--color-pine-950);
+  background-image:
+    radial-gradient(60rem 22rem at 8% 0%, color-mix(in oklab, var(--color-mint) 12%, transparent), transparent 70%),
+    radial-gradient(40rem 20rem at 95% 100%, color-mix(in oklab, var(--color-gold) 12%, transparent), transparent 70%),
+    linear-gradient(170deg, var(--color-pine-900) 0%, var(--color-pine-950) 55%, color-mix(in oklab, var(--color-pine-950) 70%, #000) 100%);
+  box-shadow: 0 -18px 40px -28px rgba(0, 0, 0, 0.6);
+}
+
 /* Used from inline styles (toast time-left bar), so declared outside @theme where unused keyframes are dropped. */
 @keyframes toast-life { from { width: 100%; } to { width: 0; } }
 

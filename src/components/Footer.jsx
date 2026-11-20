@@ -44,11 +44,11 @@ export function SiteFooter() {
   const { status } = useSession();
   const account = status === "signedIn" ? MEMBER : status === "demo" ? DEMO : VISITOR;
   return (
-    <footer data-no-print className="mt-16 border-t border-line bg-surface-2">
+    <footer data-no-print className="footer-paint mt-16">
       <div className="mx-auto grid max-w-300 grid-cols-2 gap-x-6 gap-y-10 px-4 pt-12 pb-10 sm:px-7 md:grid-cols-[minmax(0,1.6fr)_repeat(3,minmax(0,1fr))]">
         <div className="col-span-2 grid content-start gap-4 md:col-span-1 md:pr-8">
           <Link to="/" aria-label={t("shell.home")} className="-mx-1.5 flex w-fit items-center gap-2.5 rounded-xl px-1.5 py-1 text-ink no-underline transition-colors duration-200">
-            <span className="grid size-10 place-items-center rounded-full bg-pine-900 text-mint"><Icon name="park" /></span>
+            <span className="grid size-10 place-items-center rounded-full bg-pine-950 text-mint ring-1 ring-mint/40"><Icon name="park" /></span>
             <span>
               <strong className="block font-serif text-[1.25rem] leading-[1.1]">FamilyRoots</strong>
               <small className="text-tag font-semibold tracking-[.16em] text-pine-700 uppercase">{t("brand.tagline")}</small>
