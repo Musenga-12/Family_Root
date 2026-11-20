@@ -1,5 +1,6 @@
 """FamilyRoots API. Run from the backend folder: fastapi dev app/main.py  →  docs at http://localhost:8000/docs"""
 import logging
+import re
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
@@ -33,7 +34,35 @@ from app.routers import (
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 log = logging.getLogger("familyroots")
+
+
+class RedactTokens(logging.Filter):
+    """File links and the chat WebSocket carry a token in the address (?token=…); access logs must not keep it."""
+    PATTERN = re.compile(r"(token=)[^&\s\"']+")
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        if record.args:
+            record.args = tuple(self.PATTERN.sub(r"\1[hidden]", a) if isinstance(a, str) else a for a in record.args)
+        if isinstance(record.msg, str):
+            record.msg = self.PATTERN.sub(r"\1[hidden]", record.msg)
+        return True
+
+
+logging.getLogger("uvicorn.access").addFilter(RedactTokens())
 check_settings(settings)  # stops a production server with unsafe settings before it accepts requests
+
+
+def warn_about_sample_accounts(db: Session) -> None:
+    """seed.py's demo accounts share a published password. On a production server they would let anyone in."""
+    if not settings.production:
+        return
+    from sqlmodel import select
+
+    from app.models import User
+    sample = db.exec(select(User.email).where(User.email.like("%@example.com"), User.removed_at == None)).all()  # noqa: E711
+    if sample:
+        log.warning("%d sample account(s) from seed.py (e.g. %s) can sign in with the published demo password. "
+                    "Remove the sample family from the production database before inviting real families.", len(sample), sample[0])
 
 
 @asynccontextmanager
@@ -41,6 +70,7 @@ async def lifespan(_: FastAPI):
     create_db()  # SQLite: creates missing tables. A database server: checks its migration (alembic upgrade head)
     with Session(engine) as db:
         privacy.close_due_accounts(db)  # accounts whose 30-day notice has run out
+        warn_about_sample_accounts(db)
     yield
 
 

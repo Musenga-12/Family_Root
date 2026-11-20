@@ -76,3 +76,11 @@ export function fmtWhen(iso) {
 
 /** Current local date and time as "YYYY-MM-DDTHH:MM" (same shape as the stored message timestamps). */
 export const nowLocalISO = () => { const d = new Date(); return `${todayISO()}T${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`; };
+
+/** Offer `data` as a JSON file download. */
+export function saveJson(data, name) {
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+  const a = Object.assign(document.createElement("a"), { href: URL.createObjectURL(blob), download: name });
+  a.click();
+  URL.revokeObjectURL(a.href);
+}

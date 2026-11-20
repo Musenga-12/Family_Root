@@ -24,6 +24,11 @@ class Settings(BaseSettings):
     # Public address of this API, used to build file links the browser can open (e.g. <img src>).
     api_base_url: str = "http://localhost:8000"
     upload_dir: str = "uploads"
+    # Where uploaded files live: "local" (UPLOAD_DIR on this server's disk) or "supabase" (a private bucket; see storage.py).
+    storage: str = "local"
+    supabase_url: str = ""
+    supabase_service_key: str = ""
+    supabase_bucket: str = "family-files"
     max_image_mb: int = 10
     max_audio_mb: int = 50
     file_link_minutes: int = 60 * 12
@@ -43,6 +48,13 @@ def check_settings(s: "Settings") -> None:
     for name, value in (("FRONTEND_ORIGIN", s.frontend_origin), ("API_BASE_URL", s.api_base_url)):
         if "localhost" in value or "127.0.0.1" in value:
             problems.append(f"{name} still points at this computer ({value})")
+    if s.storage.strip().lower() == "supabase" and not (s.supabase_url and s.supabase_service_key):
+        problems.append("STORAGE=supabase needs SUPABASE_URL and SUPABASE_SERVICE_KEY")
+    if s.storage.strip().lower() not in ("local", "supabase"):
+        problems.append(f"STORAGE must be local or supabase, not {s.storage!r}")
+    if s.production and not problems and s.storage.strip().lower() == "local":
+        log.warning("Uploads are stored on this server's disk (%s). Use a persistent disk, or STORAGE=supabase, so photos "
+                    "survive redeploys.", s.upload_dir)
     if not problems:
         return
     if s.production:

@@ -33,3 +33,9 @@ backend/uploads/
 backend/backups/
 .env
 backend/.env.pre-supabase-backup
+# Any environment file except the templates (they hold placeholders only)
+.env.*
+!.env.example
+!.env.production.example
+# Test coverage data
+.coverage

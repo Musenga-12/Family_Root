@@ -49,7 +49,9 @@ function Item({ t, compact }) {
             className="size-8!" iconProps={{ className: open ? "rotate-180 transition-transform" : "transition-transform" }} onClick={() => setOpen(!open)} />}
         </div>
         {details && <p className="animate-fade text-small text-muted">{t.text}</p>}
-        {details && t.hasPhoto && (
+        {/* A milestone's own photo; the sample family's has a sample photo and reflection recording. */}
+        {details && t.img && <Photo img={t.img} alt={t.title} aspect="aspect-16/8" className="max-h-70 w-full" />}
+        {details && !t.img && t.hasPhoto && (
           <>
             <Photo p1={t.p1} p2={t.p2} icon="groups" sample={t.id} alt={tr("tl.photoAlt")} aspect="aspect-16/8" className="max-h-70 w-full">
               <PhotoOverlay className="text-xsmall"><Icon name="photo_camera" size="xs" /> {tr("tl.attendance", { n: 28 })}</PhotoOverlay>
@@ -131,6 +133,7 @@ function AddMilestoneDialog() {
 
 export default function Timeline() {
   const { state, person } = useStore();
+  const spotlight = state.stories.find((x) => x.kind === "audio");
   const { open } = useModal();
   const toast = useToast();
   const [f, setF] = useState({ type: "all", branch: "all", certainty: "all" });
@@ -228,7 +231,7 @@ export default function Timeline() {
           <Card>
             <div className="flex items-center justify-between gap-2.5"><Eyebrow>{tr("tl.custodian")}</Eyebrow><Tag tone="mint">{tr("tl.verifiedCircle")}</Tag></div>
             <h3 className="mt-2">{tr("tl.archive")}</h3>
-            <p className="mt-2 text-small text-muted">{tr("tl.covers", { span })}</p>
+            <p className="mt-2 text-small text-muted">{tr("tl.covers", { span, gens: new Set(state.people.map((p) => p.gen)).size })}</p>
             <div className="mt-4 flex items-center gap-2.5">
               <div className="grid size-17.5 shrink-0 place-items-center rounded-full"
                 style={{ background: `conic-gradient(var(--sec) 0 ${confirmedPct}%, var(--color-surface-3) 0)` }}>
@@ -248,12 +251,15 @@ export default function Timeline() {
               ))}
             </div>
           </Card>
-          <Card tone="dark">
-            <Eyebrow className="text-mint!"><Icon name="mic" size="xs" /> {tr("tl.spotlight")}</Eyebrow>
-            <h3 className="mt-2">Crossing the Atlantic (1968)</h3>
-            <p className="mt-2 text-small text-on-dark">{tr("tl.spotlightText")}</p>
-            <Button variant="mint" block to="/stories" className="mt-4">{tr("tl.openRecordings")}</Button>
-          </Card>
+          {/* A recorded story from the family's own archive, when there is one. */}
+          {spotlight && (
+            <Card tone="dark">
+              <Eyebrow className="text-mint!"><Icon name="mic" size="xs" /> {tr("tl.spotlight")}</Eyebrow>
+              <h3 className="mt-2">{spotlight.title}</h3>
+              {spotlight.excerpt && <p className="mt-2 text-small text-on-dark">{spotlight.excerpt}</p>}
+              <Button variant="mint" block to="/stories" className="mt-4">{tr("tl.openRecordings")}</Button>
+            </Card>
+          )}
           <Card tone="soft" className="text-small">
             <strong><Icon name="workspace_premium" size="sm" /> {tr("tl.seal")}</strong>
             <p className="mt-2 text-xsmall text-muted">{tr("tl.sealText")}</p>

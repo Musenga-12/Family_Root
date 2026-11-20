@@ -1,0 +1,81 @@
+"""Where uploaded files (photos, recordings, scans) are kept.
+
+STORAGE=local     (default) a folder on this server's disk, UPLOAD_DIR. Fine on your own computer or a server with a
+                  persistent disk; many hosts wipe the disk on every deploy, which would lose every family's photos.
+STORAGE=supabase  a *private* Supabase Storage bucket (SUPABASE_URL, SUPABASE_SERVICE_KEY, SUPABASE_BUCKET). Files never
+                  get public links: the API checks the signed file link (GET /uploads/{id}/file) and then passes the
+                  file on, exactly as with local storage.
+"""
+import shutil
+from urllib.parse import quote
+from pathlib import Path
+from typing import BinaryIO, Protocol
+
+import httpx
+from fastapi import HTTPException
+from fastapi.responses import FileResponse, Response
+
+from app.config import settings
+
+# Private family files: browsers may cache them, shared caches may not.
+FILE_HEADERS = {"Cache-Control": "private, max-age=3600", "X-Content-Type-Options": "nosniff"}
+
+
+class Storage(Protocol):
+    def put(self, rel: str, data: BinaryIO, content_type: str) -> None: ...
+    def delete(self, rel: str) -> None: ...
+    def response(self, rel: str, content_type: str, filename: str) -> Response: ...
+
+
+class LocalStorage:
+    def __init__(self, root: str | Path):
+        self.root = Path(root).resolve()
+
+    def put(self, rel: str, data: BinaryIO, content_type: str) -> None:
+        dest = self.root / rel
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        with dest.open("wb") as out:
+            shutil.copyfileobj(data, out)
+
+    def delete(self, rel: str) -> None:
+        (self.root / rel).unlink(missing_ok=True)
+
+    def response(self, rel: str, content_type: str, filename: str) -> Response:
+        path = self.root / rel
+        if not path.is_file():
+            raise HTTPException(404, "File not found")
+        return FileResponse(path, media_type=content_type, filename=filename, content_disposition_type="inline", headers=FILE_HEADERS)
+
+
+class SupabaseStorage:
+    """Supabase Storage's REST API with the service key (kept on the server only; the bucket stays private)."""
+
+    def __init__(self, url: str, key: str, bucket: str, transport: httpx.BaseTransport | None = None):
+        self.base = f"{url.rstrip('/')}/storage/v1/object/{bucket}"
+        self.client = httpx.Client(headers={"Authorization": f"Bearer {key}", "apikey": key}, timeout=60, transport=transport)
+
+    def put(self, rel: str, data: BinaryIO, content_type: str) -> None:
+        r = self.client.post(f"{self.base}/{rel}", content=data.read(), headers={"Content-Type": content_type, "x-upsert": "false"})
+        if r.status_code >= 300:
+            raise HTTPException(502, "The file couldn't be stored right now. Please try again.")
+
+    def delete(self, rel: str) -> None:
+        self.client.delete(f"{self.base}/{rel}")
+
+    def response(self, rel: str, content_type: str, filename: str) -> Response:
+        r = self.client.get(f"{self.base}/{rel}")
+        if r.status_code == 404 or r.status_code == 400:
+            raise HTTPException(404, "File not found")
+        if r.status_code >= 300:
+            raise HTTPException(502, "The file couldn't be loaded right now. Please try again.")
+        disposition = f"inline; filename*=UTF-8''{quote(filename)}"
+        return Response(r.content, media_type=content_type, headers={**FILE_HEADERS, "Content-Disposition": disposition})
+
+
+def make_storage() -> Storage:
+    if settings.storage.strip().lower() == "supabase":
+        return SupabaseStorage(settings.supabase_url, settings.supabase_service_key, settings.supabase_bucket)
+    return LocalStorage(settings.upload_dir)
+
+
+storage: Storage = make_storage()

@@ -10,7 +10,7 @@ import { localeOf, useT } from "../lib/i18n";
 import { useStore } from "../lib/store";
 import { saveAudio } from "../lib/audioStore";
 
-const AUDIENCES = ["Mackenzie Kinship Circle", "Immediate Family", "Only Me (private draft)"];
+const AUDIENCES = ["All Family Branches", "Immediate Family", "Only Me (private draft)"];
 const fmt = (s) => `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
 
 function RecButton({ label, caption, big, dark, live, disabled, icon, onClick }) {
@@ -31,7 +31,7 @@ function RecButton({ label, caption, big, dark, live, disabled, icon, onClick })
 }
 
 export default function RecordingStudio({ promptIdx, setPromptIdx, forName }) {
-  const { update, setAudioUrl, prefs } = useStore();
+  const { update, setAudioUrl, prefs, person } = useStore();
   const toast = useToast();
   const { confirm } = useModal();
   const t = useT();
@@ -62,6 +62,7 @@ export default function RecordingStudio({ promptIdx, setPromptIdx, forName }) {
     const c = canvas.current;
     if (!c) return;
     const g = c.getContext("2d"), w = c.width, h = c.height;
+    if (!g) return;
     g.clearRect(0, 0, w, h);
     g.fillStyle = getComputedStyle(c).getPropertyValue("--sec").trim() || "#245b4a";
     const r = rec.current, live = statusRef.current === "recording";
@@ -259,7 +260,7 @@ export default function RecordingStudio({ promptIdx, setPromptIdx, forName }) {
       <div className="mt-4 grid grid-cols-[minmax(0,1fr)] gap-4.5 md:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]">
         <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] content-start gap-3.5">
           <div id="promptCard" className="rounded-2xl bg-surface-2 p-4.5">
-            <div className="flex flex-wrap items-center justify-between gap-2.5"><Eyebrow><Icon name="chat_bubble" size="xs" /> {t("rs.current")}</Eyebrow><Tag tone="gold">{t("rs.recommended")}</Tag></div>
+            <div className="flex flex-wrap items-center justify-between gap-2.5"><Eyebrow><Icon name="chat_bubble" size="xs" /> {t("rs.current")}</Eyebrow><Tag tone="gold">{t("rs.recommended", { name: person(ME)?.first || "" })}</Tag></div>
             <p className="my-2.5 font-serif text-[1.25rem] leading-[1.35] italic">“{prompt}”</p>
             <p className="text-small text-muted">{t("rs.hint")}</p>
             <p className="mt-4 text-xsmall text-muted">{t("rs.switch")}</p>

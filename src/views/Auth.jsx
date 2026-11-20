@@ -327,7 +327,7 @@ function FamilyCode({ onAccepted }) {
         <p className="mt-2 text-small text-muted">{t("au.codeSub")}</p>
       </div>
       <Field id="fcCode" label={t("au.code")} hint={t("au.codeHint")} help={t("au.codeHelp")} error={error}>
-        <Input id="fcCode" value={code} onChange={(e) => setCode(e.target.value)} invalid={!!error} placeholder="MCK-8294" autoComplete="off" maxLength={8}
+        <Input id="fcCode" value={code} onChange={(e) => setCode(e.target.value)} invalid={!!error} placeholder={connected ? "ABC-1234" : "MCK-8294"} autoComplete="off" maxLength={8}
           className="text-center text-[1.3rem] tracking-[.15em] uppercase" />
       </Field>
       <Button variant="primary" size="lg" block type="submit" busy={busy}>{t("au.checkCode")} <Icon name="arrow_forward" size="sm" /></Button>

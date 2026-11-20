@@ -61,7 +61,7 @@ export default function App() {
         <Route path="/reset-password" element={<Auth mode="reset" />} />
         <Route path="/auth" element={<Auth />} />
         {/* Welcome steps after creating an account: signed in, but outside the app shell. */}
-        <Route path="/welcome" element={<RequireSession><Welcome /></RequireSession>} />
+        <Route path="/welcome" element={<RequireSession archive={false}><Welcome /></RequireSession>} />
         <Route path="/onboarding" element={<Navigate to="/welcome" replace />} />
         <Route path="/complete-profile" element={<Navigate to="/welcome" replace />} />
         <Route path="/signin" element={<Navigate to="/login" replace />} />

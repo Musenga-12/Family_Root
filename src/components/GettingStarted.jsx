@@ -6,6 +6,7 @@ import { archiveApi } from "../lib/api";
 import { cx } from "../lib/format";
 import { useT } from "../lib/i18n";
 import { useSession } from "../lib/session";
+import { useStore } from "../lib/store";
 import { Button, Card, Icon, SectionTitle, Tag } from "./ui";
 
 const EDITORS = ["Admin", "Custodian", "Contributor"];
@@ -47,13 +48,17 @@ export default function GettingStarted() {
   const [error, setError] = useState("");
   const [hidden, setHidden] = useState(() => readHidden(me.id));
 
-  // `attempt` goes up on Retry, which loads again.
+  // `attempt` goes up on Retry, which loads again. The steps are counted again whenever the archive gains or loses
+  // something (and its changes have reached the server), so a first photo ticks its step straight away.
   const [attempt, setAttempt] = useState(0);
+  const store = useStore();
+  const st = store?.state;
+  const changed = st ? [st.people.length, st.memories.length, st.stories.length, st.records.length, st.invites.length, store.server.saving === 0].join() : "";
   useEffect(() => {
     let live = true;
     loadProgress(editor).then((d) => { if (live) setData(d); }, (e) => { if (live) setError(e.message); });
     return () => { live = false; };
-  }, [editor, attempt]);
+  }, [editor, attempt, changed]);
   const load = useCallback(() => { setError(""); setData(null); setAttempt((a) => a + 1); }, []);
 
   const hide = (v) => { writeHidden(me.id, v); setHidden(v); };

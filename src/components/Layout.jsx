@@ -331,35 +331,65 @@ function OfflineBanner() {
   );
 }
 
-/** While screens move onto the family server one by one, say plainly which data a signed-in person is looking at.
- *  One short line with the full explanation one tap away. It stays, so the sample family is never mistaken for theirs. */
-function ServerNotice() {
-  const { me } = useSession();
+/** A visitor trying the sample family on a hosted site: say so on every screen, with the way to start their own. */
+function TrialBanner() {
+  const { trial, signOut } = useSession();
   const t = useT();
-  const [more, setMore] = useState(false);
-  if (!me) return null;
+  const navigate = useNavigate();
+  if (!trial) return null;
   return (
-    <div role="note" data-no-print className="flex items-start gap-2.5 border-b border-line bg-sec-soft px-4 py-1.5 text-small text-sec-ink sm:px-7">
-      <Icon name="info" size="sm" className="mt-1.5" />
-      <p className="m-0 min-w-0 flex-1 py-1.5">
-        {more ? t("session.interim", { name: me.name.split(" ")[0], family: me.family_name }) : t("session.interimShort")}{" "}
-        <button type="button" aria-expanded={more} onClick={() => setMore(!more)}
-          className="cursor-pointer rounded border-0 bg-transparent p-0 font-semibold text-sec-ink underline underline-offset-2 hover-fill">
-          {more ? t("session.less") : t("session.more")}
-        </button>
-      </p>
+    <div role="note" data-no-print className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-line bg-sec-soft px-4 py-2 text-small text-sec-ink sm:px-7">
+      <Icon name="visibility" size="sm" />
+      <p className="m-0 min-w-0 flex-1 basis-60">{t("demo.banner")}</p>
+      <span className="flex flex-wrap gap-2">
+        <Button size="sm" variant="primary" icon="person_add" to="/register">{t("demo.start")}</Button>
+        <Button size="sm" icon="logout" onClick={() => { signOut(); navigate("/"); }}>{t("demo.leave")}</Button>
+      </span>
     </div>
   );
 }
 
-/** Footer storage line: icon + words (never colour alone). Everything is kept on this device; nothing syncs yet. */
+/** Signed in to a family server: a change the server refused is announced (and the screen reloads to what is saved).
+ *  Other members' changes appear when this tab comes back into view, and new messages every 20 seconds. */
+function ServerSync({ route }) {
+  const { server } = useStore();
+  const t = useT();
+  const toast = useToast();
+  const { failure, refresh, source } = server;
+  useEffect(() => {
+    if (failure) toast(t("sync.failed"), { error: true, sub: t("sync.failedSub", { reason: failure.message }) });
+  }, [failure, toast, t]);
+  useEffect(() => {
+    if (source !== "server") return;
+    let hiddenAt = 0;
+    const onVis = () => {
+      if (document.visibilityState === "hidden") hiddenAt = Date.now();
+      else if (hiddenAt && Date.now() - hiddenAt > 60_000) refresh();
+    };
+    document.addEventListener("visibilitychange", onVis);
+    return () => document.removeEventListener("visibilitychange", onVis);
+  }, [source, refresh]);
+  useEffect(() => {
+    if (source !== "server" || route !== "messages") return;
+    const id = setInterval(() => { if (document.visibilityState === "visible") refresh(["threads"]); }, 20_000);
+    return () => clearInterval(id);
+  }, [source, route, refresh]);
+  return null;
+}
+
+/** Footer storage line: icon + words (never colour alone). The demo keeps everything on this device; signed in, it
+ *  says whether changes have reached the family server. */
 function SyncStatus() {
   const online = useOnline();
+  const { server } = useStore();
   const t = useT();
+  const onServer = server.source === "server";
+  const [icon, tone, text] = !online ? ["cloud_off", "text-gold-ink", onServer ? t("sync.offline") : t("net.footer")]
+    : !onServer ? ["save", "text-pine-700", t("footer.synced")]
+      : server.saving ? ["cloud_sync", "text-sec-ink", t("sync.saving")] : ["cloud_done", "text-pine-700", t("sync.saved")];
   return (
-    <span className="inline-flex items-center gap-1">
-      <Icon name={online ? "save" : "cloud_off"} size="xs" className={online ? "text-pine-700" : "text-gold-ink"} />
-      {online ? t("footer.synced") : t("net.footer")}
+    <span className="inline-flex items-center gap-1" role="status">
+      <Icon name={icon} size="xs" className={tone} />{text}
     </span>
   );
 }
@@ -733,7 +763,8 @@ export default function Layout({ children }) {
           <Topbar menuOpen={menuOpen} menuRef={menuRef} onMenu={() => setMenuOpen(true)} onPalette={() => setPalette(true)} speech={speech}
             onTour={() => { navigate("/overview"); setTour(true); }} />
           <OfflineBanner />
-          <ServerNotice />
+          <TrialBanner />
+          <ServerSync route={route} />
           <main id="main" ref={mainRef} tabIndex={-1} className="w-full max-w-350 min-w-0 flex-1 p-4 pb-24 outline-none sm:px-7 sm:pt-5">
             <Breadcrumbs route={route} />
             {children}

@@ -25,6 +25,18 @@ export async function saveAudio(id, blob) {
   } catch { return false; }
 }
 
+/** One saved recording, or null. */
+export async function loadAudio(id) {
+  try {
+    const d = await db();
+    return await new Promise((resolve, reject) => {
+      const req = d.transaction(STORE).objectStore(STORE).get(id);
+      req.onsuccess = () => resolve(req.result || null);
+      req.onerror = () => reject(req.error);
+    });
+  } catch { return null; }
+}
+
 /** Every saved recording as { [storyId]: Blob }. */
 export async function loadAllAudio() {
   try {

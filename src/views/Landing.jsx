@@ -2,6 +2,7 @@
    the header, calls to action and footer follow the sign-in state. Only real features are shown, with no invented
    users, quotes or prices. */
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import PublicLayout from "../components/PublicLayout";
 import { Button, Card, Icon, Switch, Tabs, Tag } from "../components/ui";
 import { useT } from "../lib/i18n";
@@ -9,6 +10,20 @@ import { useSession } from "../lib/session";
 import { useStore } from "../lib/store";
 import { CtaBand, FaqList, FeatureGrid, Section, SectionHead, Steps, TrustGrid } from "./public/parts";
 import { HeroPhotos, TopicPhotos } from "./public/photos";
+
+/** Visitors to a hosted FamilyRoots can look around the sample family first, without an account (see SessionProvider). */
+export function TryDemo({ className }) {
+  const t = useT();
+  const { status, tryDemo, connected } = useSession();
+  const navigate = useNavigate();
+  if (!connected || status !== "signedOut") return null;
+  return (
+    <p className={className}>
+      <Button variant="ghost" size="sm" icon="visibility" onClick={() => { tryDemo(); navigate("/overview"); }}>{t("pub.tryDemo")}</Button>
+      <span className="text-small text-muted">{t("pub.tryDemoNote")}</span>
+    </p>
+  );
+}
 
 function HeroActions() {
   const t = useT();
@@ -45,6 +60,7 @@ function Hero() {
           </h1>
           <p className="mt-5 max-w-140 text-[1.08rem] text-muted">{t("home.sub")}</p>
           <div className="mt-7 flex flex-wrap gap-3"><HeroActions /></div>
+          <TryDemo className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1" />
           {status === "demo" && <p className="mt-3 text-small text-muted">{t("pub.demoNote")}</p>}
           <ul className="m-0 mt-6 flex list-none flex-wrap gap-x-5 gap-y-2 p-0 text-small text-muted">
             {["home.trust1", "home.trust2", "home.trust3"].map((k) => (

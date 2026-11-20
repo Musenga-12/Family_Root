@@ -1,4 +1,5 @@
-/* Store: the family archive, persisted to localStorage (falls back to memory if storage is blocked). */
+/* Store: the family archive. The demo keeps it in localStorage (falls back to memory if storage is blocked); signed in
+   to a family server it is the family's own archive, loaded from and saved to the server (see useServerSync.js). */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ME, SEED } from "../data";
 import { loadAllAudio } from "./audioStore";
@@ -6,6 +7,7 @@ import { setFeedbackPrefs } from "./feedback";
 import { setDateLang } from "./format";
 import { translateValue } from "./i18n";
 import { StoreContext } from "./store";
+import { useServerSync } from "./useServerSync";
 
 const KEY = "familyroots-demo-v1";
 
@@ -61,7 +63,7 @@ function kinHelpers(state, lang) {
   /** Human-readable relation of `p` to the signed-in user (Mary), in the interface language. */
   const relationToMe = (p) => {
     if (p.id === ME) return kin("You");
-    if (person(ME).spouse === p.id) return kin(p.died ? "Late husband" : "Husband");
+    if (person(ME)?.spouse === p.id) return kin(p.died ? "Late husband" : "Husband");
     if ((p.parents || []).includes(ME)) return kin(p.role === "Daughter" ? "Daughter" : "Son");
     return kin(p.role);
   };
@@ -79,9 +81,16 @@ export function StoreProvider({ children }) {
   // Playable URLs for recorded audio. The audio itself is kept in IndexedDB (see audioStore.js).
   const audioUrls = useRef({});
 
+  const setAudioUrl = useCallback((id, url) => { audioUrls.current[id] = url; }, []);
+  const moveAudio = useCallback((from, to) => { if (audioUrls.current[from]) audioUrls.current[to] ??= audioUrls.current[from]; }, []);
+  const server = useServerSync({ state, setDoc, demoState: load, setAudioUrl, moveAudio });
+  const onServer = server.source === "server";
+
+  // Only the demo is kept in this browser; a family's own archive lives on its server.
   useEffect(() => {
+    if (onServer) return;
     try { localStorage.setItem(KEY, JSON.stringify(state)); } catch { /* quota or blocked */ }
-  }, [state]);
+  }, [state, onServer]);
 
   useEffect(() => {
     document.documentElement.classList.toggle("easy", easy);
@@ -160,14 +169,14 @@ export function StoreProvider({ children }) {
   }, []);
 
   const audioUrl = useCallback((id) => audioUrls.current[id], []);
-  const setAudioUrl = useCallback((id, url) => { audioUrls.current[id] = url; }, []);
 
   const reset = useCallback((label = "Restored the sample family") => {
+    if (onServer) return; // a family's own archive is never replaced by the sample
     try { localStorage.removeItem(KEY); } catch { /* ignore */ }
     // Undoable like any other change; preferences are kept apart from the archive.
     setDoc((d) => ({ state: structuredClone(SEED), past: [...d.past, { state: d.state, label, at: Date.now() }].slice(-HISTORY_LIMIT), future: [] }));
     setPrefs({ ...DEFAULT_PREFS, tourDone: true });
-  }, []);
+  }, [onServer]);
 
   // Dates and relationship words follow the interface language; set it before anything below renders.
   setDateLang(prefs.lang);
@@ -175,9 +184,9 @@ export function StoreProvider({ children }) {
   const value = useMemo(
     () => ({
       state, update, reset, undo, redo, past: doc.past, future: doc.future, recent, addRecent, clearRecent,
-      easy, setEasy: setEasyState, prefs, setPref, dark, audioUrl, setAudioUrl, ...kinHelpers(state, prefs.lang),
+      easy, setEasy: setEasyState, prefs, setPref, dark, audioUrl, setAudioUrl, ...kinHelpers(state, prefs.lang), server,
     }),
-    [state, doc.past, doc.future, update, reset, undo, redo, recent, addRecent, clearRecent, easy, prefs, setPref, dark, audioUrl, setAudioUrl],
+    [state, doc.past, doc.future, update, reset, undo, redo, recent, addRecent, clearRecent, easy, prefs, setPref, dark, audioUrl, setAudioUrl, server],
   );
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
 }

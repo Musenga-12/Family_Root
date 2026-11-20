@@ -1,5 +1,10 @@
 /* FamilyRoots sample archive: the Mackenzie family shown in the design screens. New installs start with it; Settings can restore it. */
-export const ME = "mary";
+
+/** The signed-in person's id in the tree: Mary in the demo; on a family server, the account's own person (see StoreProvider).
+ *  A live binding, so every screen that imports it sees the change. */
+export let ME = "mary";
+export const DEMO_ME = "mary";
+export const setMe = (id) => { ME = id; };
 
 export const SEED = {
   people: [

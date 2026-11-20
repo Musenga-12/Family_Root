@@ -4,7 +4,8 @@ import { useModal } from "../components/modalContext";
 import { useToast } from "../components/toastContext";
 import { Button, Card, Eyebrow, Field, Icon, IconBox, PageHeader, Select, Switch, Tabs, Tag } from "../components/ui";
 import { cue } from "../lib/feedback";
-import { cx } from "../lib/format";
+import { api } from "../lib/api";
+import { cx, saveJson } from "../lib/format";
 import { LANGS, useT } from "../lib/i18n";
 import { canSpeak, SpeechRec, useSpeech } from "../lib/speech";
 import { useInstall } from "../lib/useInstall";
@@ -28,7 +29,8 @@ function Section({ icon, title, children }) {
 }
 
 export default function Settings() {
-  const { prefs, setPref, easy, setEasy, state, reset, recent, clearRecent, past } = useStore();
+  const { prefs, setPref, easy, setEasy, state, reset, recent, clearRecent, past, server } = useStore();
+  const onServer = server.source === "server";
   const { speak } = useSpeech();
   const app = useInstall();
   const navigate = useNavigate();
@@ -39,11 +41,14 @@ export default function Settings() {
   const saved = () => toast(t("settings.saved"), { icon: "check_circle", duration: 1800 });
   const set = (k) => (v) => { setPref(k, v); saved(); };
 
-  const exportData = () => {
-    const blob = new Blob([JSON.stringify({ exported: new Date().toISOString(), prefs, ...state }, null, 2)], { type: "application/json" });
-    const a = Object.assign(document.createElement("a"), { href: URL.createObjectURL(blob), download: "familyroots-archive.json" });
-    a.click();
-    URL.revokeObjectURL(a.href);
+  const exportData = async () => {
+    // On a family server, the archive as the server keeps it (Admins: the whole family; others: their own data).
+    let data = { exported: new Date().toISOString(), prefs, ...state };
+    if (onServer) {
+      try { data = await api(state.members.find((m) => m.you)?.role === "Admin" ? "/admin/export" : "/me/export"); }
+      catch (e) { toast(e.message, { error: true }); return; }
+    }
+    saveJson(data, "familyroots-archive.json");
     toast(t("settings.exported"), { icon: "download" });
   };
 
@@ -203,13 +208,13 @@ export default function Settings() {
           <Section icon="database" title={t("settings.data")}>
             <div className="flex flex-wrap gap-2.5">
               <Button icon="download" onClick={exportData}>{t("settings.export")}</Button>
-              <Button variant="danger" icon="restart_alt"
+              {!onServer && <Button variant="danger" icon="restart_alt"
                 onClick={() => confirm(t("settings.reset") + "?", t("settings.resetHelp"), t("settings.reset"),
                   () => { reset(t("history.reset")); toast(t("settings.restored"), { sub: t("settings.restoredSub"), icon: "restart_alt" }); })}>
                 {t("settings.reset")}
-              </Button>
+              </Button>}
             </div>
-            <p className="text-xsmall text-muted">{t("settings.resetHelp")}</p>
+            <p className="text-xsmall text-muted">{onServer ? t("settings.exportServer") : t("settings.resetHelp")}</p>
           </Section>
         </div>
       </div>

@@ -15,7 +15,7 @@ const SORTS = {
   generation: (a, b) => a.gen - b.gen || a.born.localeCompare(b.born),
   nameAZ: (a, b) => fullName(a).localeCompare(fullName(b)),
   nameZA: (a, b) => fullName(b).localeCompare(fullName(a)),
-  birthday: (a, b) => (a.died ? 999 : daysToBirthday(a)) - (b.died ? 999 : daysToBirthday(b)),
+  birthday: (a, b) => (a.died ? 999 : daysToBirthday(a) ?? 998) - (b.died ? 999 : daysToBirthday(b) ?? 998),
   oldestPerson: (a, b) => a.born.localeCompare(b.born),
   youngestPerson: (a, b) => b.born.localeCompare(a.born),
 };
@@ -29,13 +29,13 @@ function PersonCard({ p, selected, list, onOpen }) {
   const { open } = useModal();
   const navigate = useNavigate();
   const kids = children(p.id);
-  const days = !p.died && daysToBirthday(p);
-  const status = p.id === ME ? <Tag tone="sec">{t("dir.youTag", { role: kin(p.role).toUpperCase() })}</Tag>
+  const days = p.died ? null : daysToBirthday(p);
+  const status = p.id === ME ? <Tag tone="sec">{t("dir.youTag", { role: kin(p.role || "You").toUpperCase() })}</Tag>
     : p.died ? <Tag tone="gold" icon="local_florist">{t("dir.memoriam")}</Tag>
     : p.pending ? <Tag tone="gold" icon="help">{t("dir.proofs")}</Tag>
-    : days <= 14 ? <Tag tone="terra" icon="cake">{t("dir.days", { n: days })}</Tag>
+    : days !== null && days <= 14 ? <Tag tone="terra" icon="cake">{t("dir.days", { n: days })}</Tag>
     : null; // How they're related is already on the card ("Kinship: Son"), so no second label.
-  const life = p.died ? `${year(p.born)} – ${year(p.died)}` : t("dir.life", { year: year(p.born), age: age(p) });
+  const life = p.died ? `${year(p.born)} – ${year(p.died)}` : p.born ? t("dir.life", { year: year(p.born), age: age(p) }) : "";
   const primary = p.died ? <Button wrap variant="soft" size="sm" icon="play_circle" onClick={() => navigate("/stories")}>{t("dir.listen")}</Button>
     : p.id === ME ? <Button wrap variant="soft" size="sm" icon="badge" to={`/tree?person=${p.id}`}>{t("dir.profile")}</Button>
     : p.minor ? <Button wrap variant="soft" size="sm" icon="folder_shared" onClick={() => onOpen(p.id)}>{t("dir.folio")}</Button>
@@ -97,6 +97,7 @@ function Dossier({ id, onClose }) {
     const txt = t("dir.extract", {
       name: fullName(p), born: fmtDate(p.born, p.bornApprox), died: p.died ? t("dir.extractDied", { date: fmtDate(p.died) }) : "",
       gen: p.gen, parents, children: children(p.id).map(fullName).join(", ") || "—", rel: relationToMe(p),
+      me: fullName(person(ME)),
     });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob([txt], { type: "text/plain" }));
@@ -197,7 +198,7 @@ function PeopleTable({ list, selected, sort, onSort, onOpen }) {
         </thead>
         <tbody>
           {list.map((p) => {
-            const days = !p.died && daysToBirthday(p);
+            const days = p.died ? null : daysToBirthday(p);
             return (
               <tr key={p.id} onClick={() => onOpen(p.id)}
                 className={cx("cursor-pointer border-t border-line hover-tint", p.id === selected && "bg-sec-soft shadow-[inset_4px_0_0_var(--sec)]")}>
@@ -212,7 +213,7 @@ function PeopleTable({ list, selected, sort, onSort, onOpen }) {
                 <td className="px-3.5 py-2">{t("dir.genShort", { n: p.gen })}</td>
                 <td className="px-3.5 py-2">{p.city}</td>
                 <td className="px-3.5 py-2 whitespace-nowrap">{fmtDate(p.born, p.bornApprox)}{p.died && <span className="block text-xsmall text-muted">{t("dir.diedShort", { year: year(p.died) })}</span>}</td>
-                <td className="px-3.5 py-2 whitespace-nowrap">{p.died ? <span className="text-muted"><Icon name="local_florist" size="xs" /> {t("dir.inMemoriam")}</span> : days === 0 ? <strong><Icon name="cake" size="xs" /> {t("dir.today")}</strong> : days > 1 ? t("dir.inDays", { n: days }) : t("dir.inDaysOne")}</td>
+                <td className="px-3.5 py-2 whitespace-nowrap">{p.died ? <span className="text-muted"><Icon name="local_florist" size="xs" /> {t("dir.inMemoriam")}</span> : days === null ? <span className="text-muted">–</span> : days === 0 ? <strong><Icon name="cake" size="xs" /> {t("dir.today")}</strong> : days > 1 ? t("dir.inDays", { n: days }) : t("dir.inDaysOne")}</td>
               </tr>
             );
           })}

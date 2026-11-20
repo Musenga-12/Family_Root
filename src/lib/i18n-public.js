@@ -3,6 +3,8 @@
    back to it until translated (see i18n.js). Only real features are described; nothing here invents users or numbers. */
 export const PUBLIC = {
   en: {
+    "pub.tryDemo": "Look around a sample family first",
+    "pub.tryDemoNote": "No account needed. Nothing you do there is saved or shared.",
     "pub.nav.home": "Home",
     "pub.nav.about": "About",
     "pub.nav.features": "Features",
@@ -372,6 +374,7 @@ export const PUBLIC = {
       ["account_tree", "Add yourself or a relative to the tree", "/tree"],
       ["photo_library", "Upload a family photo", "/memories"],
       ["mic", "Record a story from an elder", "/stories"],
+      ["menu_book", "Keep a certificate, letter or will in the Legacy Archive", "/legacy"],
     ],
     "ob.done.go": "Go to my dashboard",
     "ob.error": "Couldn't save: {msg}",

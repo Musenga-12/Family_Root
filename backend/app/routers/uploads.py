@@ -5,10 +5,11 @@ Flow for the frontend:
   2. POST /memories with upload_ids: [id]
 Files are served by GET /uploads/{id}/file?token=..., using the signed `url` returned by the API.
 """
+import tempfile
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile
-from fastapi.responses import FileResponse
+from fastapi.concurrency import run_in_threadpool
 from pydantic import BaseModel
 from sqlmodel import Session
 
@@ -16,9 +17,9 @@ from app.auth import create_file_token, file_token_ok, get_current_user, require
 from app.config import settings
 from app.db import get_session
 from app.models import Upload, User
+from app.storage import storage
 
 router = APIRouter(prefix="/uploads", tags=["uploads"])
-UPLOAD_ROOT = Path(settings.upload_dir).resolve()
 CHUNK = 1024 * 1024
 
 IMAGE_TYPES = {"image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp", "image/gif": ".gif"}
@@ -95,28 +96,27 @@ async def save_upload(file: UploadFile, user: User, db: Session, kind: str | Non
 
     u = Upload(family_id=user.family_id, owner_user_id=user.id, filename=Path(file.filename or "file").name,
                content_type=ctype, size=0, path="")
-    rel = Path(str(user.family_id)) / f"{u.id}{ext}"
-    dest = UPLOAD_ROOT / rel
-    dest.parent.mkdir(parents=True, exist_ok=True)
-
-    # Stream to disk in chunks and stop as soon as the file is too big.
+    rel = f"{user.family_id}/{u.id}{ext}"
+    # Read in chunks (kept in memory up to a few MB, then a temporary file) and stop as soon as the file is too big.
     size = 0
-    try:
-        with dest.open("wb") as out:
-            while chunk := await file.read(CHUNK):
-                if size == 0 and not SIGNATURES[ctype](chunk):
-                    raise HTTPException(415, "This file's contents don't match its type. Choose the original photo, scan or recording.")
-                size += len(chunk)
-                if size > limit * CHUNK:
-                    raise HTTPException(413, f"File is larger than {limit} MB")
-                out.write(chunk)
+    with tempfile.SpooledTemporaryFile(max_size=8 * CHUNK) as buf:
+        while chunk := await file.read(CHUNK):
+            if size == 0 and not SIGNATURES[ctype](chunk):
+                raise HTTPException(415, "This file's contents don't match its type. Choose the original photo, scan or recording.")
+            size += len(chunk)
+            if size > limit * CHUNK:
+                raise HTTPException(413, f"File is larger than {limit} MB")
+            buf.write(chunk)
         if size == 0:
             raise HTTPException(422, "The file is empty")
-        u.size, u.path = size, rel.as_posix()
+        buf.seek(0)
+        await run_in_threadpool(storage.put, rel, buf, ctype)  # a remote store can take a moment
+    try:
+        u.size, u.path = size, rel
         db.add(u)
         db.commit()
     except BaseException:
-        dest.unlink(missing_ok=True)  # never leave a file on disk without its row
+        storage.delete(rel)  # never leave a stored file without its row
         raise
     db.refresh(u)
     return u
@@ -143,9 +143,6 @@ def download(upload_id: str, token: str = Query(...), db: Session = Depends(get_
     if not file_token_ok(token, upload_id):
         raise HTTPException(403, "This file link has expired. Reload the page to get a new one.")
     u = db.get(Upload, upload_id)
-    path = (UPLOAD_ROOT / u.path) if u else None
-    if not path or not path.is_file():
+    if not u:
         raise HTTPException(404, "File not found")
-    # Private family files: browsers may cache them, shared caches may not.
-    return FileResponse(path, media_type=u.content_type, filename=u.filename, content_disposition_type="inline",
-                        headers={"Cache-Control": "private, max-age=3600", "X-Content-Type-Options": "nosniff"})
+    return storage.response(u.path, u.content_type, u.filename)

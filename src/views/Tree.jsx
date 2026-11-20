@@ -13,9 +13,10 @@ import { ROMAN, cx, dateWord, fmtDate, fmtDur } from "../lib/format";
 import { rich, useT } from "../lib/i18n";
 import { age, fullName, useStore, year } from "../lib/store";
 
+// The birth year may be unknown, or private: then only what is known is shown.
 const lifeLine = (p, t) => (p.died
-  ? t("tree.lifeDied", { from: year(p.born), to: year(p.died), age: age(p) })
-  : t("tree.lifeBorn", { year: `${p.bornApprox ? dateWord("approx") + " " : ""}${year(p.born)}`, age: age(p) }));
+  ? (p.born ? t("tree.lifeDied", { from: year(p.born), to: year(p.died), age: age(p) }) : `– ${year(p.died)}`)
+  : p.born ? t("tree.lifeBorn", { year: `${p.bornApprox ? dateWord("approx") + " " : ""}${year(p.born)}`, age: age(p) }) : "");
 
 /** "<b>John</b>, <b>Mary</b>" for the kinship sentences (rendered bold by rich()). */
 const boldNames = (arr) => arr.map((x) => `<b>${x.first}</b>`).join(", ");
@@ -334,9 +335,11 @@ export default function Tree() {
   const gens = [...new Set(state.people.map((p) => p.gen))].sort();
   const pending = state.people.find((p) => p.pending);
   const q = query.trim().toLowerCase();
-  const HL = { living: (p) => !p.died, memorial: (p) => !!p.died, mackenzie: (p) => p.branch === "Mackenzie", miller: (p) => p.branch === "Miller" };
-  const isDim = (p) => (!!q && !(fullName(p).toLowerCase().includes(q) || p.role.toLowerCase().includes(q) || p.city.toLowerCase().includes(q)))
-    || (highlight !== "none" && !HL[highlight](p));
+  // Highlights: living, in memory, and each branch the family's own tree has.
+  const branches = [...new Set(state.people.map((p) => p.branch).filter(Boolean))].sort();
+  const HL = { living: (p) => !p.died, memorial: (p) => !!p.died, ...Object.fromEntries(branches.map((b) => [`branch:${b}`, (p) => p.branch === b])) };
+  const isDim = (p) => (!!q && !(fullName(p).toLowerCase().includes(q) || (p.role || "").toLowerCase().includes(q) || (p.city || "").toLowerCase().includes(q)))
+    || (highlight !== "none" && !!HL[highlight] && !HL[highlight](p));
 
   useEffect(() => {
     const onChange = () => setFull(document.fullscreenElement === fullRef.current);
@@ -407,7 +410,8 @@ export default function Tree() {
           disabled={listMode} onClick={toggleFull} />
         <label htmlFor="treeHl" className="flex items-center gap-1.5 text-small text-muted"><Icon name="highlight" size="sm" />{t("tree.colorBy")}</label>
         <Select id="treeHl" className="w-auto! py-1.5! text-small" value={highlight} onChange={(e) => setHighlight(e.target.value)}>
-          {["none", "living", "memorial", "mackenzie", "miller"].map((k) => <option key={k} value={k}>{t(`tree.hl.${k}`)}</option>)}
+          {["none", "living", "memorial"].map((k) => <option key={k} value={k}>{t(`tree.hl.${k}`)}</option>)}
+          {branches.map((b) => <option key={b} value={`branch:${b}`}>{t("tree.hl.branch", { branch: b })}</option>)}
         </Select>
       </div>
 

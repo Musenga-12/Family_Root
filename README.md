@@ -15,11 +15,14 @@ There are three ways to use FamilyRoots. None needs an account or a server of yo
 
 **With a family server** (the FastAPI backend in `backend/`): copy `.env.example` to `.env.local`, start the backend
 (see `backend/README.md`), then `npm run dev`. FamilyRoots then asks you to sign in (demo accounts such as
-`mary@example.com` / `familyroots123`). Sign in, create account, join with a family code, invitation links and
-"choose a new password" links use the server; the other screens are being moved onto it one at a time, and a note at
-the top of the app says so until they are. Without `VITE_API_URL`, nothing changes: no sign-in, everything on the device.
+`mary@example.com` / `familyroots123`). Signed in, **every screen shows that family's own archive from the server**
+and every change is saved there (`src/lib/serverArchive.js`, `src/lib/useServerSync.js`): a new family starts with
+only its founder, never the sample family. The footer says "Saving…" / "Saved to the family archive"; a change the
+server refuses is explained and the screen reloads to what is saved. Visitors who aren't signed in can choose
+**Look around a sample family first** on the home page: the sample, on their device only, with a banner saying so.
+Without `VITE_API_URL`, nothing changes: no sign-in, everything on the device. To deploy, see [DEPLOY.md](DEPLOY.md).
 
-Everything you add is saved in the browser on that device (localStorage; recordings in IndexedDB). It starts with the sample
+Without a server, everything you add is saved in the browser on that device (localStorage; recordings in IndexedDB). It starts with the sample
 Mackenzie family; **Settings & Accessibility → Restore the sample family** brings it back (and can be undone).
 Use **Settings → Download my archive** or **Privacy & Consent → Download my data** to keep a copy.
 

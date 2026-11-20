@@ -2,8 +2,14 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 
+const ready = () => ({ source: "server", archive: { status: "ready", error: null }, retry: vi.fn() });
 const mocks = vi.hoisted(() => ({
   session: { status: "signedOut", me: null, retry: vi.fn() },
+  server: null,
+}));
+
+vi.mock("../lib/store", () => ({
+  useStore: () => ({ server: mocks.server }),
 }));
 
 vi.mock("../lib/session", async (importOriginal) => ({
@@ -42,6 +48,7 @@ describe("Protected screens", () => {
   beforeEach(() => {
     sessionStorage.clear();
     mocks.session = { status: "signedOut", me: null, retry: vi.fn() };
+    mocks.server = ready();
   });
 
   it("send visitors to Log in and remember where they were going", () => {
@@ -84,5 +91,25 @@ describe("Protected screens", () => {
     markWelcomeSeen();
     renderAt("/overview");
     expect(screen.getByText("private overview")).toBeInTheDocument();
+  });
+
+  it("never show the sample family while a member's own archive is still loading", () => {
+    mocks.session = { ...mocks.session, status: "signedIn", me: account({ onboarding_done: true }) };
+    mocks.server = { source: "demo", archive: { status: "idle", error: null }, retry: vi.fn() };
+    renderAt("/overview");
+    expect(screen.getByRole("status")).toHaveTextContent("sync.loading");
+    expect(screen.queryByText("private overview")).not.toBeInTheDocument();
+    mocks.server = { source: "server", archive: { status: "loading", error: null }, retry: vi.fn() };
+    renderAt("/memories");
+    expect(screen.queryByText("private memories")).not.toBeInTheDocument();
+  });
+
+  it("explain an archive that could not be loaded and offer Retry", () => {
+    mocks.session = { ...mocks.session, status: "signedIn", me: account({ onboarding_done: true }) };
+    mocks.server = { source: "server", archive: { status: "error", error: "The family archive is busy." }, retry: vi.fn() };
+    renderAt("/overview");
+    expect(screen.getByRole("alert")).toHaveTextContent("The family archive is busy.");
+    screen.getByRole("button", { name: /session.retry/ }).click();
+    expect(mocks.server.retry).toHaveBeenCalled();
   });
 });

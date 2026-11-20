@@ -5,7 +5,8 @@ import { useCloseModal, useModal } from "../components/modalContext";
 import { useToast } from "../components/toastContext";
 import { Avatar, Button, Card, Chip, Chips, Field, Icon, IconBox, Input, PageHeader, Record, Switch, Tabs, Tag } from "../components/ui";
 import { ME } from "../data";
-import { fmtDate, fmtWhen, todayISO } from "../lib/format";
+import { api } from "../lib/api";
+import { fmtDate, fmtWhen, saveJson, todayISO } from "../lib/format";
 import { rich, useT } from "../lib/i18n";
 import { age, fullName, useStore } from "../lib/store";
 
@@ -36,13 +37,14 @@ function DeleteDialog({ onConfirm }) {
 }
 
 export default function Privacy() {
-  const { state, person, update, prefs, setPref } = useStore();
+  const { state, person, update, prefs, setPref, server } = useStore();
   const { open } = useModal();
   const toast = useToast();
   const t = useT();
   const pv = state.privacy;
   const [filter, setFilter] = useState("all");
-  const minors = state.people.filter((p) => !p.died && age(p) < 18);
+  // Under-18s: marked as minors, or young enough by their birth date (an unknown date doesn't make someone a minor).
+  const minors = state.people.filter((p) => !p.died && (p.minor || (age(p) !== null && age(p) < 18)));
   const consents = state.consents.filter((c) => filter === "all" || c.status === filter);
 
   const label = (v) => { const k = LEVELS.find(([x]) => x === v)?.[1]; return k ? t(k) : v; };
@@ -60,7 +62,13 @@ export default function Privacy() {
     toast(t("pv.reminded", { name: person(c.person).first }), { sub: c.item, icon: "notifications_active" });
   };
 
-  const download = () => {
+  const download = async () => {
+    if (server.source === "server") {
+      try { saveJson(await api("/me/export"), "my-familyroots-data.json"); }
+      catch (e) { toast(e.message, { error: true }); return; }
+      toast(t("pv.downloading"), { sub: t("pv.downloadingSub", { file: "my-familyroots-data.json" }), icon: "download" });
+      return;
+    }
     const mine = {
       exported: new Date().toISOString(), profile: person(ME),
       memories: state.memories.filter((m) => m.owner === ME || m.tagged.includes(ME)),
@@ -68,10 +76,7 @@ export default function Privacy() {
       messages: state.threads.map((th) => ({ conversation: th.title, messages: th.messages.filter((m) => m.by === ME) })).filter((x) => x.messages.length),
       records: state.records.filter((r) => r.custodian === ME), privacy: pv, consents: state.consents,
     };
-    const blob = new Blob([JSON.stringify(mine, null, 2)], { type: "application/json" });
-    const a = Object.assign(document.createElement("a"), { href: URL.createObjectURL(blob), download: "my-familyroots-data.json" });
-    a.click();
-    URL.revokeObjectURL(a.href);
+    saveJson(mine, "my-familyroots-data.json");
     toast(t("pv.downloading"), { sub: t("pv.downloadingSub", { file: "my-familyroots-data.json" }), icon: "download" });
   };
   const requestDeletion = () => {
