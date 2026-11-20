@@ -1293,6 +1293,13 @@ export const UI = {
     "dlg.invite.notEmailedSub": "This server can't send emails right now. Copy the link and send it yourself, by message or chat.",
     "dlg.invite.copyLink": "Copy link",
     "dlg.invite.linkCopied": "Invitation link copied",
+    "adm.resetFor": "Reset link for {name}",
+    "adm.resetTitle": "A link for {name} to choose a new password",
+    "adm.resetSub": "For a relative who can't sign in. The link works once, for 3 days. Send it only to them: by phone, message or in person.",
+    "adm.resetMake": "Make the link",
+    "adm.resetLink": "Their link",
+    "adm.resetExpires": "Works once, until {date}. Making a new link doesn't cancel this one; their password change does.",
+    "adm.resetCopied": "Reset link copied. Send it only to them.",
   },
   fr: {
     "session.hide": "Masquer cette note",

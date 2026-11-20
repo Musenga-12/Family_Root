@@ -6,6 +6,7 @@ const mocks = vi.hoisted(() => ({
   forgotPassword: vi.fn(),
   resetPassword: vi.fn(),
   resetStatus: vi.fn(),
+  emailStatus: vi.fn(),
   verifyCode: vi.fn(),
   signIn: vi.fn(),
   toast: vi.fn(),
@@ -18,6 +19,7 @@ vi.mock("../lib/api", () => ({
     forgotPassword: mocks.forgotPassword,
     resetPassword: mocks.resetPassword,
     resetStatus: mocks.resetStatus,
+    emailStatus: mocks.emailStatus,
     verifyCode: mocks.verifyCode,
   },
 }));
@@ -39,7 +41,8 @@ vi.mock("../components/toastContext", () => ({
 }));
 
 vi.mock("../lib/i18n", () => ({
-  useT: () => (key) => key,
+  // Lists (e.g. "…steps") are arrays in the real dictionaries.
+  useT: () => (key) => (key.endsWith(".steps") ? [key] : key),
   rich: (value) => value,
 }));
 
@@ -70,6 +73,7 @@ describe("Authentication - Recovery and Family Code", () => {
     vi.clearAllMocks();
 
     mocks.resetStatus.mockResolvedValue({ status: "valid" });
+    mocks.emailStatus.mockResolvedValue({ state: "production-configured", can_email: true });
     mocks.signIn.mockResolvedValue({
       name: "Jane Doe",
       family_name: "Doe Family",
@@ -196,6 +200,16 @@ describe("Authentication - Recovery and Family Code", () => {
     submitForm("fpEmail");
     expect(await screen.findByText("This server can't send emails yet. Ask an Admin.")).toBeInTheDocument();
     expect(screen.queryByText("auth.forgotSent")).not.toBeInTheDocument();
+  });
+
+  it("explains the Admin reset link when this server can't send email, instead of promising one", async () => {
+    mocks.emailStatus.mockResolvedValue({ state: "production-not-configured", can_email: false });
+    mocks.forgotPassword.mockClear();
+    renderAuth("forgot", "/forgot-password");
+    expect(await screen.findByText("auth.noEmail.title")).toBeInTheDocument();
+    expect(document.getElementById("fpEmail")).toBeNull();
+    expect(screen.queryByText("auth.forgotSent")).not.toBeInTheDocument();
+    expect(mocks.forgotPassword).not.toHaveBeenCalled();
   });
 
   it("rejects an incorrectly formatted family code", () => {

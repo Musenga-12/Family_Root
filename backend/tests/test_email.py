@@ -16,7 +16,7 @@ pytestmark = pytest.mark.usefixtures("client")
 
 
 class FakeSender:
-    name, configured = "fake", True
+    name, configured, real = "fake", True, True
 
     def __init__(self, fail: bool = False):
         self.sent: list[mail.Email] = []
@@ -237,7 +237,9 @@ def test_resend_is_chosen_when_its_key_is_set(monkeypatch):
     monkeypatch.setattr(settings, "email_from", "FamilyRoots <no-reply@mail.example.org>")
     assert mail.sender().name == "resend"
     monkeypatch.setattr(settings, "email_from", "")
-    assert mail.sender().configured is False  # a key without a sender address is not a working setup
+    assert mail.provider() == "console"  # a key without a sender address is not a working Resend setup
+    monkeypatch.setattr(settings, "environment", "production")
+    assert mail.sender().configured is False and mail.delivery_state() == "production-not-configured"
 
 
 # ---------- templates and settings ----------
@@ -262,3 +264,123 @@ def test_production_refuses_unsafe_email_settings():
     with pytest.raises(RuntimeError, match="RESEND_API_KEY"):
         check_settings(Settings(_env_file=None, **base, email_provider="resend"))
     check_settings(Settings(_env_file=None, **base, email_provider="resend", resend_api_key="re_x", email_from="FamilyRoots <a@mail.example.org>"))
+
+
+# ---------- no domain yet: Resend's test mode, Mailpit, and the three states ----------
+
+def test_resend_test_mode_sends_only_to_the_test_inbox(monkeypatch):
+    monkeypatch.setattr(settings, "email_provider", "resend-test")
+    monkeypatch.setattr(settings, "resend_api_key", "re_test_key")
+    seen = {}
+
+    def handler(request):
+        seen.update(json.loads(request.content))
+        return httpx.Response(200, json={"id": "email_t"})
+
+    s = mail.sender()
+    assert s.name == "resend-test" and s.real is False
+    s.client = httpx.Client(transport=httpx.MockTransport(handler))
+    s.send(mail_templates.password_reset("James", "james@family.example", "https://x/#/reset-password?token=t", 60))
+    assert seen["from"] == "FamilyRoots <onboarding@resend.dev>"
+    assert seen["to"] == ["delivered@resend.dev"]  # never the real person
+    assert seen["subject"].startswith("[Test] ")
+    assert mail.delivery_state() == "development" and mail.can_email()
+
+
+def test_resend_test_mode_is_never_real_delivery_in_production(monkeypatch):
+    monkeypatch.setattr(settings, "environment", "production")
+    monkeypatch.setattr(settings, "email_provider", "resend-test")
+    monkeypatch.setattr(settings, "resend_api_key", "re_test_key")
+    assert mail.delivery_state() == "production-not-configured" and not mail.can_email()
+
+
+def test_resend_shared_sender_is_not_real_delivery_in_production(monkeypatch):
+    monkeypatch.setattr(settings, "environment", "production")
+    monkeypatch.setattr(settings, "resend_api_key", "re_test_key")
+    monkeypatch.setattr(settings, "email_from", "FamilyRoots <onboarding@resend.dev>")
+    assert mail.delivery_state() == "production-not-configured"
+    monkeypatch.setattr(settings, "email_from", "FamilyRoots <no-reply@mail.our-family.example>")
+    assert mail.delivery_state() == "production-configured" and mail.can_email()
+
+
+class FakeSMTP:
+    """Stands in for smtplib.SMTP (and Mailpit): records what would be sent."""
+    instances: list = []
+
+    def __init__(self, host, port, timeout):
+        self.host, self.port, self.calls, self.sent = host, port, [], []
+        FakeSMTP.instances.append(self)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        return False
+
+    def starttls(self, context):
+        self.calls.append("starttls")
+
+    def login(self, user, password):
+        self.calls.append(("login", user))
+
+    def send_message(self, msg):
+        self.sent.append(msg)
+
+
+def test_smtp_for_mailpit_sends_html_and_text():
+    FakeSMTP.instances = []
+    s = mail.SmtpSender("localhost", 1025, "FamilyRoots <familyroots@localhost>", smtp_class=FakeSMTP)
+    s.send(mail_templates.welcome("Ada Ross", "ada@example.org", "Ross family"))
+    [smtp] = FakeSMTP.instances
+    assert (smtp.host, smtp.port, smtp.calls) == ("localhost", 1025, [])  # Mailpit: no login, no TLS
+    [msg] = smtp.sent
+    assert msg["To"] == "ada@example.org" and msg["Subject"] == "Welcome to Ross family on FamilyRoots"
+    assert {p.get_content_type() for p in msg.iter_parts()} == {"text/plain", "text/html"}
+
+
+def test_smtp_service_logs_in_over_tls_and_reports_failures():
+    FakeSMTP.instances = []
+    s = mail.SmtpSender("smtp.example.org", 587, "FamilyRoots <a@example.org>", "user", "secret", starttls=True, smtp_class=FakeSMTP)
+    s.send(mail_templates.welcome("A", "a@example.org", "B family"))
+    assert FakeSMTP.instances[0].calls == ["starttls", ("login", "user")]
+
+    class Down(FakeSMTP):
+        def __init__(self, *a, **k):
+            raise ConnectionRefusedError("nothing listening")
+
+    with pytest.raises(mail.EmailError, match="could not be reached"):
+        mail.SmtpSender("localhost", 1025, "x@localhost", smtp_class=Down).send(mail_templates.welcome("A", "a@x.org", "B"))
+
+
+def test_smtp_is_chosen_from_its_host(monkeypatch):
+    monkeypatch.setattr(settings, "smtp_host", "localhost")
+    monkeypatch.setattr(settings, "smtp_port", 1025)
+    assert mail.sender().name == "smtp" and mail.delivery_state() == "development"
+
+
+def test_the_three_states_and_the_status_endpoint(client, monkeypatch):
+    assert client.get(f"{API}/auth/email-status").json() == {"state": "development", "can_email": True}
+    monkeypatch.setattr(settings, "environment", "production")
+    assert client.get(f"{API}/auth/email-status").json() == {"state": "production-not-configured", "can_email": False}
+    monkeypatch.setattr(settings, "resend_api_key", "re_test_key")
+    monkeypatch.setattr(settings, "email_from", "FamilyRoots <no-reply@mail.our-family.example>")
+    assert client.get(f"{API}/auth/email-status").json() == {"state": "production-configured", "can_email": True}
+
+
+def test_production_without_email_points_to_an_admin_link_and_sends_nothing(client, auth, monkeypatch):
+    monkeypatch.setattr(settings, "environment", "production")
+    r = forgot(client, "james@example.com")
+    assert r.status_code == 503 and "Reset link" in r.json()["detail"]
+    inv = client.post(f"{API}/invites", headers=auth("mary"), json={"name": "Isla", "email": "isla.x@example.org"}).json()
+    assert inv["emailed"] is False and inv["link"]
+    # The Admin-made link is the way back in, and it is a normal single-use reset link.
+    mid = next(m["user_id"] for m in client.get(f"{API}/members", headers=auth("mary")).json() if m["person_id"] == "james")
+    link = client.post(f"{API}/members/{mid}/reset-link", headers=auth("mary")).json()["link"]
+    token = link.split("token=")[1]
+    assert client.post(f"{API}/auth/reset-password", json={"token": token, "password": "a-brand-new-password"}).status_code == 200
+    assert client.post(f"{API}/auth/reset-password", json={"token": token, "password": "another-password1"}).status_code == 400
+
+
+def test_only_admins_can_make_reset_links(client, auth):
+    mid = next(m["user_id"] for m in client.get(f"{API}/members", headers=auth("mary")).json() if m["person_id"] == "james")
+    assert client.post(f"{API}/members/{mid}/reset-link", headers=auth("michael")).status_code == 403

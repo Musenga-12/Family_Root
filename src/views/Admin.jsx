@@ -1,6 +1,7 @@
 /* Family Administration: who has access and with which role, join requests, invitations, and records awaiting verification. */
 import { Link } from "react-router-dom";
 import { useState } from "react";
+import { CancelButton, Dialog } from "../components/Modal";
 import { useModal } from "../components/modalContext";
 import { useToast } from "../components/toastContext";
 import { Avatar, Button, Card, Empty, Icon, IconBox, IconButton, PageHeader, Record, SectionTitle, Select, Stat, Tag } from "../components/ui";
@@ -10,11 +11,44 @@ import { api } from "../lib/api";
 import { inviteOf } from "../lib/serverArchive";
 import { copyText, fmtDate, todayISO, uid } from "../lib/format";
 import { useT } from "../lib/i18n";
+import { useSession } from "../lib/session";
 import { fullName, useStore } from "../lib/store";
 
 /** Roles from most to least access; names and what each can do are role.<Role> and role.<Role>.d (shown so nobody has to remember it). */
 const ROLES = [["Admin", "admin_panel_settings"], ["Custodian", "verified_user"], ["Contributor", "edit_note"], ["Viewer", "visibility"]];
 const ROLE_ICON = Object.fromEntries(ROLES.map(([r, i]) => [r, i]));
+
+/** A one-time link for a relative who can't sign in (forgotten password, or no email from this server): it works once,
+ *  for 3 days, and is passed on in person, by phone or by message. */
+export function ResetLinkDialog({ member, name }) {
+  const t = useT();
+  const toast = useToast();
+  const [state, setState] = useState({ busy: false, link: null, expires: null, error: "" });
+  const make = async () => {
+    setState({ busy: true, link: null, expires: null, error: "" });
+    try {
+      const r = await api(`/members/${member.userId}/reset-link`, { method: "POST" });
+      setState({ busy: false, link: r.link, expires: r.expires, error: "" });
+    } catch (e) { setState({ busy: false, link: null, expires: null, error: e.message }); }
+  };
+  const copy = () => copyText(state.link).then((ok) => toast(ok ? t("adm.resetCopied") : state.link, { icon: "content_copy" }));
+  return (
+    <Dialog title={t("adm.resetTitle", { name })} sub={t("adm.resetSub")}
+      footer={<><CancelButton>{t("common.close")}</CancelButton>
+        {state.link ? <Button variant="primary" icon="content_copy" onClick={copy}>{t("dlg.invite.copyLink")}</Button>
+          : <Button variant="primary" icon="lock_reset" busy={state.busy} onClick={make}>{t("adm.resetMake")}</Button>}</>}>
+      {state.error && <p role="alert" className="rounded-xl border border-rose bg-surface-2 p-3 text-small text-rose">{state.error}</p>}
+      {state.link && (
+        <div className="grid gap-2">
+          <label htmlFor="resetLink" className="text-small font-semibold">{t("adm.resetLink")}</label>
+          <input id="resetLink" readOnly value={state.link} onFocus={(e) => e.target.select()}
+            className="w-full rounded-xl border border-line bg-surface-2 p-3 font-mono text-xsmall text-ink" />
+          <p className="text-xsmall text-muted">{t("adm.resetExpires", { date: new Date(state.expires).toLocaleString() })}</p>
+        </div>
+      )}
+    </Dialog>
+  );
+}
 
 function RequestCard({ r }) {
   const { person, update, kin } = useStore();
@@ -59,6 +93,9 @@ function RequestCard({ r }) {
 
 export default function Admin() {
   const { state, person, update, kin, server } = useStore();
+  const { me: account } = useSession();
+  // Admin-made reset links: on a family server, for an Admin, for anyone but themselves.
+  const canReset = (m) => server.source === "server" && account?.role === "Admin" && m.userId && !m.you;
   const { open, confirm } = useModal();
   const toast = useToast();
   const t = useT();
@@ -145,7 +182,9 @@ export default function Admin() {
                           </Select>
                         </td>
                         <td className="px-3.5 py-2 whitespace-nowrap text-muted">{m.lastActive ? fmtDate(m.lastActive) : <Tag tone="mint">{t("adm.joined", { date: fmtDate(m.joined) })}</Tag>}</td>
-                        <td className="px-3.5 py-2 text-right">
+                        <td className="px-3.5 py-2 text-right whitespace-nowrap">
+                          {canReset(m) && <IconButton icon="lock_reset" label={t("adm.resetFor", { name: nameOf(m) })} title={t("adm.resetFor", { name: nameOf(m) })}
+                            onClick={() => open(<ResetLinkDialog member={m} name={nameOf(m)} />)} />}
                           <IconButton icon="person_remove" label={t("adm.removeLabel", { name: nameOf(m) })} disabled={m.id === ME || lastAdmin}
                             title={m.id === ME ? t("adm.notYourself") : lastAdmin ? t("adm.needAdmin") : t("adm.removeAccess")}
                             className="disabled:cursor-not-allowed disabled:opacity-40" onClick={() => removeMember(m)} />

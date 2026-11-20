@@ -356,7 +356,15 @@ def set_password(db: Session, user: User, password: str) -> None:
 
 
 CANT_SEND = "We can't send emails right now. Please try again in a few minutes, or ask an Admin of your family archive for a reset link."
-NOT_SET_UP = "This server can't send emails yet. Ask an Admin of your family archive for a link to choose a new password."
+NOT_SET_UP = ("This family archive can't send emails yet. Ask an Admin of your family archive to make you a link to choose a "
+              "new password (Family Administration → Reset link).")
+
+
+@router.get("/auth/email-status")
+def email_status():
+    """Whether this server can email people, so the sign-in pages can be honest before anyone types. `state` is
+    development, production-configured or production-not-configured; nothing about the provider's settings is shown."""
+    return {"state": mail.delivery_state(), "can_email": mail.can_email()}
 
 
 @router.post("/auth/forgot-password", status_code=202, dependencies=[Depends(limit("forgot-password", 5, 15 * 60))])
@@ -366,7 +374,7 @@ def forgot_password(body: ForgotIn, db: Session = Depends(get_session)):
     when an email really was handed to the provider; when sending isn't possible it says so to everyone."""
     started = time.monotonic()
     try:
-        if not mail.sender().configured:
+        if not mail.can_email():  # production without real delivery: say so, never "check your email"
             raise HTTPException(503, NOT_SET_UP)
         if mail.outage.active():
             raise HTTPException(503, CANT_SEND)

@@ -7,7 +7,7 @@ from app.main import app
 from helpers import API, PNG, member_id, new_family, upload
 
 PUBLIC = {"/auth/register", "/auth/login", "/auth/token", "/auth/family-code/verify", "/auth/forgot-password",
-          "/auth/reset-password", "/auth/reset-password/status", "/invites/by-token/{token}", "/uploads/{upload_id}/file"}
+          "/auth/reset-password", "/auth/reset-password/status", "/auth/email-status", "/invites/by-token/{token}", "/uploads/{upload_id}/file"}
 # From the OpenAPI schema: it lists every endpoint of every included router (app.routes keeps them nested).
 ROUTES = [(m.upper(), path) for path, ops in app.openapi()["paths"].items() if path.startswith(API) for m in ops]
 assert len(ROUTES) > 100

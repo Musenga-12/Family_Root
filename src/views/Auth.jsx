@@ -232,6 +232,14 @@ function ForgotPassword() {
   const [error, setError] = useState("");
   const [sent, setSent] = useState(null);
   const [busy, setBusy] = useState(false);
+  // Can this server email people at all? If not, say so before anyone types, and explain the other way back in.
+  const [canEmail, setCanEmail] = useState(true);
+  useEffect(() => {
+    if (!connected) return;
+    let live = true;
+    authApi.emailStatus().then((r) => { if (live) setCanEmail(r.can_email); }, () => { /* unknown: the form stays, and the server answers honestly */ });
+    return () => { live = false; };
+  }, []);
   const submit = async () => {
     if (!emailOk(email.trim())) { setError(t("au.forgotNeedEmail")); document.getElementById("fpEmail")?.focus(); return; }
     setError("");
@@ -253,6 +261,19 @@ function ForgotPassword() {
           <Button to="/login" icon="arrow_back">{t("auth.backToLogin")}</Button>
           {connected && <Button variant="ghost" icon="restart_alt" busy={busy} onClick={submit}>{t("auth.forgotAgain")}</Button>}
         </div>
+      </div>
+    );
+  }
+  if (!canEmail) {
+    return (
+      <div role="status" className="grid justify-items-center gap-3 rounded-2xl bg-surface-2 p-6 text-center">
+        <Icon name="lock_reset" className="text-[40px]! text-sec-ink" />
+        <h2>{t("auth.noEmail.title")}</h2>
+        <p className="max-w-100 text-small text-muted">{t("auth.noEmail.sub")}</p>
+        <ol className="m-0 grid max-w-100 gap-1 pl-5 text-left text-small text-muted">
+          {t("auth.noEmail.steps").map((x) => <li key={x}>{x}</li>)}
+        </ol>
+        <Button to="/login" icon="arrow_back">{t("auth.backToLogin")}</Button>
       </div>
     );
   }

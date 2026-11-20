@@ -314,7 +314,7 @@ export const PUBLIC = {
     "auth.forgotSend": "Send reset link",
     "auth.forgotSent": "Check your email",
     "auth.forgotDemo": "This demo has no server, so no email can be sent. On a family server, a reset link is sent to your address.",
-    "auth.forgotDev": "Development server: without an email service, the message is written to the server console.",
+    "auth.forgotDev": "Development server: the email goes to a test destination (the server console, Mailpit at http://localhost:8025, or Resend's test inbox), not to a real inbox.",
     "auth.backToLogin": "Back to log in",
     "auth.noAccount": "New to FamilyRoots?",
     "auth.haveAccount": "Already have an account?",
@@ -465,5 +465,8 @@ export const PUBLIC = {
     "auth.reset.used.sub": "Each link works once. If you changed your password with it, sign in with the new password. Otherwise, ask for a new link.",
     "auth.reset.invalid.title": "This link doesn't work",
     "auth.reset.invalid.sub": "It may have been cut short when it was copied. Open the link from the email again, or ask for a new one.",
+    "auth.noEmail.title": "Ask an Admin for a reset link",
+    "auth.noEmail.sub": "This family archive can't send emails yet, so a link can't be emailed to you. An Admin of your family archive can make you one instead.",
+    "auth.noEmail.steps": ["Contact an Admin of your family archive (by phone, message or in person).", "They open Family Administration and choose “Reset link” next to your name.", "Open the link they send you and choose a new password. It works once, for 3 days."],
   },
 };

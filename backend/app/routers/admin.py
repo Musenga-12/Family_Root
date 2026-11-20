@@ -317,7 +317,7 @@ def email_invite(db: Session, user: User, inv: Invite) -> InviteOut:
     """Send the invitation by email when this server can; the link is returned either way, so it can also be shared
     by message. `emailed` says honestly whether the email went out."""
     out = invite_out(user, inv)
-    if not mail.sender().configured:
+    if not mail.can_email():
         return out.model_copy(update={"emailed": False})
     family = db.get(Family, inv.family_id)
     sent = mail.send_quietly(mail_templates.invitation(inv.name, inv.email, family.name if family else "your family", user.name, invite_link(inv)))
