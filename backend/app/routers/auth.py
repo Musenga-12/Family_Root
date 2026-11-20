@@ -1,14 +1,17 @@
 """/auth and /me: create an account, sign in, check a family code, read the current user."""
 import logging
 import secrets
+import time
 from typing import Annotated, Literal
 
-from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Response
 from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import BaseModel, EmailStr, Field, field_validator
 from sqlmodel import Session, select
 
-from app.auth import (create_reset_link, create_token, get_current_user, hash_password, use_reset_token, verify_password,
+from app import mail, mail_templates
+from app.auth import (RESET_MINUTES, create_reset_link, create_token, get_current_user, hash_password, reset_token_status,
+                      use_reset_token, verify_password,
                       waste_password_check)
 from app.config import settings
 from app.db import get_session
@@ -129,7 +132,7 @@ def new_family_code(db: Session, last: str) -> str:
 
 
 @router.post("/auth/register", response_model=RegisterOut, status_code=201, dependencies=[Depends(limit("register", 10, 60 * 60))])
-def register(body: RegisterIn, response: Response, db: Session = Depends(get_session)):
+def register(body: RegisterIn, response: Response, background: BackgroundTasks, db: Session = Depends(get_session)):
     email, name = body.email.lower(), body.name
     if db.exec(select(User).where(User.email == email)).first():
         raise HTTPException(409, "An account with this email already exists")
@@ -150,7 +153,9 @@ def register(body: RegisterIn, response: Response, db: Session = Depends(get_ses
         start_onboarding(db, user)
         db.commit()
         db.refresh(user)
-        return RegisterOut(status="active", access_token=create_token(user.id), family_name=db.get(Family, inv.family_id).name)
+        family_name = db.get(Family, inv.family_id).name
+        background.add_task(mail.send_quietly, mail_templates.welcome(user.name, user.email, family_name))
+        return RegisterOut(status="active", access_token=create_token(user.id), family_name=family_name)
 
     if body.family_code:
         family = family_by_code(db, body.family_code)
@@ -179,6 +184,7 @@ def register(body: RegisterIn, response: Response, db: Session = Depends(get_ses
     start_onboarding(db, user)
     db.commit()
     db.refresh(user)
+    background.add_task(mail.send_quietly, mail_templates.welcome(user.name, user.email, family.name))
     return RegisterOut(status="active", access_token=create_token(user.id), family_name=family.name)
 
 
@@ -342,39 +348,77 @@ def set_password(db: Session, user: User, password: str) -> None:
     user.password_hash = hash_password(password)
     user.password_changed_at = now()  # signs out every other device
     db.add(user)
+    from app.models import PasswordReset
+
+    for r in db.exec(select(PasswordReset).where(PasswordReset.user_id == user.id, PasswordReset.used_at == None)).all():  # noqa: E711
+        r.used_at = user.password_changed_at  # any reset link still open stops working
+        db.add(r)
+
+
+CANT_SEND = "We can't send emails right now. Please try again in a few minutes, or ask an Admin of your family archive for a reset link."
+NOT_SET_UP = "This server can't send emails yet. Ask an Admin of your family archive for a link to choose a new password."
 
 
 @router.post("/auth/forgot-password", status_code=202, dependencies=[Depends(limit("forgot-password", 5, 15 * 60))])
 def forgot_password(body: ForgotIn, db: Session = Depends(get_session)):
-    """Always answers the same way, so nobody can use it to find out who has an account."""
-    user = db.exec(select(User).where(User.email == body.email.strip().lower(), User.removed_at == None)).first()  # noqa: E711
-    if user:
-        link, _ = create_reset_link(db, user)
-        # TODO: email the link. Until sending is set up, it is written to the server console on a developer's
-        # computer only: a server's logs are read by more people than the account holder, so there it isn't logged
-        # and an Admin makes a link instead (POST /members/{id}/reset-link).
-        if settings.production:
-            log.warning("Password reset requested for user %s (email sending is not set up)", user.id)
-        else:
-            log.warning("Password reset link for %s: %s", user.email, link)
-    return {"detail": "If that email has an account, a link to choose a new password is on its way."}
+    """Emails a one-time link to choose a new password. Answers the same way, and takes about as long, whether or not
+    the address has an account, so nobody can use it to find out who is registered. It only says a link is on its way
+    when an email really was handed to the provider; when sending isn't possible it says so to everyone."""
+    started = time.monotonic()
+    try:
+        if not mail.sender().configured:
+            raise HTTPException(503, NOT_SET_UP)
+        if mail.outage.active():
+            raise HTTPException(503, CANT_SEND)
+        user = db.exec(select(User).where(User.email == body.email.strip().lower(), User.removed_at == None)).first()  # noqa: E711
+        if user:
+            link, _ = create_reset_link(db, user)
+            try:
+                mail.send(mail_templates.password_reset(user.name, user.email, link, RESET_MINUTES))
+            except mail.EmailError as e:
+                mail.outage.start()  # from now on everyone gets this answer for a few minutes (see mail.Outage)
+                log.error("Password reset email could not be sent: %s", e)  # no address, no link
+                raise HTTPException(503, CANT_SEND) from e
+            mail.outage.clear()
+        return {"detail": "If that email has an account, a link to choose a new password is on its way. It works for "
+                          f"{RESET_MINUTES} minutes."}
+    finally:
+        wait = settings.email_min_response_ms / 1000 - (time.monotonic() - started)
+        if wait > 0:
+            time.sleep(wait)
+
+
+@router.get("/auth/reset-password/status", dependencies=[Depends(limit("reset-status", 30, 15 * 60))])
+def reset_status(token: str = Query(..., max_length=200), db: Session = Depends(get_session)):
+    """Whether a reset link can still be used: valid, expired, used or invalid. Says nothing about any account."""
+    return {"status": reset_token_status(db, token)}
+
+
+RESET_PROBLEMS = {
+    "expired": "This link has expired. Links work for 60 minutes: ask for a new one.",
+    "used": "This link was already used. If you still need to change your password, ask for a new link.",
+    "invalid": "This link isn't valid. Check you copied all of it, or ask for a new one.",
+}
 
 
 @router.post("/auth/reset-password", response_model=TokenOut, dependencies=[Depends(limit("reset-password", 10, 15 * 60))])
-def reset_password(body: ResetIn, db: Session = Depends(get_session)):
-    user = use_reset_token(db, body.token)
-    if not user or user.removed_at:
-        raise HTTPException(400, "This link has expired or was already used. Ask for a new one.")
+def reset_password(body: ResetIn, background: BackgroundTasks, db: Session = Depends(get_session)):
+    problem = reset_token_status(db, body.token)
+    user = use_reset_token(db, body.token) if problem == "valid" else None
+    if not user:
+        raise HTTPException(400, RESET_PROBLEMS.get(problem, RESET_PROBLEMS["invalid"]))
     set_password(db, user, body.password)
     db.commit()
+    background.add_task(mail.send_quietly, mail_templates.password_changed(user.name, user.email))
     return TokenOut(access_token=create_token(user.id))
 
 
 @router.post("/auth/change-password", response_model=TokenOut, dependencies=[Depends(limit("change-password", 10, 15 * 60))])
-def change_password(body: ChangeIn, user: User = Depends(get_current_user), db: Session = Depends(get_session)):
+def change_password(body: ChangeIn, background: BackgroundTasks, user: User = Depends(get_current_user), db: Session = Depends(get_session)):
     """Returns a fresh token for this device; other devices are signed out."""
     if not verify_password(body.current_password, user.password_hash):
         raise HTTPException(400, "Your current password is not right")
     set_password(db, user, body.new_password)
     db.commit()
+    background.add_task(mail.send_quietly, mail_templates.password_changed(user.name, user.email))
     return TokenOut(access_token=create_token(user.id))

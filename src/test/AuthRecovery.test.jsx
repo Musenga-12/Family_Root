@@ -5,6 +5,7 @@ import { MemoryRouter } from "react-router-dom";
 const mocks = vi.hoisted(() => ({
   forgotPassword: vi.fn(),
   resetPassword: vi.fn(),
+  resetStatus: vi.fn(),
   verifyCode: vi.fn(),
   signIn: vi.fn(),
   toast: vi.fn(),
@@ -16,6 +17,7 @@ vi.mock("../lib/api", () => ({
   authApi: {
     forgotPassword: mocks.forgotPassword,
     resetPassword: mocks.resetPassword,
+    resetStatus: mocks.resetStatus,
     verifyCode: mocks.verifyCode,
   },
 }));
@@ -67,6 +69,7 @@ describe("Authentication - Recovery and Family Code", () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
+    mocks.resetStatus.mockResolvedValue({ status: "valid" });
     mocks.signIn.mockResolvedValue({
       name: "Jane Doe",
       family_name: "Doe Family",
@@ -111,8 +114,10 @@ describe("Authentication - Recovery and Family Code", () => {
     ).toBeInTheDocument();
   });
 
-  it("rejects a password shorter than 10 characters during reset", () => {
+  it("rejects a password shorter than 10 characters during reset", async () => {
     renderAuth("reset", "/reset-password?token=reset-token");
+    await screen.findByText("au.resetTitle");
+    expect(mocks.resetStatus).toHaveBeenCalledWith("reset-token");
 
     fireEvent.change(document.getElementById("rpPass"), {
       target: { value: "short123" },
@@ -130,8 +135,12 @@ describe("Authentication - Recovery and Family Code", () => {
     });
 
     renderAuth("reset", "/reset-password?token=reset-token");
+    await screen.findByText("au.resetTitle");
 
     fireEvent.change(document.getElementById("rpPass"), {
+      target: { value: "NewStrongPass123" },
+    });
+    fireEvent.change(document.getElementById("rpAgain"), {
       target: { value: "NewStrongPass123" },
     });
 
@@ -147,6 +156,46 @@ describe("Authentication - Recovery and Family Code", () => {
         "reset-access-token"
       );
     });
+  });
+
+  it("asks for the same password twice", async () => {
+    renderAuth("reset", "/reset-password?token=reset-token");
+    await screen.findByText("au.resetTitle");
+    fireEvent.change(document.getElementById("rpPass"), { target: { value: "NewStrongPass123" } });
+    fireEvent.change(document.getElementById("rpAgain"), { target: { value: "NewStrongPass124" } });
+    submitForm("rpPass");
+    expect(screen.getByText("auth.reset.mismatch")).toBeInTheDocument();
+    expect(mocks.resetPassword).not.toHaveBeenCalled();
+  });
+
+  for (const kind of ["expired", "used", "invalid"]) {
+    it(`explains a ${kind} link and offers a new one, with no password form`, async () => {
+      mocks.resetStatus.mockResolvedValue({ status: kind });
+      renderAuth("reset", "/reset-password?token=reset-token");
+      expect(await screen.findByText(`auth.reset.${kind}.title`)).toBeInTheDocument();
+      expect(screen.getByRole("link", { name: /auth.reset.newLink/ })).toHaveAttribute("href", "/forgot-password");
+      expect(document.getElementById("rpPass")).toBeNull();
+    });
+  }
+
+  it("switches to the expired message when the link runs out while typing", async () => {
+    renderAuth("reset", "/reset-password?token=reset-token");
+    await screen.findByText("au.resetTitle");
+    mocks.resetPassword.mockRejectedValue(Object.assign(new Error("This link has expired."), { status: 400 }));
+    mocks.resetStatus.mockResolvedValue({ status: "expired" });
+    fireEvent.change(document.getElementById("rpPass"), { target: { value: "NewStrongPass123" } });
+    fireEvent.change(document.getElementById("rpAgain"), { target: { value: "NewStrongPass123" } });
+    submitForm("rpPass");
+    expect(await screen.findByText("auth.reset.expired.title")).toBeInTheDocument();
+  });
+
+  it("doesn't claim an email was sent when the server couldn't send it", async () => {
+    mocks.forgotPassword.mockRejectedValue(new Error("This server can't send emails yet. Ask an Admin."));
+    renderAuth("forgot", "/forgot-password");
+    fireEvent.change(document.getElementById("fpEmail"), { target: { value: "jane@example.com" } });
+    submitForm("fpEmail");
+    expect(await screen.findByText("This server can't send emails yet. Ask an Admin.")).toBeInTheDocument();
+    expect(screen.queryByText("auth.forgotSent")).not.toBeInTheDocument();
   });
 
   it("rejects an incorrectly formatted family code", () => {

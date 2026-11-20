@@ -7,7 +7,7 @@ import jwt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from pwdlib import PasswordHash
-from sqlmodel import Session
+from sqlmodel import Session, select
 
 from app.config import API_PREFIX, settings
 from app.db import get_session
@@ -96,14 +96,33 @@ def create_reset_link(db: Session, user: User, minutes: int = RESET_MINUTES) -> 
     return f"{settings.frontend_origin}/#/reset-password?token={token}", expires
 
 
-def use_reset_token(db: Session, token: str) -> User | None:
+def reset_token_status(db: Session, token: str) -> str:
+    """"valid", "expired", "used" or "invalid", so the reset page can say what to do. Only says something about the
+    link itself (which the person holds), never about whether an email address has an account."""
     from app.models import PasswordReset
 
-    r = db.get(PasswordReset, _hash_token(token))
-    if not r or r.used_at or r.expires_at < now():
+    r = db.get(PasswordReset, _hash_token(token)) if token else None
+    if not r:
+        return "invalid"
+    if r.used_at:
+        return "used"
+    if r.expires_at < now():
+        return "expired"
+    user = db.get(User, r.user_id)
+    return "valid" if user and not user.removed_at else "invalid"
+
+
+def use_reset_token(db: Session, token: str) -> User | None:
+    """The account a valid link belongs to, with that link and every other open link for the account used up."""
+    from app.models import PasswordReset
+
+    if reset_token_status(db, token) != "valid":
         return None
-    r.used_at = now()
-    db.add(r)
+    r = db.get(PasswordReset, _hash_token(token))
+    used = now()
+    for other in db.exec(select(PasswordReset).where(PasswordReset.user_id == r.user_id, PasswordReset.used_at == None)).all():  # noqa: E711
+        other.used_at = used
+        db.add(other)
     return db.get(User, r.user_id)
 
 

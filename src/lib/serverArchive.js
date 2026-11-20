@@ -38,6 +38,12 @@ export async function loadThread(t) {
   };
 }
 
+/** An invitation from the API, shaped for the archive. `byUser` maps account ids to people in the tree. */
+export const inviteOf = (i, byUser = {}) => ({
+  id: i.id, name: i.name, email: i.email, relation: i.relation, role: i.role, sent: day(i.sent), by: byUser[i.by] ?? null, link: i.link,
+  ...(i.emailed != null ? { emailed: i.emailed } : {}),
+});
+
 const member = (m) => ({
   id: m.person_id || `u${m.user_id}`, userId: m.user_id, name: m.name, email: m.email, role: m.role,
   lastActive: day(m.last_active), joined: day(m.joined), you: !!m.is_you,
@@ -63,9 +69,7 @@ export async function loadArchive() {
     requests: requests.filter((r) => r.status === "pending").map((r) => ({
       id: r.id, name: r.name, email: r.email, relation: r.relation, note: r.note, vouchedBy: r.vouched_by, date: day(r.date),
     })),
-    invites: invites.filter((i) => i.status === "pending").map((i) => ({
-      id: i.id, name: i.name, email: i.email, relation: i.relation, role: i.role, sent: day(i.sent), by: byUser[i.by] ?? null, link: i.link,
-    })),
+    invites: invites.filter((i) => i.status === "pending").map((i) => inviteOf(i, byUser)),
     privacy: {
       categories: privacy.categories, mine: privacy.mine, deletion: privacy.deletion,
       minors: Object.fromEntries(privacy.minors.map((m) => [m.person_id, { hide: m.hide, guardian: m.guardian }])),

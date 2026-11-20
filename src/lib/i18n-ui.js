@@ -1287,6 +1287,12 @@ export const UI = {
     "poll.needTwo": "Write a question and at least two different choices.",
     "tree.hl.branch": "{branch} branch",
     "aud.All Family Branches": "The whole family",
+    "dlg.invite.emailed": "Invitation emailed to {name}",
+    "dlg.invite.emailedSub": "Sent to {email}. You can also copy the link and send it by message.",
+    "dlg.invite.notEmailed": "Invitation ready for {name}, but not emailed",
+    "dlg.invite.notEmailedSub": "This server can't send emails right now. Copy the link and send it yourself, by message or chat.",
+    "dlg.invite.copyLink": "Copy link",
+    "dlg.invite.linkCopied": "Invitation link copied",
   },
   fr: {
     "session.hide": "Masquer cette note",

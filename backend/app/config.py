@@ -29,6 +29,14 @@ class Settings(BaseSettings):
     supabase_url: str = ""
     supabase_service_key: str = ""
     supabase_bucket: str = "family-files"
+    # Email (app/mail.py). EMAIL_PROVIDER: resend | console | none, or empty to choose from what is set.
+    email_provider: str = ""
+    resend_api_key: str = ""
+    email_from: str = ""  # e.g. "FamilyRoots <no-reply@mail.yourdomain.org>", on a domain verified in Resend
+    email_reply_to: str = ""
+    email_timeout_seconds: float = 10
+    # "Forgot password" answers take at least this long, so the time taken doesn't reveal whether an email was sent.
+    email_min_response_ms: int = 1500
     max_image_mb: int = 10
     max_audio_mb: int = 50
     file_link_minutes: int = 60 * 12
@@ -55,6 +63,16 @@ def check_settings(s: "Settings") -> None:
     if s.production and not problems and s.storage.strip().lower() == "local":
         log.warning("Uploads are stored on this server's disk (%s). Use a persistent disk, or STORAGE=supabase, so photos "
                     "survive redeploys.", s.upload_dir)
+    provider = s.email_provider.strip().lower()
+    if provider not in ("", "resend", "console", "none"):
+        problems.append(f"EMAIL_PROVIDER must be resend, console or none, not {provider!r}")
+    if provider == "resend" and not (s.resend_api_key and s.email_from):
+        problems.append("EMAIL_PROVIDER=resend needs RESEND_API_KEY and EMAIL_FROM")
+    if s.production and provider == "console":
+        problems.append("EMAIL_PROVIDER=console writes reset links to the log: not allowed in production")
+    if s.production and not problems and not (s.resend_api_key and s.email_from):
+        log.warning("Email is not set up (RESEND_API_KEY, EMAIL_FROM): \"Forgot password\" will say it can't send, and "
+                    "invitations must be shared by link.")
     if not problems:
         return
     if s.production:

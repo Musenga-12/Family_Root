@@ -35,7 +35,8 @@ def test_frontend_sign_in_contracts(client):
 
 def test_frontend_invite_contracts(client, auth):
     inv = client.post(f"{API}/invites", headers=auth("mary"), json={"name": "Isla", "email": "isla2@example.org", "relation": None}).json()
-    assert set(inv) == {"id", "name", "email", "relation", "role", "sent", "by", "link", "status"}
+    assert set(inv) == {"id", "name", "email", "relation", "role", "sent", "by", "link", "status", "emailed"}
+    assert inv["emailed"] is True  # development: the console sender "sends" it
     assert inv["link"].startswith("http://localhost:5173/#/register?invite=")
     info = client.get(f"{API}/invites/by-token/{inv['link'].split('invite=')[1]}").json()
     assert set(info) == {"family_name", "name", "email", "relation"}

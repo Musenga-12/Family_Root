@@ -39,6 +39,7 @@ const mapDoc = (d, fn) => ({
  *   failure      the last change the server refused ({ message, at }), shown by the app shell
  *   connect(me)  load the account's family and start syncing; disconnect() goes back to the on-device demo
  *   refresh(keys?)  reload from the server: everything, or only e.g. ["threads"]
+ *   adopt(key, item)  take an item the server already has, without sending it again
  */
 export function useServerSync({ state, setDoc, demoState, setAudioUrl, moveAudio }) {
   const [source, setSource] = useState("demo");
@@ -138,6 +139,19 @@ export function useServerSync({ state, setDoc, demoState, setAudioUrl, moveAudio
     } catch { /* stays as it is; the next refresh tries again */ }
   }, [load, setDoc]);
 
+  /** Put an item the server just made or changed (e.g. an invitation created with a direct API call, so the screen
+   *  can say whether its email went out) into the archive without sending it again. Adds it, or replaces it by id. */
+  const adopt = useCallback((key, item) => {
+    if (sourceRef.current !== "server" || !synced.current) return;
+    known.current.add(item.id);
+    const put = (s) => {
+      const list = s[key] || [];
+      return { ...s, [key]: list.some((x) => x.id === item.id) ? list.map((x) => (x.id === item.id ? { ...x, ...item } : x)) : [...list, item] };
+    };
+    synced.current = put(synced.current);
+    setDoc((d) => mapDoc(d, put));
+  }, [setDoc]);
+
   // After every change: work out the server calls and run them one at a time, in order.
   useEffect(() => {
     if (sourceRef.current !== "server" || !synced.current || state === synced.current) return;
@@ -183,6 +197,6 @@ export function useServerSync({ state, setDoc, demoState, setAudioUrl, moveAudio
     }
   }, [state, setDoc, load, publishAudio, moveAudio]);
 
-  return useMemo(() => ({ source, archive, saving, failure, connect, disconnect, refresh, retry }),
-    [source, archive, saving, failure, connect, disconnect, refresh, retry]);
+  return useMemo(() => ({ source, archive, saving, failure, connect, disconnect, refresh, retry, adopt }),
+    [source, archive, saving, failure, connect, disconnect, refresh, retry, adopt]);
 }

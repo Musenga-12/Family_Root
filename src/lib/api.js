@@ -86,6 +86,8 @@ export const authApi = {
   inviteInfo: (token) => api(`/invites/by-token/${encodeURIComponent(token)}`, { auth: false }),
   forgotPassword: (email) => api("/auth/forgot-password", { body: { email }, auth: false }),
   resetPassword: (token, password) => api("/auth/reset-password", { body: { token, password }, auth: false }),
+  /** Resolves { status: "valid" | "expired" | "used" | "invalid" } for a "choose a new password" link. */
+  resetStatus: (token) => api(`/auth/reset-password/status?token=${encodeURIComponent(token)}`, { auth: false }),
   me: () => api("/me"),
   /** body: any of { name, email, easy_mode, current_password, onboarding_done, person_id }. Resolves the updated account. */
   updateMe: (body) => api("/me", { method: "PATCH", body }),

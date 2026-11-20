@@ -21,6 +21,11 @@ os.environ.update(
     FRONTEND_ORIGIN="http://localhost:5173",
     API_BASE_URL="http://testserver",
     RATE_LIMIT_ENABLED="true",
+    # Email: never real. No provider key, so development's console sender is used unless a test fakes one.
+    EMAIL_PROVIDER="",
+    RESEND_API_KEY="",
+    EMAIL_FROM="",
+    EMAIL_MIN_RESPONSE_MS="0",
 )
 sys.path.insert(0, str(BACKEND))
 
@@ -44,6 +49,18 @@ def _seed_template() -> None:
 
 
 _seed_template()
+
+
+@pytest.fixture(autouse=True)
+def _fresh_email_state():
+    """Each test starts with the configured (console) sender and no remembered provider outage."""
+    from app import mail
+
+    mail.set_sender(None)
+    mail.outage.clear()
+    yield
+    mail.set_sender(None)
+    mail.outage.clear()
 
 
 @pytest.fixture

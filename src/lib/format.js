@@ -84,3 +84,6 @@ export function saveJson(data, name) {
   a.click();
   URL.revokeObjectURL(a.href);
 }
+
+/** Copy a link or code; resolves false when the browser won't allow it. */
+export const copyText = (text) => navigator.clipboard?.writeText(text).then(() => true, () => false) ?? Promise.resolve(false);

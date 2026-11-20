@@ -6,7 +6,9 @@ import { useToast } from "../components/toastContext";
 import { Avatar, Button, Card, Empty, Icon, IconBox, IconButton, PageHeader, Record, SectionTitle, Select, Stat, Tag } from "../components/ui";
 import { ME } from "../data";
 import InviteDialog from "../dialogs/InviteDialog";
-import { fmtDate, todayISO, uid } from "../lib/format";
+import { api } from "../lib/api";
+import { inviteOf } from "../lib/serverArchive";
+import { copyText, fmtDate, todayISO, uid } from "../lib/format";
 import { useT } from "../lib/i18n";
 import { fullName, useStore } from "../lib/store";
 
@@ -56,7 +58,7 @@ function RequestCard({ r }) {
 }
 
 export default function Admin() {
-  const { state, person, update, kin } = useStore();
+  const { state, person, update, kin, server } = useStore();
   const { open, confirm } = useModal();
   const toast = useToast();
   const t = useT();
@@ -77,10 +79,21 @@ export default function Admin() {
       update((s) => { index = s.members.findIndex((x) => x.id === m.id); s.members.splice(index, 1); }, t("adm.hRemoved", { name: nameOf(m) }));
       toast(t("adm.removed"), { sub: nameOf(m), icon: "person_remove", action: t("common.undo"), onAction: () => update((s) => { s.members.splice(index, 0, m); }, t("adm.hRestored", { name: nameOf(m) })) });
     });
-  const resend = (inv) => {
-    update((s) => { s.invites.find((x) => x.id === inv.id).sent = todayISO(); }, t("adm.hResent", { name: inv.name }));
-    toast(t("adm.resent"), { sub: inv.email, icon: "forward_to_inbox" });
+  const resend = async (inv) => {
+    if (server.source !== "server") {
+      update((s) => { s.invites.find((x) => x.id === inv.id).sent = todayISO(); }, t("adm.hResent", { name: inv.name }));
+      toast(t("adm.resent"), { sub: inv.email, icon: "forward_to_inbox" });
+      return;
+    }
+    // On a server: say truthfully whether the email went out (it can't when email isn't set up).
+    try {
+      const made = await api(`/invites/${inv.id}/resend`, { method: "POST" });
+      server.adopt("invites", { ...inviteOf(made), by: inv.by });
+      if (made.emailed) toast(t("adm.resent"), { sub: inv.email, icon: "forward_to_inbox" });
+      else toast(t("dlg.invite.notEmailed", { name: inv.name }), { sub: t("dlg.invite.notEmailedSub"), icon: "link", action: t("dlg.invite.copyLink"), onAction: () => copyLink(inv) });
+    } catch (e) { toast(e.message, { error: true }); }
   };
+  const copyLink = (inv) => copyText(inv.link).then((ok) => toast(ok ? t("dlg.invite.linkCopied") : inv.link, { icon: "content_copy" }));
   const cancelInvite = (inv) => confirm(t("adm.cancelQ", { name: inv.name }), t("adm.cancelBody"), t("adm.cancelInvite"), () => {
     update((s) => { s.invites = s.invites.filter((x) => x.id !== inv.id); }, t("adm.hCancelled", { name: inv.name }));
     toast(t("adm.cancelled"), { sub: inv.name, icon: "cancel_schedule_send", action: t("common.undo"), onAction: () => update((s) => { s.invites.push(inv); }, t("adm.hRestoredInv", { name: inv.name })) });
@@ -155,6 +168,7 @@ export default function Admin() {
                       <div className="min-w-0 flex-1 basis-50"><strong>{inv.name}</strong><p className="truncate text-xsmall text-muted">{t("adm.sentBy", { email: inv.email, relation: kin(inv.relation), date: fmtDate(inv.sent), name: person(inv.by)?.first || t("adm.youLower") })}</p></div>
                       {/* On a phone the two buttons take their own line instead of pushing past the screen edge. */}
                       <div className="flex flex-wrap gap-2 max-sm:basis-full max-sm:pl-12">
+                        {inv.link && <Button size="sm" icon="link" onClick={() => copyLink(inv)}>{t("dlg.invite.copyLink")}</Button>}
                         <Button size="sm" icon="forward_to_inbox" onClick={() => resend(inv)}>{t("adm.resend")}</Button>
                         <Button size="sm" variant="ghost" icon="close" onClick={() => cancelInvite(inv)}>{t("common.cancel")}</Button>
                       </div>

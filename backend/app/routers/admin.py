@@ -9,6 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException, Response
 from pydantic import BaseModel, EmailStr, Field
 from sqlmodel import Session, func, select
 
+from app import mail, mail_templates
 from app.auth import create_reset_link, get_current_user, hash_password, require_role
 from app.config import settings
 from app.db import get_session
@@ -77,8 +78,9 @@ class InviteOut(BaseModel):
     role: str
     sent: str
     by: int | None
-    link: str | None  # shown to the sender and Admins, until email sending is added
+    link: str | None  # shown to the sender and Admins, to share another way too
     status: str  # pending | accepted | cancelled
+    emailed: bool | None = None  # create / resend only: true when the invitation email was handed to the email provider
 
 
 class InviteInfo(BaseModel):
@@ -311,6 +313,17 @@ def reopen(rid: str, user: User = Depends(get_current_user), db: Session = Depen
 
 # ---------- invitations ----------
 
+def email_invite(db: Session, user: User, inv: Invite) -> InviteOut:
+    """Send the invitation by email when this server can; the link is returned either way, so it can also be shared
+    by message. `emailed` says honestly whether the email went out."""
+    out = invite_out(user, inv)
+    if not mail.sender().configured:
+        return out.model_copy(update={"emailed": False})
+    family = db.get(Family, inv.family_id)
+    sent = mail.send_quietly(mail_templates.invitation(inv.name, inv.email, family.name if family else "your family", user.name, invite_link(inv)))
+    return out.model_copy(update={"emailed": sent})
+
+
 @router.get("/invites", response_model=list[InviteOut])
 def list_invites(include_all: bool = False, user: User = Depends(get_current_user), db: Session = Depends(get_session)):
     """Admins see every invitation; others see the ones they sent. Pending only, unless include_all."""
@@ -336,8 +349,7 @@ def create_invite(body: InviteIn, user: User = Depends(get_current_user), db: Se
     db.add(inv)
     db.commit()
     db.refresh(inv)
-    # TODO: email the link. Until then the sender copies `link` from the response.
-    return invite_out(user, inv)
+    return email_invite(db, user, inv)
 
 
 @router.post("/invites/{iid}/resend", response_model=InviteOut)
@@ -349,7 +361,7 @@ def resend_invite(iid: str, user: User = Depends(get_current_user), db: Session 
     db.add(inv)
     db.commit()
     db.refresh(inv)
-    return invite_out(user, inv)
+    return email_invite(db, user, inv)
 
 
 @router.delete("/invites/{iid}", status_code=204)

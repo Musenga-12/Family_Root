@@ -1,7 +1,7 @@
 /* 5.7 Authentication and Family Onboarding.
    One screen behind several addresses: /login, /register, /join (family code), /forgot-password and /reset-password.
    /auth still works for older links (including ?reset=… and ?invite=…). */
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, Navigate, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import PublicLayout from "../components/PublicLayout";
 import { authApi, connected } from "../lib/api";
@@ -223,7 +223,8 @@ function SignIn({ onEnter }) {
 }
 
 /** /forgot-password: ask for a link to choose a new password. The server answers the same way whether or not the
- *  email has an account, so the confirmation never reveals who is registered. */
+ *  email has an account, so the confirmation never reveals who is registered. It only says "check your email" when an
+ *  email really went out; when the server can't send one it says so (and how else to get back in). */
 function ForgotPassword() {
   const t = useT();
   const location = useLocation();
@@ -232,12 +233,12 @@ function ForgotPassword() {
   const [sent, setSent] = useState(null);
   const [busy, setBusy] = useState(false);
   const submit = async () => {
-    if (!emailOk(email.trim())) { setError(t("au.forgotNeedEmail")); document.getElementById("fpEmail").focus(); return; }
+    if (!emailOk(email.trim())) { setError(t("au.forgotNeedEmail")); document.getElementById("fpEmail")?.focus(); return; }
     setError("");
     if (!connected) { setSent(t("auth.forgotDemo")); return; }
     setBusy(true);
     try { setSent((await authApi.forgotPassword(email.trim())).detail); }
-    catch (err) { setError(err.message); }
+    catch (err) { setSent(null); setError(err.message); }
     finally { setBusy(false); }
   };
   if (sent) {
@@ -246,9 +247,12 @@ function ForgotPassword() {
         <Icon name="mark_email_read" className="text-[40px]! text-sec-ink" />
         <h2>{t("auth.forgotSent")}</h2>
         <p className="max-w-100 text-small text-muted">{sent}</p>
-        {/* Email sending isn't set up yet: developers find the link in the server console; everyone else asks an Admin. */}
-        {connected && <p className="max-w-100 text-xsmall text-muted">{t(import.meta.env.DEV ? "auth.forgotDev" : "auth.forgotAdmin")}</p>}
-        <Button to="/login" icon="arrow_back">{t("auth.backToLogin")}</Button>
+        {connected && <p className="max-w-100 text-xsmall text-muted">{t("auth.forgotAdmin")}</p>}
+        {connected && import.meta.env.DEV && <p className="max-w-100 text-xsmall text-muted">{t("auth.forgotDev")}</p>}
+        <div className="flex flex-wrap justify-center gap-2">
+          <Button to="/login" icon="arrow_back">{t("auth.backToLogin")}</Button>
+          {connected && <Button variant="ghost" icon="restart_alt" busy={busy} onClick={submit}>{t("auth.forgotAgain")}</Button>}
+        </div>
       </div>
     );
   }
@@ -264,34 +268,75 @@ function ForgotPassword() {
   );
 }
 
-/** Opened from the link in a "choose a new password" message (#/reset-password?token=…, or the older #/auth?reset=…). */
+/** Why a reset link can't be used, and what to do instead (expired, already used, or not a real link). */
+function ResetProblem({ kind }) {
+  const t = useT();
+  const icon = { expired: "schedule", used: "task_alt", invalid: "error" }[kind] || "error";
+  return (
+    <div role="alert" className="grid justify-items-center gap-3 rounded-2xl bg-surface-2 p-6 text-center">
+      <Icon name={icon} className="text-[40px]! text-sec-ink" />
+      <h2>{t(`auth.reset.${kind}.title`)}</h2>
+      <p className="max-w-100 text-small text-muted">{t(`auth.reset.${kind}.sub`)}</p>
+      <div className="flex flex-wrap justify-center gap-2">
+        <Button variant="primary" icon="lock_reset" to="/forgot-password">{t("auth.reset.newLink")}</Button>
+        <Button variant="ghost" icon="arrow_back" to="/login">{t("auth.backToLogin")}</Button>
+      </div>
+    </div>
+  );
+}
+
+/** Opened from the link in a "choose a new password" email (#/reset-password?token=…, or the older #/auth?reset=…).
+ *  The link is checked first, so an expired or used one says so before anyone types a new password. */
 function ResetPassword({ token, onEnter }) {
   const t = useT();
   const { signIn } = useSession();
+  const [check, setCheck] = useState("checking"); // checking | valid | expired | used | invalid | error
   const [pass, setPass] = useState("");
+  const [again, setAgain] = useState("");
   const [errors, setErrors] = useState({});
   const [busy, setBusy] = useState(false);
+  // Starts as "checking"; a later re-check (after a refused save) keeps the form up until the answer comes.
+  const recheck = useCallback(() => (
+    authApi.resetStatus(token).then((r) => { setCheck(r.status); return r.status; }, () => { setCheck("error"); return "error"; })
+  ), [token]);
+  useEffect(() => { recheck(); }, [recheck]);
+
   const submit = async () => {
-    if (pass.length < 10) { setErrors({ pass: t("au.errPass", { n: pass.length }) }); document.getElementById("rpPass").focus(); return; }
+    const e = {
+      pass: pass.length < 10 ? t("au.errPass", { n: pass.length }) : "",
+      again: pass !== again ? t("auth.reset.mismatch") : "",
+    };
+    setErrors(e);
+    if (e.pass || e.again) { document.getElementById(e.pass ? "rpPass" : "rpAgain")?.focus(); return; }
     setBusy(true);
     try {
       const r = await authApi.resetPassword(token, pass);
       const me = await signIn(r.access_token);
       if (me) onEnter(me.name.split(" ")[0], t("au.resetDone"), { welcome: me.onboarding_done === false });
     } catch (err) {
-      setErrors({ form: err.message });
+      // The link may have expired or been used meanwhile: show that instead of a bare error.
+      const status = err.status === 400 ? await recheck() : "valid";
+      if (status === "valid" || status === "error") setErrors({ form: err.message });
     } finally {
       setBusy(false);
     }
   };
+
+  if (check === "checking") return <p role="status" className="py-8 text-center text-muted">{t("auth.reset.checking")}</p>;
+  if (["expired", "used", "invalid"].includes(check)) return <ResetProblem kind={check} />;
   return (
     <form className="grid gap-4" noValidate onSubmit={(e) => { e.preventDefault(); submit(); }}>
       <div><h2>{t("au.resetTitle")}</h2><p className="mt-2 text-small text-muted">{t("au.resetSub")}</p></div>
-      <Field id="rpPass" label={t("au.pass")} help={t("au.passHelp")} error={errors.pass}>
+      {check === "error" && <FormError>{t("auth.reset.cantCheck")}</FormError>}
+      <Field id="rpPass" label={t("au.pass")} help={t("auth.reset.count", { n: pass.length })} error={errors.pass}>
         <PasswordInput id="rpPass" autoComplete="new-password" value={pass} onChange={(e) => setPass(e.target.value)} invalid={!!errors.pass} maxLength={128} />
+      </Field>
+      <Field id="rpAgain" label={t("auth.reset.again")} error={errors.again}>
+        <PasswordInput id="rpAgain" autoComplete="new-password" value={again} onChange={(e) => setAgain(e.target.value)} invalid={!!errors.again} maxLength={128} />
       </Field>
       <FormError>{errors.form}</FormError>
       <Button variant="primary" size="lg" block type="submit" busy={busy}>{t("au.resetSave")} <Icon name="arrow_forward" size="sm" /></Button>
+      <Button variant="ghost" icon="arrow_back" to="/login">{t("auth.backToLogin")}</Button>
     </form>
   );
 }
