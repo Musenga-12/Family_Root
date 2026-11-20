@@ -6,10 +6,11 @@ import { ME } from "../data";
 import AddMemoryDialog from "../dialogs/AddMemoryDialog";
 import AddPersonDialog from "../dialogs/AddPersonDialog";
 import InviteDialog from "../dialogs/InviteDialog";
+import { notificationApi } from "../lib/api";
 import { cx } from "../lib/format";
 import { LANGS, useT } from "../lib/i18n";
 import { NAV } from "../lib/nav";
-import { useSession } from "../lib/session";
+import { accountPerson, useSession } from "../lib/session";
 import { canSpeak, pageText, useSpeech, useVoiceInput } from "../lib/speech";
 import { useInstall } from "../lib/useInstall";
 import { fullName, useStore } from "../lib/store";
@@ -129,18 +130,22 @@ function Sidebar({ open, onClose, onDismiss }) {
   );
 }
 
-function NotificationsDialog({ onRead }) {
+/** `server` is the account's list from the family server ({ items }); without it the demo's sample notes show. */
+function NotificationsDialog({ onRead, server }) {
   const t = useT();
-  const items = [
-    ["cake", t("notif.birthday", { name: "Anna" }), t("notif.birthdaySub")],
-    ["forum", t("notif.replies"), t("notif.repliesSub")],
-    ["fact_check", t("notif.proof"), t("notif.proofSub")],
-  ];
+  const items = server
+    ? server.items.map((n) => [n.read ? "notifications" : "notifications_active", n.title, n.body, n.id])
+    : [
+      ["cake", t("notif.birthday", { name: "Anna" }), t("notif.birthdaySub")],
+      ["forum", t("notif.replies"), t("notif.repliesSub")],
+      ["fact_check", t("notif.proof"), t("notif.proofSub")],
+    ];
   return (
     <Dialog title={t("top.notifications")} footer={<CloseAfter onClick={onRead}>{t("notif.markRead")}</CloseAfter>}>
       <div className="grid gap-2">
-        {items.map(([icon, title, sub]) => (
-          <Record key={title} icon={icon}><div className="min-w-0 flex-1"><strong>{title}</strong><p className="text-small text-muted">{sub}</p></div></Record>
+        {items.length === 0 && <Empty icon="notifications_off" title={t("notif.none")}><p className="text-small">{t("notif.noneSub")}</p></Empty>}
+        {items.map(([icon, title, sub, id]) => (
+          <Record key={id || title} icon={icon}><div className="min-w-0 flex-1"><strong>{title}</strong>{sub && <p className="text-small text-muted">{sub}</p>}</div></Record>
         ))}
       </div>
     </Dialog>
@@ -326,16 +331,13 @@ function OfflineBanner() {
   );
 }
 
-const NOTICE_KEY = "fr-notice-hidden";
 /** While screens move onto the family server one by one, say plainly which data a signed-in person is looking at.
- *  One short line with the full explanation one tap away; it can be hidden for the rest of the visit. */
+ *  One short line with the full explanation one tap away. It stays, so the sample family is never mistaken for theirs. */
 function ServerNotice() {
   const { me } = useSession();
   const t = useT();
   const [more, setMore] = useState(false);
-  const [hidden, setHidden] = useState(() => { try { return sessionStorage.getItem(NOTICE_KEY) === "1"; } catch { return false; } });
-  if (!me || hidden) return null;
-  const hide = () => { setHidden(true); try { sessionStorage.setItem(NOTICE_KEY, "1"); } catch { /* storage blocked */ } };
+  if (!me) return null;
   return (
     <div role="note" data-no-print className="flex items-start gap-2.5 border-b border-line bg-sec-soft px-4 py-1.5 text-small text-sec-ink sm:px-7">
       <Icon name="info" size="sm" className="mt-1.5" />
@@ -346,7 +348,6 @@ function ServerNotice() {
           {more ? t("session.less") : t("session.more")}
         </button>
       </p>
-      <IconButton icon="close" label={t("session.hide")} title={t("session.hide")} className="size-9!" onClick={hide} />
     </div>
   );
 }
@@ -419,12 +420,24 @@ function Topbar({ menuOpen, menuRef, onMenu, onPalette, onTour, speech }) {
   const { open } = useModal();
   const navigate = useNavigate();
   const [q, setQ] = useState("");
-  const [unread, setUnread] = useState(3);
   const app = useInstall();
   const session = useSession();
-  const me = person(ME);
-  // Signed in to a family server: the account's own name, until the screens read the server's people.
-  const myName = session.me?.name || `${me.first} ${me.last}`;
+  const account = session.me;
+  // Signed in to a family server: the account's own name, family and bell; the demo shows the sample family's.
+  const me = account ? accountPerson(account) : person(ME);
+  const myName = account?.name || `${me.first} ${me.last}`;
+  const [unread, setUnread] = useState(account ? 0 : 3);
+  const [bell, setBell] = useState(null);
+  useEffect(() => {
+    if (!account) return;
+    let live = true;
+    notificationApi.list().then((b) => { if (live) { setBell(b); setUnread(b.unread); } }, () => { /* the bell just stays quiet */ });
+    return () => { live = false; };
+  }, [account]);
+  const readAll = () => {
+    setUnread(0);
+    if (account) notificationApi.readAll().catch(() => { /* marked again next time */ });
+  };
   const lang = LANGS.find((l) => l.code === prefs.lang) || LANGS[0];
 
   return (
@@ -434,7 +447,7 @@ function Topbar({ menuOpen, menuRef, onMenu, onPalette, onTour, speech }) {
         className="pressable hidden cursor-pointer items-center gap-4 rounded-xl border border-line bg-surface px-3 py-1.5 text-left text-ink hover-fill min-[1500px]:flex">
         <span>
           <small className="block text-tag font-semibold tracking-[.12em] text-muted uppercase">{t("top.activeArchive")}</small>
-          <strong className="text-[.92rem] font-semibold">{t("shell.familyName")}</strong>
+          <strong className="text-[.92rem] font-semibold">{account?.family_name || t("shell.familyName")}</strong>
         </span>
         <Icon name="expand_more" size="sm" />
       </button>
@@ -481,7 +494,7 @@ function Topbar({ menuOpen, menuRef, onMenu, onPalette, onTour, speech }) {
         onClick={cycleTheme} />
 
       <IconButton icon="notifications" label={unread ? `${t("top.notifications")}, ${unread}` : t("top.notifications")} className="max-sm:hidden"
-        onClick={() => open(<NotificationsDialog onRead={() => setUnread(0)} />)}>
+        onClick={() => open(<NotificationsDialog onRead={readAll} server={account ? bell || { items: [] } : null} />)}>
         {unread > 0 && (
           <span className="absolute -top-0.5 -right-0.5 grid h-5 min-w-5 place-items-center rounded-full bg-rec px-1 text-tag font-bold text-white">{unread}</span>
         )}
@@ -498,7 +511,9 @@ function Topbar({ menuOpen, menuRef, onMenu, onPalette, onTour, speech }) {
           <Icon name="expand_more" size="sm" className="hidden text-muted md:inline-block" />
         </button>
       )}>
-        <MenuItem icon="badge" onClick={() => navigate(`/tree?person=${ME}`)}>{t("menu.profile")}</MenuItem>
+        {/* On a server, "my profile" is the account (the tree still shows the sample family). */}
+        <MenuItem icon="badge" onClick={() => navigate(account ? "/settings" : `/tree?person=${ME}`)}>{t("menu.profile")}</MenuItem>
+        {account && <MenuItem icon="checklist" onClick={() => navigate("/welcome")}>{t("gs.resume")}</MenuItem>}
         <MenuItem icon="tune" onClick={() => navigate("/settings")}>{t("menu.settings")}</MenuItem>
         <MenuItem icon="keyboard" hint="?" onClick={() => open(<ShortcutsDialog />)}>{t("menu.shortcuts")}</MenuItem>
         <MenuItem icon="history" onClick={() => open(<HistoryDialog />)}>{t("history.title")}</MenuItem>
@@ -517,7 +532,12 @@ function Topbar({ menuOpen, menuRef, onMenu, onPalette, onTour, speech }) {
         </div>
         <MenuDivider />
         <MenuItem icon="home" onClick={() => navigate("/")}>{t("menu.landing")}</MenuItem>
-        <MenuItem icon="logout" onClick={() => { session.signOut(); toast(t("shell.signedOut"), { sub: t("shell.signedOutSub"), icon: "logout" }); navigate("/login"); }}>{t("menu.signout")}</MenuItem>
+        {/* Same place as signing out from the public pages: the welcome page. */}
+        <MenuItem icon="logout" onClick={() => {
+          session.signOut();
+          toast(t("shell.signedOut"), { sub: t(account ? "shell.signedOutServer" : "shell.signedOutSub"), icon: "logout" });
+          navigate("/");
+        }}>{t("menu.signout")}</MenuItem>
       </Menu>
     </header>
   );

@@ -1,4 +1,5 @@
 /* Shared UI primitives styled with Tailwind. */
+import { createContext, useContext, useState } from "react";
 import { Link } from "react-router-dom";
 import { ME } from "../data";
 import { cx } from "../lib/format";
@@ -117,14 +118,15 @@ export function Chips({ scroll, className, children, ...rest }) {
 }
 
 /** Segmented tab control. items: [[key, label]]. The selected item is always navy. */
-export function Tabs({ items, value, onChange, label, role = "tablist", className, itemClassName }) {
+/** With `idPrefix` and `panelId`, each tab is `${idPrefix}-${key}` and controls the panel (which should use aria-labelledby). */
+export function Tabs({ items, value, onChange, label, role = "tablist", className, itemClassName, idPrefix, panelId }) {
   return (
     <div role={role} aria-label={label} className={cx("inline-flex flex-wrap gap-0.5 rounded-xl border border-sec-line bg-sec-soft p-1", className)}>
       {items.map(([key, text, aria]) => {
         const sel = value === key;
         return (
-          <button key={key} type="button" aria-label={aria}
-            {...(role === "tablist" ? { role: "tab", "aria-selected": sel } : { "aria-pressed": sel })}
+          <button key={key} type="button" aria-label={aria} id={idPrefix ? `${idPrefix}-${key}` : undefined}
+            {...(role === "tablist" ? { role: "tab", "aria-selected": sel, "aria-controls": panelId } : { "aria-pressed": sel })}
             onClick={() => onChange(key)}
             className={cx(
               "inline-flex min-h-10 items-center justify-center gap-1 rounded-[9px] border-0 px-3.5 py-2 text-[.88rem] cursor-pointer easy:min-h-12",
@@ -286,7 +288,18 @@ export function ErrorText({ id, children }) {
   return <span id={id} className="flex items-center gap-1 text-xsmall text-rose"><Icon name="error" size="xs" /> {children}</span>;
 }
 
+/** Lets the input inside a Field point at its help and error lines, so screen readers read them with the field. */
+const FieldContext = createContext(null);
+
+/** aria-describedby for the input with this id: its own ids first, then the Field's help and error lines. */
+function useDescribedBy(id, own) {
+  const f = useContext(FieldContext);
+  const ids = [own, f && id === f.id ? f.describedBy : null].filter(Boolean).join(" ");
+  return ids || undefined;
+}
+
 export function Field({ id, label, hint, help, error, className, children }) {
+  const describedBy = [help && `${id}Help`, error && `${id}Err`].filter(Boolean).join(" ") || null;
   return (
     <div className={cx("grid gap-1.5", className)}>
       {label && (
@@ -294,21 +307,42 @@ export function Field({ id, label, hint, help, error, className, children }) {
           <span>{label}</span>{hint && <span className="text-xsmall font-medium text-pine-700">{hint}</span>}
         </label>
       )}
-      {children}
-      {help && <span className="text-xsmall text-muted">{help}</span>}
+      <FieldContext.Provider value={id ? { id, describedBy } : null}>{children}</FieldContext.Provider>
+      {help && <span id={id && `${id}Help`} className="text-xsmall text-muted">{help}</span>}
       <ErrorText id={id && `${id}Err`}>{error}</ErrorText>
     </div>
   );
 }
 
 export function Input({ className, invalid, ...rest }) {
-  return <input className={cx(inputCls, className)} aria-invalid={invalid || undefined} {...rest} />;
+  const describedBy = useDescribedBy(rest.id, rest["aria-describedby"]);
+  return <input className={cx(inputCls, className)} aria-invalid={invalid || undefined} {...rest} aria-describedby={describedBy} />;
+}
+
+/** A password box with a key icon and a show / hide button beside it (outside the label, so the field's name stays
+ *  just "Password"). The button keeps one name and reports its state with aria-pressed. */
+export function PasswordInput({ id, className, ...rest }) {
+  const t = useT();
+  const [show, setShow] = useState(false);
+  return (
+    <div className={cx("relative [&_input]:pr-12 [&_input]:pl-9", className)}>
+      <Icon name="key" className="pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2 text-[18px]! text-muted" />
+      <Input id={id} type={show ? "text" : "password"} autoCapitalize="none" spellCheck={false} {...rest} />
+      <button type="button" aria-controls={id} aria-pressed={show} aria-label={t("au.showPass")} title={show ? t("au.hidePass") : t("au.showPass")}
+        onClick={() => setShow(!show)}
+        className="absolute top-1/2 right-1 grid size-9 -translate-y-1/2 cursor-pointer place-items-center rounded-lg border-0 bg-transparent text-sec-ink hover-fill easy:size-10">
+        <Icon name={show ? "visibility_off" : "visibility"} size="sm" />
+      </button>
+    </div>
+  );
 }
 export function Textarea({ className, invalid, ...rest }) {
-  return <textarea className={cx(inputCls, className)} aria-invalid={invalid || undefined} {...rest} />;
+  const describedBy = useDescribedBy(rest.id, rest["aria-describedby"]);
+  return <textarea className={cx(inputCls, className)} aria-invalid={invalid || undefined} {...rest} aria-describedby={describedBy} />;
 }
 export function Select({ className, children, ...rest }) {
-  return <select className={cx(inputCls, className)} {...rest}>{children}</select>;
+  const describedBy = useDescribedBy(rest.id, rest["aria-describedby"]);
+  return <select className={cx(inputCls, className)} {...rest} aria-describedby={describedBy}>{children}</select>;
 }
 
 export function InputIcon({ icon, className, children }) {

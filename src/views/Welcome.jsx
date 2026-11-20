@@ -2,17 +2,17 @@
    does, then into the dashboard. Every step can be skipped. On a family server the account remembers when they are
    done (PATCH /me onboarding_done), so existing members never see them; in the on-device demo a preference does. */
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import PublicLayout from "../components/PublicLayout";
 import { useModal } from "../components/modalContext";
 import { useToast } from "../components/toastContext";
-import { Button, Card, Check, Field, Icon, Input, InputIcon, Switch, Tag } from "../components/ui";
+import { Button, Card, Check, Field, Icon, Input, InputIcon, Select, Switch, Tag } from "../components/ui";
 import { ME } from "../data";
 import InviteDialog from "../dialogs/InviteDialog";
-import { inviteApi } from "../lib/api";
+import { archiveApi, inviteApi } from "../lib/api";
 import { cx, emailOk } from "../lib/format";
 import { LANGS, useT } from "../lib/i18n";
-import { useSession } from "../lib/session";
+import { markWelcomeSeen, useSession } from "../lib/session";
 import { FEATURES } from "../lib/site";
 import { useStore } from "../lib/store";
 import { usePrefActions } from "../lib/usePrefActions";
@@ -54,6 +54,59 @@ function Hello({ name, family, admin }) {
   );
 }
 
+/** Which person in the tree is this account? Saved at once (PATCH /me person_id); the server refuses anyone outside
+ *  the family or already linked to another account. Skipping is fine: it can be done later from Getting started. */
+function ThisIsMe() {
+  const t = useT();
+  const toast = useToast();
+  const { me, updateMe } = useSession();
+  const [people, setPeople] = useState(null);
+  const [pick, setPick] = useState("");
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+  const linked = !!me.person_id;
+  useEffect(() => {
+    if (linked) return;
+    let live = true;
+    archiveApi.people().then((list) => { if (live) setPeople(list); }, (e) => { if (live) setError(e.message); });
+    return () => { live = false; };
+  }, [linked]);
+  if (linked) return <p className="flex items-center gap-2 rounded-xl bg-surface-2 p-3 text-small"><Icon name="check_circle" size="sm" className="text-pine-700 dark:text-mint" /> {t("ob.me.linked")}</p>;
+  const save = async () => {
+    if (!pick) return;
+    setBusy(true);
+    setError("");
+    try {
+      await updateMe({ person_id: pick });
+      const p = people.find((x) => x.id === pick);
+      toast(t("ob.me.saved", { name: `${p.first} ${p.last}`.trim() }), { icon: "check_circle" });
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <div className="grid gap-3 rounded-2xl border border-line p-4">
+      <div><strong>{t("ob.me.title")}</strong><p className="text-xsmall text-muted">{t("ob.me.sub")}</p></div>
+      {!people && !error && <p role="status" className="text-small text-muted">{t("ob.me.loading")}</p>}
+      {people && people.length > 0 && (
+        <div className="flex flex-wrap items-end gap-2.5">
+          <Field id="obMe" label={t("ob.me.title")} className="min-w-55 flex-1 [&>label]:sr-only">
+            <Select id="obMe" value={pick} onChange={(e) => setPick(e.target.value)}>
+              <option value="">{t("ob.me.none")}</option>
+              {people.map((p) => <option key={p.id} value={p.id}>{`${p.first} ${p.last}`.trim()}{p.born ? ` (${p.born.slice(0, 4)})` : ""}</option>)}
+            </Select>
+          </Field>
+          <Button icon="badge" busy={busy} disabled={!pick} onClick={save}>{t("ob.me.pick")}</Button>
+        </div>
+      )}
+      {(!pick || (people && people.length === 0)) && <p className="text-xsmall text-muted">{t("ob.me.noneHelp")}</p>}
+      {error && <p role="alert" className="flex items-start gap-2 rounded-xl bg-rose-100 p-3 text-small text-rose"><Icon name="error" size="sm" />{error}</p>}
+    </div>
+  );
+}
+
 /** Name and Easy-to-Read are saved to the account; the language is this device's choice, like everywhere in the app. */
 function Profile({ draft, setDraft, error, demo }) {
   const t = useT();
@@ -68,6 +121,7 @@ function Profile({ draft, setDraft, error, demo }) {
             onChange={(e) => setDraft({ ...draft, name: e.target.value })} /></InputIcon>
         </Field>
       )}
+      {!demo && <ThisIsMe />}
       <div className="rounded-2xl border border-line p-4">
         <Switch id="obEasy" checked={draft.easy} onChange={(v) => setDraft({ ...draft, easy: v })} label={t("settings.easy")} help={t("settings.easyHelp")} />
       </div>
@@ -202,6 +256,15 @@ function Discover({ tour, setTour }) {
           </li>
         ))}
       </ul>
+      <section aria-labelledby="obPrivacy" className="grid gap-3 rounded-2xl bg-surface-2 p-4">
+        <h2 id="obPrivacy" className="flex items-center gap-2 text-[1.1rem]!"><Icon name="verified_user" className="text-sec-ink" /> {t("ob.privacy.title")}</h2>
+        <ul className="m-0 grid list-none gap-2 p-0">
+          {t("ob.privacy.list").map(([icon, text]) => (
+            <li key={icon} className="flex items-start gap-2.5 text-small"><Icon name={icon} size="sm" className="mt-0.5 text-sec-ink" />{text}</li>
+          ))}
+        </ul>
+        <Link to="/privacy-policy" className="justify-self-start text-small font-semibold">{t("ob.privacy.more")}</Link>
+      </section>
       <Check checked={tour} onChange={(e) => setTour(e.target.checked)}>
         <strong>{t("ob.discover.tour")}</strong><br /><span className="text-xsmall text-muted">{t("ob.discover.tourHelp")}</span>
       </Check>
@@ -238,7 +301,9 @@ export default function Welcome() {
   const { me, updateMe } = useSession();
   const { easy, setEasy, setPref, state } = useStore();
   const demo = !me;
-  const [i, setI] = useState(0);
+  // Getting started links straight to a step (?step=profile, ?step=family).
+  const [params] = useSearchParams();
+  const [i, setI] = useState(() => Math.max(0, STEPS.indexOf(params.get("step"))));
   const [draft, setDraft] = useState(() => ({ name: me?.name || "", easy: me ? me.easy_mode : easy }));
   const [nameError, setNameError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -246,6 +311,9 @@ export default function Welcome() {
   const headRef = useRef(null);
   const step = STEPS[i];
   const firstName = (me?.name || state.people?.find((p) => p.id === ME)?.first || "").split(" ")[0];
+
+  // Seen this visit: opening the Overview won't bring them back here again until the next visit.
+  useEffect(() => { markWelcomeSeen(); }, []);
 
   // Each new step starts at the top, with focus on it so screen readers read the new heading (not on first load).
   const moved = useRef(false);

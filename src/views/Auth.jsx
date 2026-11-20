@@ -7,7 +7,7 @@ import PublicLayout from "../components/PublicLayout";
 import { authApi, connected } from "../lib/api";
 import { useSession } from "../lib/session";
 import { useToast } from "../components/toastContext";
-import { Button, Card, Check, ErrorText, Field, Icon, IconBox, Input, InputIcon, Tabs, Tag } from "../components/ui";
+import { Button, Card, Check, ErrorText, Field, Icon, IconBox, Input, InputIcon, PasswordInput, Tabs, Tag } from "../components/ui";
 import { cx, emailOk } from "../lib/format";
 import { rich, useT } from "../lib/i18n";
 import { useStore } from "../lib/store";
@@ -58,10 +58,11 @@ function CreateAccount({ onEnter, onPending, setTab, join, invite }) {
   const { setEasy } = useStore();
   const { signIn } = useSession();
   const t = useT();
-  const [f, setF] = useState(() => ({ name: invite?.name || "", email: invite?.email || "", pass: "", easy: true, trust: false, relation: "" }));
+  const [f, setF] = useState(() => ({ name: invite?.name || "", email: invite?.email || "", pass: "", easy: true, trust: false, relation: "", family: "" }));
   const [role, setRole] = useState("elder");
-  const [show, setShow] = useState(false);
   const [errors, setErrors] = useState({});
+  // Starting a new family archive (on a server, with no invitation or family code): it can be named now.
+  const founding = connected && !invite && !join;
   const [busy, setBusy] = useState(false);
   const s = passStrength(f.pass);
   const set = (k) => (e) => setF({ ...f, [k]: e.target.type === "checkbox" ? e.target.checked : e.target.value });
@@ -71,7 +72,7 @@ function CreateAccount({ onEnter, onPending, setTab, join, invite }) {
     const e = {
       name: name ? "" : t("au.errName"),
       email: !email ? t("au.errEmailEmpty") : emailOk(email) ? "" : t("au.errEmail"),
-      pass: f.pass.length >= 10 ? "" : t("au.errPass", { n: f.pass.length }),
+      pass: f.pass.length < 10 ? t("au.errPass", { n: f.pass.length }) : f.pass.length > 128 ? t("au.errPassLong") : "",
       trust: f.trust ? "" : t("au.errTrust"),
     };
     setErrors(e);
@@ -83,13 +84,15 @@ function CreateAccount({ onEnter, onPending, setTab, join, invite }) {
     try {
       const r = await authApi.register({
         name, email, password: f.pass, easy_mode: f.easy,
-        ...(invite ? { invite_token: invite.token } : join ? { family_code: join.code, relation: f.relation.trim() || null } : {}),
+        ...(invite ? { invite_token: invite.token } : join ? { family_code: join.code, relation: f.relation.trim() || null }
+          : f.family.trim() ? { family_name: f.family.trim() } : {}),
       });
       if (r.status === "pending") { onPending(r.family_name); return; }
       const me = await signIn(r.access_token);
       if (me) onEnter(name.split(" ")[0], t(invite || join ? "au.signedInTo" : "au.newFamilyDone", { family: r.family_name }), { welcome: !me.onboarding_done });
     } catch (err) {
-      setErrors({ form: err.message });
+      // An existing account: offer the two ways back in rather than a dead end.
+      setErrors({ form: err.message, duplicate: err.status === 409 && !/asked to join/i.test(err.message) });
     } finally {
       setBusy(false);
     }
@@ -112,14 +115,9 @@ function CreateAccount({ onEnter, onPending, setTab, join, invite }) {
         </Field>
       </div>
       <div className="grid gap-1.5">
-        <label htmlFor="ca-pass" className="flex items-center justify-between gap-2 text-[.8rem] font-semibold">
-          {t("au.pass")}
-          <Button variant="ghost" size="sm" icon={show ? "visibility_off" : "visibility"} iconSize="xs" aria-pressed={show} onClick={() => setShow(!show)}>{show ? t("au.hide") : t("au.show")}</Button>
-        </label>
-        <InputIcon icon="key">
-          <Input id="ca-pass" type={show ? "text" : "password"} autoComplete="new-password" value={f.pass} onChange={set("pass")} invalid={!!errors.pass}
-            placeholder={t("au.passPh")} aria-describedby="caPassHelp" />
-        </InputIcon>
+        <label htmlFor="ca-pass" className="text-[.86rem] font-semibold">{t("au.pass")}</label>
+        <PasswordInput id="ca-pass" autoComplete="new-password" value={f.pass} onChange={set("pass")} invalid={!!errors.pass} maxLength={128}
+          placeholder={t("au.passPh")} aria-describedby={cx("caPassHelp", errors.pass && "ca-passErr")} />
         <div className="grid grid-cols-4 gap-1" aria-hidden="true">
           {[1, 2, 3, 4].map((i) => <i key={i} className={cx("h-1.25 rounded", f.pass && i <= Math.max(1, s) ? STRENGTH_COLOR[Math.max(1, s)] : "bg-surface-3")} />)}
         </div>
@@ -139,6 +137,11 @@ function CreateAccount({ onEnter, onPending, setTab, join, invite }) {
         <div className="min-w-0 flex-1"><strong className="text-small">{t("au.token")}</strong><p className="text-xsmall text-muted">{joining}</p></div>
         {!invite && <Button variant="ghost" size="sm" onClick={() => setTab("code")}>{t(connected && !join ? "au.useCode" : "au.changeCode")}</Button>}
       </div>
+      {founding && (
+        <Field id="ca-family" label={t("au.familyName")} hint={t("common.optional")} help={t("au.familyNameHelp")}>
+          <InputIcon icon="family_restroom"><Input id="ca-family" value={f.family} onChange={set("family")} maxLength={80} placeholder={t("au.familyNamePh")} /></InputIcon>
+        </Field>
+      )}
       {connected && join && !invite && (
         <Field id="ca-relation" label={t("au.relation")} hint={t("common.optional")} help={t("au.relationHelp")}>
           <Input id="ca-relation" value={f.relation} onChange={set("relation")} maxLength={120} placeholder={t("au.relationPh")} />
@@ -149,13 +152,21 @@ function CreateAccount({ onEnter, onPending, setTab, join, invite }) {
         <span className="text-xsmall text-muted">{t("au.easyHelp")}</span>
       </Check>
       <div className="grid gap-1.5">
-        <Check id="ca-trust" checked={f.trust} onChange={set("trust")} aria-invalid={!!errors.trust || undefined}>
+        <Check id="ca-trust" checked={f.trust} onChange={set("trust")} aria-invalid={!!errors.trust || undefined} aria-describedby={errors.trust ? "ca-trustErr" : undefined}>
           <strong>{t("au.trust")}</strong><br />
           <span className="text-xsmall text-muted">{t("au.trustHelp")} <Link to="/privacy-policy">{t("au.charter")}</Link> · <Link to="/terms">{t("terms.title")}</Link></span>
         </Check>
-        <ErrorText>{errors.trust}</ErrorText>
+        <ErrorText id="ca-trustErr">{errors.trust}</ErrorText>
       </div>
-      <FormError>{errors.form}</FormError>
+      <FormError>
+        {errors.form}
+        {errors.duplicate && (
+          <span className="mt-1.5 block text-ink">
+            {t("au.dupEmail")}{" "}
+            <Link to="/login">{t("au.dupLogin")}</Link> · <Link to="/forgot-password" state={{ email: f.email.trim() }}>{t("au.dupReset")}</Link>
+          </span>
+        )}
+      </FormError>
       <Button variant="primary" size="lg" block type="submit" busy={busy}>{t("au.create")} <Icon name="arrow_forward" size="sm" /></Button>
       <p className="text-center text-small text-muted">{t("auth.haveAccount")} <Link to="/login">{t("pub.login")}</Link></p>
     </form>
@@ -173,7 +184,6 @@ function SignIn({ onEnter }) {
   const { signIn } = useSession();
   const [email, setEmail] = useState("");
   const [pass, setPass] = useState("");
-  const [show, setShow] = useState(false);
   const [errors, setErrors] = useState({});
   const [busy, setBusy] = useState(false);
   const submit = async () => {
@@ -200,10 +210,9 @@ function SignIn({ onEnter }) {
         <InputIcon icon="mail"><Input id="siEmail" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} invalid={!!errors.email} placeholder="you@example.com" /></InputIcon>
       </Field>
       <Field id="siPass" label={t("au.passphrase")} error={errors.pass}>
-        <InputIcon icon="key"><Input id="siPass" type={show ? "text" : "password"} autoComplete="current-password" value={pass} onChange={(e) => setPass(e.target.value)} invalid={!!errors.pass} /></InputIcon>
+        <PasswordInput id="siPass" autoComplete="current-password" value={pass} onChange={(e) => setPass(e.target.value)} invalid={!!errors.pass} />
       </Field>
-      <div className="flex items-center justify-between gap-2.5 text-small">
-        <Check checked={show} onChange={(e) => setShow(e.target.checked)}>{t("au.showPass")}</Check>
+      <div className="flex justify-end text-small">
         <Link to="/forgot-password" state={{ email: email.trim() }}>{t("au.forgot")}</Link>
       </div>
       <FormError>{errors.form}</FormError>
@@ -237,7 +246,8 @@ function ForgotPassword() {
         <Icon name="mark_email_read" className="text-[40px]! text-sec-ink" />
         <h2>{t("auth.forgotSent")}</h2>
         <p className="max-w-100 text-small text-muted">{sent}</p>
-        {connected && <p className="max-w-100 text-xsmall text-muted">{t("auth.forgotDev")}</p>}
+        {/* Email sending isn't set up yet: developers find the link in the server console; everyone else asks an Admin. */}
+        {connected && <p className="max-w-100 text-xsmall text-muted">{t(import.meta.env.DEV ? "auth.forgotDev" : "auth.forgotAdmin")}</p>}
         <Button to="/login" icon="arrow_back">{t("auth.backToLogin")}</Button>
       </div>
     );
@@ -259,7 +269,6 @@ function ResetPassword({ token, onEnter }) {
   const t = useT();
   const { signIn } = useSession();
   const [pass, setPass] = useState("");
-  const [show, setShow] = useState(false);
   const [errors, setErrors] = useState({});
   const [busy, setBusy] = useState(false);
   const submit = async () => {
@@ -278,10 +287,9 @@ function ResetPassword({ token, onEnter }) {
   return (
     <form className="grid gap-4" noValidate onSubmit={(e) => { e.preventDefault(); submit(); }}>
       <div><h2>{t("au.resetTitle")}</h2><p className="mt-2 text-small text-muted">{t("au.resetSub")}</p></div>
-      <Field id="rpPass" label={t("au.pass")} error={errors.pass}>
-        <InputIcon icon="key"><Input id="rpPass" type={show ? "text" : "password"} autoComplete="new-password" value={pass} onChange={(e) => setPass(e.target.value)} invalid={!!errors.pass} /></InputIcon>
+      <Field id="rpPass" label={t("au.pass")} help={t("au.passHelp")} error={errors.pass}>
+        <PasswordInput id="rpPass" autoComplete="new-password" value={pass} onChange={(e) => setPass(e.target.value)} invalid={!!errors.pass} maxLength={128} />
       </Field>
-      <Check checked={show} onChange={(e) => setShow(e.target.checked)}>{t("au.showPass")}</Check>
       <FormError>{errors.form}</FormError>
       <Button variant="primary" size="lg" block type="submit" busy={busy}>{t("au.resetSave")} <Icon name="arrow_forward" size="sm" /></Button>
     </form>
@@ -337,7 +345,7 @@ export default function Auth({ mode }) {
   const navigate = useNavigate();
   const location = useLocation();
   const [params] = useSearchParams();
-  const { status, me } = useSession();
+  const { status, me, error: sessionError, retry } = useSession();
   const t = useT();
   const resetToken = connected ? params.get("token") || params.get("reset") : null;
   const inviteToken = connected ? params.get("invite") : null;
@@ -415,9 +423,16 @@ export default function Auth({ mode }) {
             <>
               {invite && <p className="flex items-start gap-2 rounded-xl bg-sec-soft p-3 text-small"><Icon name="mail" size="sm" className="text-sec-ink" /> {t("au.invited", { name: invite.name.split(" ")[0], family: invite.family_name })}</p>}
               <FormError>{inviteError}</FormError>
-              <Tabs label={t("au.options")} value={tab} onChange={setTab} className="grid! grid-cols-3"
+              {/* Signed in, but the account didn't load (server busy or unreachable): say so instead of an idle form. */}
+              {status === "error" && (
+                <div role="alert" className="grid gap-2 rounded-xl bg-rose-100 p-3 text-small text-rose">
+                  <span className="flex items-start gap-2"><Icon name="error" size="sm" /> {t("au.loadFailed", { msg: sessionError })}</span>
+                  <Button size="sm" icon="restart_alt" className="justify-self-start" onClick={retry}>{t("au.loadRetry")}</Button>
+                </div>
+              )}
+              <Tabs label={t("au.options")} value={tab} onChange={setTab} className="grid! grid-cols-3" idPrefix="authTab" panelId="authPanel"
                 items={[["signin", t("au.tabSignIn")], ["create", t("au.tabCreate")], ["code", t("au.tabCode")]]} />
-              <div id="authPanel" role="tabpanel">
+              <div id="authPanel" role="tabpanel" aria-labelledby={`authTab-${tab}`}>
                 {tab === "signin" && <SignIn onEnter={enter} />}
                 {/* Re-created when an invitation arrives, so its name and email are filled in. */}
                 {tab === "create" && <CreateAccount key={invite?.token || "new"} onEnter={enter} onPending={(family) => setPending({ family, mode })} setTab={setTab} join={join} invite={invite} />}

@@ -5,8 +5,8 @@ export const StoreContext = createContext(null);
 export const useStore = () => useContext(StoreContext);
 
 /* ---------- Kinship helpers (pure, take the current state) ---------- */
-export const fullName = (p) => (p ? `${p.first} ${p.last}` : "Unknown");
-export const initials = (p) => (p ? (p.first[0] + p.last[0]).toUpperCase() : "?");
+export const fullName = (p) => (p ? `${p.first} ${p.last}`.trim() : "Unknown");
+export const initials = (p) => (p ? ((p.first?.[0] || "") + (p.last?.[0] || "")).toUpperCase() || "?" : "?");
 export const year = (d) => (d ? d.slice(0, 4) : "");
 
 export function age(p) {

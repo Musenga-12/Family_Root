@@ -58,7 +58,7 @@ export function SiteFooter() {
           <Tag tone="mint" icon="verified_user" className="justify-self-start">{t("home.trust1")}</Tag>
         </div>
         <Column id="footExplore" title={t("footer.explore")}>
-          {SITE_PAGES.filter(([to]) => to !== "/contact" && to !== "/faq").map(([to, key]) => <PageLink key={to} to={to} label={t(key)} />)}
+          {SITE_PAGES.filter(([to]) => !["/contact", "/faq", "/privacy-policy"].includes(to)).map(([to, key]) => <PageLink key={to} to={to} label={t(key)} />)}
         </Column>
         <Column id="footAccount" title={t("pub.account")}>
           {account.map(([to, key, icon]) => <PageLink key={to + key} to={to} label={t(key)} icon={icon} />)}

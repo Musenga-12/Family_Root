@@ -95,7 +95,7 @@ export default function SiteHeader({ minimal }) {
       <div className="mx-auto flex max-w-300 items-center gap-3 px-4 py-3 sm:px-7">
         <Brand />
         {!minimal && (
-          <nav aria-label={t("pub.nav.main")} className="ml-4 hidden gap-0.5 md:flex">
+          <nav aria-label={t("pub.nav.main")} className="ml-4 hidden gap-0.5 lg:flex">
             {SITE_PAGES.map(([to, key]) => <NavLink key={to} to={to} end className={linkCls}>{t(key)}</NavLink>)}
           </nav>
         )}
@@ -125,13 +125,13 @@ export default function SiteHeader({ minimal }) {
             title={t("theme.switch", { mode: t(dark ? "theme.dark" : "theme.light") })} onClick={cycleTheme} />
           <Actions />
           {status === "signedIn" && <AccountMenu />}
-          {!minimal && <IconButton icon={open ? "close" : "menu"} label={t("common.menu")} aria-expanded={open} aria-controls="siteMenu" className="md:hidden" onClick={() => setOpen(!open)} />}
+          {!minimal && <IconButton icon={open ? "close" : "menu"} label={t("common.menu")} aria-expanded={open} aria-controls="siteMenu" className="lg:hidden" onClick={() => setOpen(!open)} />}
         </div>
       </div>
       {open && !minimal && (
         // Choosing a page closes the menu.
         <nav id="siteMenu" aria-label={t("pub.nav.main")} onClick={(e) => e.target.closest("a") && setOpen(false)}
-          className="grid animate-fade gap-1 border-t border-line px-4 py-3 md:hidden">
+          className="grid animate-fade gap-1 border-t border-line px-4 py-3 lg:hidden">
           {SITE_PAGES.map(([to, key]) => <NavLink key={to} to={to} end className={(s) => cx(linkCls(s), "py-2.5 text-[.95rem]")}>{t(key)}</NavLink>)}
           <div role="group" aria-label={t("top.language")} className="mt-2 grid grid-cols-4 gap-1.5 sm:hidden">
             {LANGS.map((l) => (

@@ -1,9 +1,11 @@
 /* Unknown address: say so plainly, then offer search and the most-used places (recognition over recall). */
 import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import PublicLayout from "../components/PublicLayout";
 import { Button, Card, Icon, Input, InputIcon, PageHeader } from "../components/ui";
 import { useT } from "../lib/i18n";
 import { NAV } from "../lib/nav";
+import { SITE_PAGES } from "../lib/site";
 
 export default function NotFound() {
   const t = useT();
@@ -35,5 +37,30 @@ export default function NotFound() {
         </ul>
       </Card>
     </>
+  );
+}
+
+/** The same message for visitors who aren't signed in: the public site's pages, and the ways in. */
+export function PublicNotFound() {
+  const t = useT();
+  const { pathname } = useLocation();
+  return (
+    <PublicLayout title={t("notFound.public")}>
+      <div className="mx-auto grid w-full max-w-200 gap-5 px-4 pt-12 pb-16 text-center sm:px-7">
+        <Icon name="explore_off" className="justify-self-center text-[48px]! text-sec-ink" />
+        <h1>{t("notFound.public")}</h1>
+        <p className="text-muted"><code className="rounded bg-surface-3 px-1.5">{pathname}</code></p>
+        <p className="text-muted">{t("notFound.publicSub")}</p>
+        <nav aria-label={t("pub.nav.main")}>
+          <ul className="m-0 flex list-none flex-wrap justify-center gap-2 p-0">
+            {SITE_PAGES.map(([to, key]) => <li key={to}><Button to={to}>{t(key)}</Button></li>)}
+          </ul>
+        </nav>
+        <div className="flex flex-wrap justify-center gap-2.5">
+          <Button to="/login" icon="login">{t("pub.login")}</Button>
+          <Button variant="primary" to="/register" icon="person_add">{t("pub.getStarted")}</Button>
+        </div>
+      </div>
+    </PublicLayout>
   );
 }

@@ -2,7 +2,7 @@
 
 /** The site's pages, in header order: [path, labelKey]. */
 export const SITE_PAGES = [["/", "pub.nav.home"], ["/about", "pub.nav.about"], ["/features", "pub.nav.features"],
-  ["/how-it-works", "pub.nav.how"], ["/faq", "pub.nav.faq"], ["/contact", "pub.nav.contact"]];
+  ["/how-it-works", "pub.nav.how"], ["/privacy-policy", "pub.nav.privacy"], ["/faq", "pub.nav.faq"], ["/contact", "pub.nav.contact"]];
 
 /** Every feature the app has today: [key, icon, route, group]. Titles and details are feat.<key> and feat.<key>.d. */
 export const FEATURES = [

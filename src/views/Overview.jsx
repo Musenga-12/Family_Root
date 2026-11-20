@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import AudioPlayer from "../components/AudioPlayer";
+import GettingStarted from "../components/GettingStarted";
 import { CancelButton, Dialog } from "../components/Modal";
 import { useCloseModal, useModal } from "../components/modalContext";
 import { useToast } from "../components/toastContext";
@@ -13,6 +14,7 @@ import AddMemoryDialog from "../dialogs/AddMemoryDialog";
 import InviteDialog from "../dialogs/InviteDialog";
 import { cx, fmtDate, fmtDur, monthName } from "../lib/format";
 import { rich, useT } from "../lib/i18n";
+import { accountPerson, useSession } from "../lib/session";
 import { age, daysToBirthday, fullName, useStore } from "../lib/store";
 
 const POLL_SEED = [7, 4, 9, 3];
@@ -182,7 +184,10 @@ export default function Overview() {
   const [hour] = useState(() => new Date().getHours());
   const greet = hour < 12 ? "greet.morning" : hour < 18 ? "greet.afternoon" : "greet.evening";
 
+  const { me: account } = useSession();
   const me = person(ME);
+  // Signed in to a family server: greet the account itself, not the sample family's Mary.
+  const greeted = account ? accountPerson(account) : me;
   const p = person;
   // The next birthday among living relatives; there may be none (e.g. a newly started archive).
   const nb = st.people.filter((x) => !x.died && x.id !== ME && x.born).sort((a, b) => daysToBirthday(a) - daysToBirthday(b))[0];
@@ -206,10 +211,10 @@ export default function Overview() {
     <>
       <Hero aria-labelledby="welcome">
         <div className="flex flex-wrap items-center gap-5">
-          <Avatar p={me} size="xl" round />
+          <Avatar p={greeted} size="xl" round />
           <div className="min-w-0 flex-1 max-sm:basis-full">
-            <h1 id="welcome">{t(greet)}, {me.first}</h1>
-            <p className="mt-2 text-muted">{t("ov.stats", { n: st.people.length })}</p>
+            <h1 id="welcome">{t(greet)}, {greeted.first}</h1>
+            <p className="mt-2 text-muted">{account ? t("ov.server") : t("ov.stats", { n: st.people.length })}</p>
           </div>
         </div>
         <div role="group" aria-label={t("ov.primary")}
@@ -221,6 +226,15 @@ export default function Overview() {
           <Button sec="directory" size="lg" icon="person_add" onClick={() => open(<InviteDialog />)}>{t("ov.invite")}</Button>
         </div>
       </Hero>
+
+      {account && <GettingStarted />}
+      {/* Everything below still reads the sample family; say so where it starts. */}
+      {account && (
+        <div className="mt-8 flex flex-wrap items-start gap-3 border-t border-line pt-5">
+          <Tag tone="outline" icon="science">{t("ov.sampleTitle")}</Tag>
+          <p className="min-w-60 flex-1 text-small text-muted">{t("ov.sampleSub")}</p>
+        </div>
+      )}
 
       <div className="mt-5.5 grid gap-5.5 md:grid-cols-2 xl:grid-cols-3">
         <FamilyPoll />

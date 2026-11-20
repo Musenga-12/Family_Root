@@ -87,7 +87,7 @@ export const authApi = {
   forgotPassword: (email) => api("/auth/forgot-password", { body: { email }, auth: false }),
   resetPassword: (token, password) => api("/auth/reset-password", { body: { token, password }, auth: false }),
   me: () => api("/me"),
-  /** body: any of { name, email, easy_mode, current_password, onboarding_done }. Resolves the updated account. */
+  /** body: any of { name, email, easy_mode, current_password, onboarding_done, person_id }. Resolves the updated account. */
   updateMe: (body) => api("/me", { method: "PATCH", body }),
 };
 
@@ -95,4 +95,21 @@ export const authApi = {
 export const inviteApi = {
   /** body: { name, email, relation?, role? }. Resolves the invitation, including the `link` to send while email is not set up. */
   create: (body) => api("/invites", { body }),
+};
+
+/* ---------- First steps (the Getting started checklist and the welcome steps) ---------- */
+export const archiveApi = {
+  /** Counts and highlights for the Overview: { counts: { people, memories, stories, unread_messages }, ... }. */
+  overview: () => api("/overview"),
+  people: () => api("/people"),
+  records: () => api("/records"),
+  /** Admins see every invitation; other editors see the ones they sent. */
+  invites: () => api("/invites"),
+};
+
+/* ---------- The bell ---------- */
+export const notificationApi = {
+  /** Resolves { items: [{ id, kind, title, body, link, created_at, read }], unread }. */
+  list: () => api("/notifications?limit=20"),
+  readAll: () => api("/notifications/read-all", { method: "POST" }),
 };

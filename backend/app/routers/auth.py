@@ -5,14 +5,14 @@ from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Response
 from fastapi.security import OAuth2PasswordRequestForm
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, field_validator
 from sqlmodel import Session, select
 
 from app.auth import (create_reset_link, create_token, get_current_user, hash_password, use_reset_token, verify_password,
                       waste_password_check)
 from app.config import settings
 from app.db import get_session
-from app.models import DEFAULT_PREFS, Family, Invite, JoinRequest, User, UserPrefs, now
+from app.models import DEFAULT_PREFS, Family, Invite, JoinRequest, Person, User, UserPrefs, now
 from app.ratelimit import limit, limiter
 from app.routers.notifications import family_users, notify
 
@@ -22,6 +22,9 @@ log = logging.getLogger("familyroots")
 # Attempts allowed per visitor (IP address) in a time window, in seconds; see app/ratelimit.py.
 SIGN_IN_LIMIT = limit("sign-in", 20, 5 * 60)
 
+# Longest password accepted when one is chosen. Argon2 work grows with length, so an endless one would tie up the server.
+PASSWORD_MAX = 128
+
 
 class RegisterIn(BaseModel):
     """Three ways in:
@@ -29,15 +32,27 @@ class RegisterIn(BaseModel):
     - family_code: ask to join; an Admin approves or declines (status "pending", no token yet).
     - neither: start a new family and become its Admin.
     """
-    name: str = Field(min_length=1)
+    name: str = Field(min_length=1, max_length=120)
     email: EmailStr
-    password: str = Field(min_length=10)  # same rule as the Create account form
+    password: str = Field(min_length=10, max_length=PASSWORD_MAX)  # same rule as the Create account form
     easy_mode: bool = False
     invite_token: str | None = None
     family_code: str | None = None
-    family_name: str | None = None  # for a new family
+    family_name: str | None = Field(None, max_length=80)  # for a new family
     relation: str | None = None  # join requests: "Cousin (Campbell side)"
     note: str | None = Field(None, max_length=500)  # join requests: a word for the Admin
+
+    @field_validator("name")
+    @classmethod
+    def name_not_blank(cls, v: str) -> str:
+        if not v.strip():
+            raise ValueError("Your name can't be empty")
+        return v.strip()
+
+    @field_validator("family_name")
+    @classmethod
+    def tidy_family_name(cls, v: str | None) -> str | None:
+        return (v or "").strip() or None
 
     model_config = {"json_schema_extra": {"examples": [
         {"name": "Fiona Campbell", "email": "fiona@example.com", "password": "familyroots123", "family_name": "Campbell family"},
@@ -103,9 +118,19 @@ def onboarding_done(db: Session, user: User) -> bool:
     return not p or (p.data or {}).get("onboarding") != "pending"
 
 
+def new_family_code(db: Session, last: str) -> str:
+    """"MCK-8294": three letters from the founder's surname (padded for short or non-Latin names), then four digits."""
+    letters = "".join(c for c in last.upper() if "A" <= c <= "Z")[:3]
+    prefix = (letters + "FAM")[:3] if letters else "FAM"
+    code = f"{prefix}-{secrets.randbelow(9000) + 1000}"
+    while family_by_code(db, code):
+        code = f"{prefix}-{secrets.randbelow(9000) + 1000}"
+    return code
+
+
 @router.post("/auth/register", response_model=RegisterOut, status_code=201, dependencies=[Depends(limit("register", 10, 60 * 60))])
 def register(body: RegisterIn, response: Response, db: Session = Depends(get_session)):
-    email, name = body.email.lower(), body.name.strip()
+    email, name = body.email.lower(), body.name
     if db.exec(select(User).where(User.email == email)).first():
         raise HTTPException(409, "An account with this email already exists")
     if pending_request(db, email):
@@ -139,15 +164,16 @@ def register(body: RegisterIn, response: Response, db: Session = Depends(get_ses
         response.status_code = 202  # accepted, waiting for an Admin
         return RegisterOut(status="pending", family_name=family.name)
 
-    last = name.split()[-1]
-    code = f"{last[:3].upper()}-{secrets.randbelow(9000) + 1000}"
-    while family_by_code(db, code):
-        code = f"{last[:3].upper()}-{secrets.randbelow(9000) + 1000}"
-    family = Family(name=body.family_name or f"{last} family", code=code)
+    *first, last = name.split()
+    family = Family(name=body.family_name or f"{last} family", code=new_family_code(db, last))
     db.add(family)
     db.flush()
+    # The founder is the first person in the new tree, so "Immediate family" sharing and their privacy choices apply to them.
+    founder = Person(family_id=family.id, first=" ".join(first) or last, last=last if first else "")
+    db.add(founder)
+    db.flush()
     user = User(family_id=family.id, email=email, name=name, password_hash=hash_password(body.password),
-                role="Admin", easy_mode=body.easy_mode)  # whoever starts a family looks after it
+                role="Admin", easy_mode=body.easy_mode, person_id=founder.id)  # whoever starts a family looks after it
     db.add(user)
     db.flush()
     start_onboarding(db, user)
@@ -216,6 +242,7 @@ class MeUpdate(BaseModel):
     easy_mode: bool | None = None
     current_password: str | None = None
     onboarding_done: bool | None = None  # true when the welcome steps are finished or skipped
+    person_id: str | None = None  # "this is me": a person in your family's tree that no other account has claimed
 
     model_config = {"json_schema_extra": {"examples": [{"easy_mode": True}]}}
 
@@ -235,6 +262,13 @@ def update_me(body: MeUpdate, user: User = Depends(get_current_user), db: Sessio
         user.email = email
     if body.easy_mode is not None:
         user.easy_mode = body.easy_mode
+    if body.person_id is not None and body.person_id != user.person_id:
+        person = db.get(Person, body.person_id)
+        if not person or person.family_id != user.family_id or person.deleted_at:
+            raise HTTPException(404, "Person not found")
+        if db.exec(select(User).where(User.person_id == person.id, User.id != user.id, User.removed_at == None)).first():  # noqa: E711
+            raise HTTPException(409, "Another account is already linked to this person")
+        user.person_id = person.id
     if body.onboarding_done is not None:
         p = user_prefs(db, user)
         p.data = {**(p.data or DEFAULT_PREFS), "onboarding": "done" if body.onboarding_done else "pending"}  # new dict, so the JSON column saves
@@ -288,7 +322,7 @@ class ForgotIn(BaseModel):
 
 class ResetIn(BaseModel):
     token: str
-    password: str = Field(min_length=10)
+    password: str = Field(min_length=10, max_length=PASSWORD_MAX)
 
     model_config = {"json_schema_extra": {"examples": [
         {"token": "the part after ?reset= in the link from the server console", "password": "familyroots123"}]}}
@@ -296,7 +330,7 @@ class ResetIn(BaseModel):
 
 class ChangeIn(BaseModel):
     current_password: str
-    new_password: str = Field(min_length=10)
+    new_password: str = Field(min_length=10, max_length=PASSWORD_MAX)
 
     # Keeps the demo password, so trying this in /docs doesn't lock you out of the sample account.
     model_config = {"json_schema_extra": {"examples": [{

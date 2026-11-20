@@ -1,9 +1,8 @@
 /* Route table. Each screen loads on first visit, keeping the initial download small. */
 import { Suspense, lazy } from "react";
-import { Navigate, Outlet, Route, Routes, useLocation } from "react-router-dom";
+import { Navigate, Outlet, Route, Routes } from "react-router-dom";
 import Layout from "./components/Layout";
-import { Button, Icon } from "./components/ui";
-import { useT } from "./lib/i18n";
+import RequireSession, { Loading } from "./components/RequireSession";
 import { useSession } from "./lib/session";
 
 const About = lazy(() => import("./views/public/About"));
@@ -21,6 +20,7 @@ const Admin = lazy(() => import("./views/Admin"));
 const Legacy = lazy(() => import("./views/Legacy"));
 const Messages = lazy(() => import("./views/Messages"));
 const NotFound = lazy(() => import("./views/NotFound"));
+const PublicNotFound = lazy(() => import("./views/NotFound").then((m) => ({ default: m.PublicNotFound })));
 const Privacy = lazy(() => import("./views/Privacy"));
 const PrivacyPolicy = lazy(() => import("./views/public/Legal").then((m) => ({ default: m.PrivacyPolicy })));
 const Settings = lazy(() => import("./views/Settings"));
@@ -30,30 +30,13 @@ const Timeline = lazy(() => import("./views/Timeline"));
 const Tree = lazy(() => import("./views/Tree"));
 const Welcome = lazy(() => import("./views/Welcome"));
 
-function Loading({ label }) {
-  const t = useT();
-  return <div className="grid min-h-[50vh] place-items-center text-muted" role="status">{label || t("common.loading")}</div>;
-}
 const loading = <Loading />;
 
-/** With a family server, the archive's screens need a signed-in account; the on-device demo needs none. */
-function RequireSession({ children }) {
-  const { status, error, retry } = useSession();
-  const location = useLocation();
-  const t = useT();
-  if (status === "demo" || status === "signedIn") return children;
-  if (status === "signedOut") return <Navigate to="/login" replace state={{ from: location.pathname + location.search }} />;
-  if (status === "loading") return <Loading label={t("session.checking")} />;
-  return (
-    <main id="main" className="grid min-h-screen place-items-center p-6">
-      <div role="alert" className="grid max-w-110 justify-items-center gap-3 text-center">
-        <Icon name="cloud_off" className="text-[44px]! text-sec-ink" />
-        <h1 className="text-[1.6rem]!">{t("session.errorTitle")}</h1>
-        <p className="text-muted">{error}</p>
-        <Button variant="primary" icon="restart_alt" onClick={retry}>{t("session.retry")}</Button>
-      </div>
-    </main>
-  );
+/** An address that doesn't exist: visitors get the public "not found" page instead of being asked to log in. */
+function Unknown() {
+  const { status } = useSession();
+  if (status === "signedOut") return <Suspense fallback={loading}><PublicNotFound /></Suspense>;
+  return <RequireSession><Layout><Suspense fallback={loading}><NotFound /></Suspense></Layout></RequireSession>;
 }
 
 export default function App() {
@@ -97,8 +80,8 @@ export default function App() {
         <Route path="/messages" element={<Messages />} />
         <Route path="/admin" element={<Admin />} />
         <Route path="/privacy" element={<Privacy />} />
-        <Route path="*" element={<NotFound />} />
       </Route>
+      <Route path="*" element={<Unknown />} />
     </Routes>
   );
 }

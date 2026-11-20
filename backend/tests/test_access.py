@@ -90,7 +90,9 @@ def test_another_family_sees_none_of_this_one(client, auth):
             "patch" if path.startswith("/consents") else "get"
         r = client.request(method, API + path, headers=other, json={"choice": 0, "status": "given", "role": "Viewer"})
         assert r.status_code == 404, (path, r.status_code, r.text)
-    for listing in ["/people", "/memories", "/albums", "/stories", "/milestones", "/events", "/records", "/threads", "/consents"]:
+    # Only the founder's own tree entry; none of the sample family.
+    assert [(p["first"], p["last"]) for p in client.get(API + "/people", headers=other).json()] == [("Fiona", "Campbell")]
+    for listing in ["/memories", "/albums", "/stories", "/milestones", "/events", "/records", "/threads", "/consents"]:
         assert client.get(API + listing, headers=other).json() == [], listing
     assert [m["name"] for m in client.get(f"{API}/members", headers=other).json()] == ["Fiona Campbell"]
     mary = member_id(client, auth("mary"), "mary")
