@@ -140,10 +140,8 @@ def test_changing_password_cancels_open_links(client, outbox, auth):
 
 
 def test_expired_link(client):
-    from sqlmodel import Session
-
     from app.auth import create_reset_link
-    from app.db import engine
+    from app.db import Session, engine
     from app.models import User
 
     with Session(engine) as db:

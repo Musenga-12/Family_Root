@@ -7,7 +7,7 @@ from typing import Annotated, Literal
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Response
 from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import BaseModel, EmailStr, Field, field_validator
-from sqlmodel import Session, select
+from sqlmodel import Session, select  # type: ignore[import-not-found]
 
 from app import mail, mail_templates
 from app.auth import (RESET_MINUTES, create_reset_link, create_token, get_current_user, hash_password, reset_token_status,
@@ -357,7 +357,7 @@ def set_password(db: Session, user: User, password: str) -> None:
 
 CANT_SEND = "We can't send emails right now. Please try again in a few minutes, or ask an Admin of your family archive for a reset link."
 NOT_SET_UP = ("This family archive can't send emails yet. Ask an Admin of your family archive to make you a link to choose a "
-              "new password (Family Administration → Reset link).")
+            "new password (Family Administration → Reset link).")
 
 
 @router.get("/auth/email-status")
@@ -389,7 +389,7 @@ def forgot_password(body: ForgotIn, db: Session = Depends(get_session)):
                 raise HTTPException(503, CANT_SEND) from e
             mail.outage.clear()
         return {"detail": "If that email has an account, a link to choose a new password is on its way. It works for "
-                          f"{RESET_MINUTES} minutes."}
+                f"{RESET_MINUTES} minutes."}
     finally:
         minimum = settings.email_min_response_ms / 1000
         while True:
