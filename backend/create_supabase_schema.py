@@ -1,3 +1,5 @@
+# Superseded: for a new, empty database run `alembic upgrade head` instead (README: Database migrations).
+# Kept for the record of how the current Supabase schema was first created.
 
 import sys
 from pathlib import Path

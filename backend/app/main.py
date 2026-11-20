@@ -38,7 +38,7 @@ check_settings(settings)  # stops a production server with unsafe settings befor
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    create_db()  # creates missing tables; switch to Alembic migrations once the schema settles
+    create_db()  # SQLite: creates missing tables. A database server: checks its migration (alembic upgrade head)
     with Session(engine) as db:
         privacy.close_due_accounts(db)  # accounts whose 30-day notice has run out
     yield

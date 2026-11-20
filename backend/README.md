@@ -163,13 +163,54 @@ after updating.
 
 Copy `routers/people.py`: add the table to `models.py`, create `routers/<name>.py`, and register it in `main.py`.
 Always filter by `user.family_id` so one family can never see another's data.
+Then add a migration for the new table (next section).
+
+## Database migrations (Alembic)
+
+The database server (Supabase) is changed only by migrations in `migrations/versions/`, never at startup. On start the
+server just checks the database is at the latest migration and logs an error if it isn't. SQLite (the tests and the
+on-device `familyroots.db`) is still set up directly from `models.py`.
+
+The database address comes from `DATABASE_URL` in `.env`, as for the app; it is never written into `alembic.ini`.
+
+```powershell
+cd backend
+.venv\Scripts\Activate.ps1
+alembic current                          # where the database is
+alembic history                          # every migration
+alembic upgrade head --sql               # print the SQL a schema migration would run, without running it
+alembic upgrade head                     # apply (take a Supabase backup first)
+```
+
+Changing the schema:
+
+1. Change `app/models.py`.
+2. `alembic revision --autogenerate -m "what changed"`, then **read the new file** in `migrations/versions/`:
+   autogenerate can miss renames (it sees a drop plus an add) and never knows how to fill a new NOT NULL column.
+3. `python -m pytest tests/test_migrations.py` checks the migrations still build exactly the models.
+4. Back up Supabase, then `alembic upgrade head`.
+
+Never edit a migration that has already been applied somewhere; add a new one instead.
+
+**Existing Supabase database (one time).** It was created before migrations, with the same tables as `0001`. After
+checking it matches (no differences between it and `models.py`), mark it instead of upgrading it, then apply the rest:
+
+```powershell
+alembic stamp 0001     # records "already at 0001"; creates the alembic_version table, changes nothing else
+alembic upgrade head   # 0002: links each founder of an empty tree to a first person in it
+                       # 0003: removes TRUNCATE/REFERENCES/TRIGGER from Supabase's anon and authenticated roles
+```
+
+A **new, empty** database: `alembic upgrade head` builds everything (instead of `create_supabase_schema.py`).
+
+`0001` can't be downgraded: that would drop every table.
 
 ## Tests and lint
 
 ```powershell
 cd backend
 .venv\Scripts\Activate.ps1
-python -m pytest -q      # about 270 tests, 1-3 minutes
+python -m pytest -q      # about 370 tests, 2-4 minutes
 ruff check .
 ```
 

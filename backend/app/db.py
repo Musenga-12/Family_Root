@@ -1,12 +1,16 @@
 """Database engine and the per-request session dependency."""
+import logging
 from collections.abc import Generator
+from pathlib import Path
 
 from sqlalchemy import event, inspect, text
 from sqlmodel import Session, SQLModel, create_engine
 
 from app.config import settings
 
+log = logging.getLogger("familyroots")
 SQLITE = settings.database_url.startswith("sqlite")
+ALEMBIC_INI = Path(__file__).resolve().parent.parent / "alembic.ini"
 # check_same_thread is only needed for SQLite; pre_ping replaces dropped connections on a database server.
 engine = create_engine(settings.database_url, connect_args={"check_same_thread": False} if SQLITE else {},
                        pool_pre_ping=not SQLITE)
@@ -50,9 +54,28 @@ def add_missing_indexes() -> None:
                     index.create(conn, checkfirst=True)
 
 
+def migration_status() -> tuple[str | None, str]:
+    """(revision the database is at, latest revision in migrations/). The first is None before `alembic stamp`."""
+    from alembic.config import Config
+    from alembic.runtime.migration import MigrationContext
+    from alembic.script import ScriptDirectory
+
+    head = ScriptDirectory.from_config(Config(str(ALEMBIC_INI))).get_current_head()
+    with engine.connect() as conn:
+        return MigrationContext.configure(conn).get_current_revision(), head
+
+
 def create_db() -> None:
+    """At startup. A database server (Supabase) is only ever changed by reviewed migrations (`alembic upgrade head`,
+    see README), so here it is just checked. SQLite (tests, the on-device copy) is still set up directly."""
     from app import models  # noqa: F401  (registers the tables)
 
+    if not SQLITE:
+        current, head = migration_status()
+        if current != head:
+            log.error("Database schema is at migration %s, but the code expects %s. Run `alembic upgrade head` in "
+                      "backend/ after reviewing it (README: Database migrations).", current or "(none)", head)
+        return
     SQLModel.metadata.create_all(engine)
     add_missing_columns()
     add_missing_indexes()
