@@ -271,6 +271,7 @@ def test_production_refuses_unsafe_email_settings():
 def test_resend_test_mode_sends_only_to_the_test_inbox(monkeypatch):
     monkeypatch.setattr(settings, "email_provider", "resend-test")
     monkeypatch.setattr(settings, "resend_api_key", "re_test_key")
+    monkeypatch.setattr(settings, "email_test_recipient", "delivered@resend.dev")
     seen = {}
 
     def handler(request):

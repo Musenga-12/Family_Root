@@ -391,8 +391,11 @@ def forgot_password(body: ForgotIn, db: Session = Depends(get_session)):
         return {"detail": "If that email has an account, a link to choose a new password is on its way. It works for "
                           f"{RESET_MINUTES} minutes."}
     finally:
-        wait = settings.email_min_response_ms / 1000 - (time.monotonic() - started)
-        if wait > 0:
+        minimum = settings.email_min_response_ms / 1000
+        while True:
+            wait = minimum - (time.monotonic() - started)
+            if wait <= 0:
+                break
             time.sleep(wait)
 
 
