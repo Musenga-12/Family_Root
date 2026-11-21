@@ -13,7 +13,8 @@ from typing import BinaryIO, Protocol
 
 import httpx
 from fastapi import HTTPException
-from fastapi.responses import FileResponse, Response
+from fastapi.responses import FileResponse, Response, StreamingResponse
+from starlette.background import BackgroundTask
 
 from app.config import settings
 
@@ -24,7 +25,7 @@ FILE_HEADERS = {"Cache-Control": "private, max-age=3600", "X-Content-Type-Option
 class Storage(Protocol):
     def put(self, rel: str, data: BinaryIO, content_type: str) -> None: ...
     def delete(self, rel: str) -> None: ...
-    def response(self, rel: str, content_type: str, filename: str) -> Response: ...
+    def response(self, rel: str, content_type: str, filename: str, byte_range: str | None = None) -> Response: ...
 
 
 class LocalStorage:
@@ -40,7 +41,8 @@ class LocalStorage:
     def delete(self, rel: str) -> None:
         (self.root / rel).unlink(missing_ok=True)
 
-    def response(self, rel: str, content_type: str, filename: str) -> Response:
+    def response(self, rel: str, content_type: str, filename: str, byte_range: str | None = None) -> Response:
+        # FileResponse answers Range requests itself (from the request), so byte_range isn't needed here.
         path = self.root / rel
         if not path.is_file():
             raise HTTPException(404, "File not found")
@@ -62,14 +64,24 @@ class SupabaseStorage:
     def delete(self, rel: str) -> None:
         self.client.delete(f"{self.base}/{rel}")
 
-    def response(self, rel: str, content_type: str, filename: str) -> Response:
-        r = self.client.get(f"{self.base}/{rel}")
-        if r.status_code == 404 or r.status_code == 400:
+    def response(self, rel: str, content_type: str, filename: str, byte_range: str | None = None) -> Response:
+        """Passed on as it arrives, never held whole in the server's memory (recordings can be 50 MB). The browser's
+        Range header goes along, so a recording can be played from the middle (seeking) as with local storage."""
+        r = self.client.send(self.client.build_request("GET", f"{self.base}/{rel}",
+                                                       headers={"Range": byte_range} if byte_range else {}), stream=True)
+        if r.status_code in (200, 206):
+            headers = {**FILE_HEADERS, "Content-Disposition": f"inline; filename*=UTF-8''{quote(filename)}", "Accept-Ranges": "bytes"}
+            for name in ("Content-Length", "Content-Range"):
+                if name in r.headers:
+                    headers[name] = r.headers[name]
+            return StreamingResponse(r.iter_bytes(), status_code=r.status_code, media_type=content_type, headers=headers,
+                                     background=BackgroundTask(r.close))
+        r.close()
+        if r.status_code == 416:  # a range past the end of the file
+            return Response(status_code=416, headers={"Content-Range": r.headers.get("Content-Range", "bytes */*")})
+        if r.status_code in (400, 404):
             raise HTTPException(404, "File not found")
-        if r.status_code >= 300:
-            raise HTTPException(502, "The file couldn't be loaded right now. Please try again.")
-        disposition = f"inline; filename*=UTF-8''{quote(filename)}"
-        return Response(r.content, media_type=content_type, headers={**FILE_HEADERS, "Content-Disposition": disposition})
+        raise HTTPException(502, "The file couldn't be loaded right now. Please try again.")
 
 
 def make_storage() -> Storage:

@@ -8,7 +8,7 @@ Files are served by GET /uploads/{id}/file?token=..., using the signed `url` ret
 import tempfile
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, UploadFile
 from fastapi.concurrency import run_in_threadpool
 from pydantic import BaseModel
 from sqlmodel import Session
@@ -139,10 +139,10 @@ def upload_info(upload_id: str, user: User = Depends(get_current_user), db: Sess
 
 
 @router.get("/{upload_id}/file", include_in_schema=True)
-def download(upload_id: str, token: str = Query(...), db: Session = Depends(get_session)):
+def download(request: Request, upload_id: str, token: str = Query(...), db: Session = Depends(get_session)):
     if not file_token_ok(token, upload_id):
         raise HTTPException(403, "This file link has expired. Reload the page to get a new one.")
     u = db.get(Upload, upload_id)
     if not u:
         raise HTTPException(404, "File not found")
-    return storage.response(u.path, u.content_type, u.filename)
+    return storage.response(u.path, u.content_type, u.filename, request.headers.get("range"))
