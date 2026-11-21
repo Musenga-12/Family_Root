@@ -31,6 +31,10 @@ Run the frontend at the same time in a second terminal (`npm run dev` in the pro
 `mary@example.com` (Admin), `michael@example.com` (Custodian), `anna@example.com` (Viewer) and the other
 members, all with password `familyroots123`.
 
+**Development only.** The password is published, so a production server (`ENVIRONMENT=production`) refuses every
+`@example.com` account and that password at sign-in, and nobody can choose it there. `seed.py` refuses to run in
+production and only ever fills an empty database (one without any family yet).
+
 ## Layout
 
 ```
@@ -58,12 +62,25 @@ app/
     suggestions.py    /people/{id}/suggestions, /suggestions ("Suggest a correction")
   realtime.py    /ws live updates for open chats
   visibility.py  who can see "All Family Branches" / "Immediate Family" / "Only Me (draft)" items
-  ratelimit.py   attempt limits on sign-in, sign-up and password reset
+  ratelimit.py   attempt limits on sign-in, sign-up and password reset; visitor addresses behind a proxy
+  storage.py     where files are kept: local folder, or a private Supabase Storage bucket (docs/STORAGE.md)
+  mail.py, mail_templates.py   email (Resend, SMTP, console) and its messages (DEPLOY.md, Email)
   validation.py  shared checks for PATCH bodies
-tests/           pytest suite (runs on a temporary copy of the sample family)
-uploads/         stored files (git-ignored)
-seed.py          sample data loader
+migrations/      Alembic migrations (the only way the production schema changes)
+scripts/
+  check_database.py          read-only report on the configured database (migration, row counts, sample accounts)
+  check_client_ip.py         after deploying: is TRUSTED_PROXY_HOPS right? (DEPLOY.md, section 7)
+  api_reference.py           writes docs/API.md from the routes
+  live_sync_check.py         the React app against a throwaway server (CI)
+  retire_sample_accounts.py  remove the sample accounts' access on a database (preview first; reversible)
+  send_test_email.py         send one sample email by hand
+  legacy_supabase/           the finished one-time move from SQLite to Supabase (kept for the record)
+tests/           pytest suite (a temporary copy of the sample family; SQLite, or PostgreSQL with TEST_DATABASE_URL)
+uploads/         stored files in development (git-ignored)
+seed.py          sample data loader (development only)
 seed_data.json   copy of SEED from src/data.js
+requirements.txt, requirements-dev.txt, constraints.txt   dependencies; install with -c constraints.txt
+.python-version  3.12 (CI and render.yaml follow it)
 ```
 
 ## Uploading a photo and creating a memory
@@ -167,20 +184,23 @@ Then add a migration for the new table (next section).
 
 ## Database migrations (Alembic)
 
-The database server (Supabase) is changed only by migrations in `migrations/versions/`, never at startup. On start the
+The database server (Neon in production) is changed only by migrations in `migrations/versions/`, never at startup. On start the
 server just checks the database is at the latest migration: in production it refuses to start if it isn't; in
 development it logs an error and carries on. SQLite (the tests and the
 on-device `familyroots.db`) is still set up directly from `models.py`.
 
-The database address comes from `DATABASE_URL` in `.env`, as for the app; it is never written into `alembic.ini`.
+The database address comes from `DATABASE_URL_DIRECT` if it is set, otherwise `DATABASE_URL` (in `.env` or the
+environment); it is never written into `alembic.ini`. On Neon, use the **direct** connection for migrations (the
+app itself uses the pooled one): DEPLOY.md, section 3.
 
 ```powershell
 cd backend
 .venv\Scripts\Activate.ps1
 alembic current                          # where the database is
 alembic history                          # every migration
-alembic upgrade head --sql               # print the SQL a schema migration would run, without running it
-alembic upgrade head                     # apply (take a Supabase backup first)
+alembic upgrade 0001 --sql               # print a schema migration's SQL without running it (0002 needs data)
+alembic upgrade head                     # apply (take a backup first: Neon restore point or pg_dump)
+alembic check                            # the database matches models.py exactly
 ```
 
 Changing the schema:
@@ -189,18 +209,15 @@ Changing the schema:
 2. `alembic revision --autogenerate -m "what changed"`, then **read the new file** in `migrations/versions/`:
    autogenerate can miss renames (it sees a drop plus an add) and never knows how to fill a new NOT NULL column.
 3. `python -m pytest tests/test_migrations.py` checks the migrations still build exactly the models.
-4. Back up Supabase, then `alembic upgrade head`.
+4. CI also runs them on PostgreSQL (`alembic upgrade head` + `alembic check`, and the whole suite).
+5. Back up the production database, then `alembic upgrade head` there (DEPLOY.md, section 3).
 
 Never edit a migration that has already been applied somewhere; add a new one instead.
 
-**Existing Supabase database (one time).** It was created before migrations, with the same tables as `0001`. After
-checking it matches (no differences between it and `models.py`), mark it instead of upgrading it, then apply the rest:
-
-```powershell
-alembic stamp 0001     # records "already at 0001"; creates the alembic_version table, changes nothing else
-alembic upgrade head   # 0002: links each founder of an empty tree to a first person in it
-                       # 0003: removes TRUNCATE/REFERENCES/TRIGGER from Supabase's anon and authenticated roles
-```
+**Migrations so far:** `0001` the baseline schema; `0002` links each founder of an empty tree to a first person in
+it (data); `0003` removes rights from Supabase's API roles, and does nothing on any other PostgreSQL (Neon). The
+existing Supabase database was at `0003` when last checked (read-only, before this work); moving its data to Neon,
+after checking it again: docs/DATA_MIGRATION.md.
 
 A **new, empty** database: `alembic upgrade head` builds everything (instead of the superseded
 `scripts/legacy_supabase/create_supabase_schema.py`).
@@ -221,13 +238,24 @@ To upgrade, in a fresh venv: install without `-c`, run the tests and `ruff check
 ```powershell
 cd backend
 .venv\Scripts\Activate.ps1
-python -m pytest -q      # about 370 tests, 2-4 minutes
+python -m pytest -q      # about 480 tests, 1-3 minutes
 ruff check .
 ```
 
-Every test runs on a fresh copy of the sample family in a temporary folder; `familyroots.db` and `uploads/` are never
-opened. Tests cover sign-in and tokens, roles on every route, other families, the privacy rules, uploads, messages,
-the archive's create/change/remove/restore flows, administration, and the responses the React app relies on.
+Every test runs on a fresh copy of the sample family in a temporary folder; `familyroots.db`, `uploads/` and the
+database in `.env` are never opened. Tests cover sign-in and tokens, roles on every route, other families, the
+privacy rules, uploads and file links, messages, the archive's create/change/remove/restore flows, administration,
+the production start-up checks, visitor addresses behind a proxy, the sample accounts, `render.yaml`, the API
+reference (`docs/API.md`) and every API call the React app makes.
+
+**On PostgreSQL**, as in production (CI does this on every push): with a PostgreSQL server you may write to,
+
+```powershell
+$env:TEST_DATABASE_URL = "postgresql+psycopg://postgres:postgres@localhost:5432/familyroots_test"
+python -m pytest -q
+```
+
+The database named there must end in `_test`; it (and `<name>_template`) is dropped and rebuilt by the migrations.
 
 ## Running for other people (production)
 
@@ -237,16 +265,21 @@ Set `ENVIRONMENT=production` in `.env`. The server then refuses to start until:
   Changing it signs everyone out once.
 - `FRONTEND_ORIGIN` and `API_BASE_URL` are the real public addresses (not localhost), and `FRONTEND_ORIGIN` /
   `EXTRA_ORIGINS` are exact `https://` addresses (no path, no wildcard).
-- `DATABASE_URL` is a PostgreSQL database (not a SQLite file) at the latest migration (`alembic upgrade head`).
+- `DATABASE_URL` (and `DATABASE_URL_DIRECT`, if set) is PostgreSQL with `?sslmode=require` (not a SQLite file), at
+  the latest migration (`alembic upgrade head`).
+- `SECRET_KEY` isn't one of the templates' placeholders; `STORAGE=supabase` has its URL and key; email isn't half set
+  up or the console.
 
-In production `/docs` is switched off, and password-reset links are no longer written to the log (until email
-sending exists, an Admin makes one with `POST /members/{id}/reset-link`). `GET /health` reports
+In production `/docs` is switched off, password-reset links and addresses are never written to the log, and the
+sample accounts and their published password are refused. Without a sending domain, "Forgot password" points to an
+Admin-made reset link (`POST /members/{id}/reset-link`; DEPLOY.md, Email). `GET /health` reports
 `{"status": "ok", "database": "ok"}`, or 503 if the database doesn't answer.
 
 Single process only, for now: the live chat (`realtime.py`) and the attempt limits (`ratelimit.py`) keep their state
 in memory. Behind a proxy, set `TRUSTED_PROXY_HOPS` so limits apply per visitor, not per proxy, and start uvicorn with
 `--no-proxy-headers` (DEPLOY.md → Visitor addresses behind a proxy).
-Uploaded files live on the server's disk under `UPLOAD_DIR`: back that folder up together with the database.
+In production, uploaded files live in a private Supabase Storage bucket (`STORAGE=supabase`, docs/STORAGE.md), never
+on the server's disk. Accounts whose 30-day closing notice has run out are closed at start-up and every 6 hours.
 
 ## Limits and rules worth knowing
 

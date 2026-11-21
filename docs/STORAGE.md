@@ -39,9 +39,10 @@ A production server refuses to start with `STORAGE=supabase` but no URL or key.
 
 ## Who can see a file
 
-1. A file is only ever attached to an item in the **same family** as its uploader, and memories, stories and legacy
-   records only take files **their author uploaded** (`family_upload` in `uploads.py`). Another family's upload id
-   answers 404, like one that doesn't exist.
+1. A file can only be attached by **the person who uploaded it**, to an item in **their own family**: memories,
+   stories, milestones, legacy records and chat messages all check this (`family_upload` in `uploads.py`, and
+   `post_message` in `threads.py`). Another family's upload id answers 404, like one that doesn't exist; someone
+   else's from the same family is refused (422).
 2. The API returns a file's link only inside an item the person may see (the item's visibility, minors'
    protections and consent decide; `app/visibility.py`).
 3. The link is `<API_BASE_URL>/api/v1/uploads/<id>/file?token=…`: the token is signed with `SECRET_KEY`, names that
@@ -58,8 +59,6 @@ Things to know:
 
 - A link works for anyone holding it until it expires (12 hours): like a photo shared in a message, it can be
   forwarded. Shorten `FILE_LINK_MINUTES` for more caution; the app fetches fresh links when it loads.
-- Chat messages may attach any image from the **same family** (used to share a photo someone can see into a chat);
-  memories, stories and records only their author's own uploads.
 - **Files are never removed from the bucket.** Deleting an item hides it (soft delete, so Undo works), and closing an
   account keeps the family's archive; in both cases the file stays stored (only a failed upload is cleaned up).
   Whether closing an account should also erase that person's own uploads is a product and privacy decision that

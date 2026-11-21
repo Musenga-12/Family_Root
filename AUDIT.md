@@ -1,128 +1,83 @@
-# FamilyRoots — production readiness audit
+# FamilyRoots: security and deployment-readiness audit
 
-Branch `feature/public-experience`, 20 November 2026. Nothing has been committed, pushed or deployed. The live Supabase
-database was only **read** (read-only transaction); nothing in it was changed.
+Scope: the whole repository (web app, `backend/`, migrations, CI, documentation), prepared for Vercel (web app),
+Render (API), Neon (PostgreSQL) and Supabase Storage (files). Work on branch `chore/deploy-readiness`, November 2026.
+No live database, bucket or hosted service was connected to or changed; nothing was pushed or deployed.
 
-## 1. Initial audit (before this work)
+## Architecture (as built)
 
-| Area | Status found | Evidence |
-|---|---|---|
-| Public site (home, about, features, how it works, FAQ, contact, privacy policy, terms) | Fully functional | `src/views/Landing.jsx`, `src/views/public/*`; Landing tests pass |
-| Registration, sign in, family code, invitations, forgot / reset password | Fully functional (server) | `src/views/Auth.jsx` uses `authApi`; Auth tests (4 files) pass; backend `test_auth.py` |
-| Welcome steps after sign-up | Fully functional | `src/views/Welcome.jsx` (hello, profile, family, discover + privacy, done) |
-| **Overview, Tree, Directory, Memories, Stories, Timeline, Legacy, Messages, Calendar, Admin, Privacy, Settings** | **Broken for real users: placeholder (sample) data** | Read `state` from `src/data.js` SEED in localStorage even when signed in; only Auth, Welcome, GettingStarted and the bell called the API (`grep "lib/api" src`). A new family saw the Mackenzie family as theirs. |
-| Backend endpoints for all of the above | Fully functional, unused by the screens | 15 routers; 359 tests passing |
-| Authentication, authorization, family isolation | Fully functional | `app/auth.py`, `app/visibility.py`; `test_access.py`, `test_privacy.py` |
-| File uploads | Partially functional for production | Content-type checked by file signature, size limits, signed expiring links; but stored only on the server's local disk |
-| Live database contents | **Needs security review** | 8 sample accounts with the published password can sign in (see §4) |
+- **Web app:** React 19 + Vite 8, hash routing, one central API client (`src/lib/api.js`). Signed in, the whole archive
+  comes from the API and every change is sent back (`serverArchive.js`, `useServerSync.js`); without a server it is an
+  on-device demo. Browser storage holds only the sign-in token, display preferences, form drafts, the "Recent" list,
+  recordings waiting to upload (IndexedDB) and the demo archive.
+- **API:** FastAPI, 152 endpoints in 16 routers (docs/API.md), SQLModel tables (36), Alembic migrations `0001`–`0003`,
+  JWT sign-in, Argon2 passwords, roles (Admin, Custodian, Contributor, Viewer), per-family isolation, privacy rules
+  (`visibility.py`), email (Resend/SMTP), Supabase Storage for files, in-memory rate limits and live chat (one process).
 
-## 2. Homepage and data authenticity
+## What was checked, and what was found
 
-| Displayed content | Source | Actual or sample | Action taken |
+### Already sound (verified, unchanged)
+
+- **Family isolation:** every content table has `family_id`; every item lookup checks it (all `db.get` calls in the
+  routers reviewed); another family's ids answer 404; tests cover it.
+- **Authorization:** only 10 endpoints are public, all sign-in, sign-up or recovery (plus `/health` and file links,
+  which need their own signed token); every other route needs sign-in, many a role (docs/API.md lists them).
+- **Passwords and tokens:** Argon2; tokens expire and stop working when the password changes or access is removed;
+  reset tokens are single-use and stored only as hashes; "forgot password" answers the same way and time either way.
+- **Uploads:** type allow-list checked against the file's contents, size limits, only the uploader may attach a file,
+  and only within their family; files are served through short-lived signed links, never public bucket URLs.
+- **Errors and logs:** errors are plain `{"detail"}` without internals; tokens in URLs are redacted from access logs;
+  reset links and addresses aren't logged in production; no secret value is logged.
+- **Git history:** all branches scanned for database URLs with passwords, API keys, JWTs, AWS keys and secret keys:
+  only placeholders and test values. No real `.env`, database or backup was ever committed. **No rotation needed.**
+
+### Found and fixed
+
+| # | Finding | Severity | Fix (commit) |
 |---|---|---|---|
-| Hero headline, description, buttons | `i18n-public.js` | E. Static marketing | Kept; added "Look around a sample family first" for visitors |
-| Hero and topic photos | bundled `src/assets/photos` (Unsplash, credited) | E. Static marketing, labelled with credits | Kept |
-| "Grandma's voice", "Wedding, 1978" floating cards | static | E. Illustrative | Kept (decorative, not presented as anyone's data) |
-| Features, how it works, trust points, FAQ | `i18n-public.js`, `lib/site.js` | E. Static; every feature listed exists | Kept |
-| Statistics, testimonials, user counts | none exist | — | None invented (verified) |
-| Header / CTA for signed-in members | session `me` from `GET /me` | A. Real | Kept |
-| **Overview** greeting, relatives count | was SEED | was B/C | Now `/people` (A) |
-| Overview mini tree (John, Sarah, Michael…) | hard-coded ids in `Overview.jsx` | B | Built from the member's own relationships |
-| Overview "Annual Summer Reunion, 18 going" | hard-coded | B/D | Next real event from `/events`, or "No gatherings planned yet" |
-| Overview poll and weekly question | `i18n` strings | B | `/polls/current`, `/prompts/current`; Admins/Custodians can create them; hidden when none |
-| Overview "Guardian: Sarah Mackenzie", "14 Restored Photographs" | hard-coded | B | Real Admins' names; real counts |
-| Overview mood check-in | local only | D | Saved with `PUT /mood` |
-| All other app screens | SEED | B/C | Server data via `serverArchive.js` |
-| Interface text naming the sample family ("All Mackenzie Relatives", "Recommended for Mary", recording prompts, timeline spotlight, tree highlights) | `i18n-ui.js`, views | B | Made family-neutral or data-driven |
-| Sample family in the demo / "Look around" mode | `src/data.js` | C, clearly labelled | Kept, with a banner: "Nothing you do here is saved or shared" |
-| Mackenzie family in the Supabase database | `seed.py` | C. Seeded demo data in production | Not deleted; reversible removal script prepared (needs approval) |
+| 1 | Behind Render's proxy, the usual `--forwarded-allow-ips '*'` trusts the first `X-Forwarded-For` entry, which the visitor writes: anyone could dodge the sign-in limits; without it, everyone would share one limit | High | `TRUSTED_PROXY_HOPS`, counted from the right; `--no-proxy-headers`; an after-deploy check script (8f8bc58) |
+| 2 | The production template's `SECRET_KEY` placeholder passed the start-up check: a server started from an unedited copy signs tokens with a published key | High | every template key and placeholder-like key refused (2dbda8a) |
+| 3 | Sample accounts with a published password could exist in the live database and sign in | High | production refuses `@example.com` accounts and that password; `seed.py` never runs in production or on a non-empty database (0f9bcaf) |
+| 4 | Production accepted a SQLite database (wiped on redeploy) and an out-of-date schema | High | refused at start-up (8f8bc58) |
+| 5 | A Neon (or any) database address without TLS would be accepted | Medium | `sslmode=require` required in production (42871d7) |
+| 6 | CORS allowed credentials and any method/header | Medium | exact origins, no credentials, only the app's methods and headers (8f8bc58) |
+| 7 | Signing out left drafts, the "Recent" list and recordings (never removed after upload) on the device | Medium | cleared on sign-out, and when a different account signs in (e635b1b) |
+| 8 | No Content-Security-Policy or security headers on the web app | Medium | strict CSP from `VITE_API_URL`, HSTS, frame-ancestors, Permissions-Policy (a002073) |
+| 9 | Accounts due for closing (30-day notice) were only closed when the server restarted | Medium | also every 6 hours while running (0e111cc) |
+| 10 | Directory crashed for any relative without a birth date (common on a real server, never in the demo) | Medium (production-only) | unknown dates sort last (a186ba4) |
+| 11 | Chat search was case-sensitive on PostgreSQL (case-insensitive on SQLite) and treated `%`/`_` as wildcards | Low (production-only) | `icontains` with escaping (f379eab) |
+| 12 | Gatherings without a time sorted differently on PostgreSQL | Low | explicit order (f379eab) |
+| 13 | Files from Supabase were held whole in memory (up to 50 MB) and couldn't be played from the middle | Low | streamed, with `Range` (ccc5650) |
+| 14 | `postgresql://` URLs (as Neon shows them) needed the missing psycopg2 driver; no pooled/direct handling | Blocker for Neon | normalised to psycopg 3; pooler-safe settings; `DATABASE_URL_DIRECT` for migrations (42871d7) |
+| 15 | No Render/Vercel configuration; Python and dependencies not pinned; `.coverage` tracked | Blocker | `render.yaml`, `vercel.json`, `.python-version`, `constraints.txt` (8ac5f4f, 1d9bc7d, a002073) |
+| 16 | Documentation described a Supabase database, said email wasn't built, and missed the newer settings | — | README, DEPLOY, backend README, API reference, storage and migration guides rewritten |
 
-Rule checks: no fake statistics (verified); public visitors see no family data (the archive is behind `RequireSession`,
-which waits for the member's own archive and never shows the sample to a signed-in member, `RequireSession.test.jsx`);
-empty, loading and error states exist on every screen (`EmptyFamily.test.jsx` opens all 12 for a founder-only family
-and fails on any sample name).
+## Verification
 
-## 3. What changed
+- **Local (Windows):** backend 478 tests passed (SQLite), ruff clean, dependencies installed exactly from
+  `constraints.txt`; frontend lint clean, 132 tests passed, default, Vercel-production and single-file builds.
+- **Real browser (Chromium) against a throwaway API**, with the built app served under `vercel.json`'s headers and the
+  CSP enforced: all 12 screens, sign-in, a photo upload, recording playback with `Range`, the print window; no CSP
+  violations, page errors or console errors. Every HTTP method the app uses passes CORS from the app's origin and is
+  blocked from any other.
+- **Mutation checks:** the tests fail if the proxy logic trusts the first address, if sign-out stops clearing data,
+  or if search goes back to plain `LIKE`.
+- **Not run here (prepared for CI):** the suite on PostgreSQL, `alembic upgrade head`/`check` on PostgreSQL, the
+  production start-up with the Render start command, and anything on Linux. Running a local PostgreSQL wasn't
+  possible in this environment; `.github/workflows/ci.yml` runs all of it on Ubuntu with PostgreSQL 17 on the first
+  push. The migrations were rendered as PostgreSQL SQL offline (all native types), and SQLite-only behaviour was
+  searched for and fixed (11, 12).
 
-**Frontend**
-- `src/lib/serverArchive.js` (new): loads the whole archive from the API and turns every change into the matching
-  API call (create, edit, delete, restore, favourite, verify, RSVP, messages, reactions, roles, invites, privacy, poll,
-  prompt). Photos and recordings are uploaded. Undo after a delete restores the same item.
-- `src/lib/useServerSync.js` (new): ordered save queue, temporary-id → server-id mapping, save status, reload after a
-  refused change, refresh when the tab returns and every 20 s on Messages.
-- `StoreProvider`, `SessionProvider`, `RequireSession`, `data.js` (`ME` follows the account), `Layout` (save status,
-  trial banner, refused-change notice; the "screens still show the sample" note is gone).
-- Screens: Overview rewritten to real data with first-time states; Tree, Directory, Privacy cope with unknown or
-  private birth dates; Timeline, Recording studio, Settings (server export, no "restore sample" on a server), Privacy
-  (server export), Landing (try the sample), Getting started (ticks steps as soon as they're done), Welcome (records idea).
+## Open, and who decides
 
-**Backend**
-- `app/storage.py` (new): `STORAGE=local` or a private Supabase Storage bucket; uploads stream through it.
-- `app/main.py`: tokens hidden in access logs; production warning while sample accounts can sign in.
-- `app/config.py`: storage settings and start-up checks.
-- `scripts/check_database.py`, `scripts/retire_sample_accounts.py`, `scripts/live_sync_check.py` (new).
-
-**Database**: no schema change, no migration, no data change.
-
-**Configuration**: `backend/.env.production.example`, `.env.production.example`, `.gitignore` (all `.env.*` except
-templates, `.coverage`), CI job for the end-to-end check, `DEPLOY.md`, README.
-
-## 4. Live database (read-only check)
-
-`backend/scripts/check_database.py` against the configured Supabase database:
-- PostgreSQL on Supabase (EU Central pooler); every table and column in `app/models.py` exists; migration `0003` = code `0003`.
-- 4 families, 10 accounts: **8 sample (`@example.com`), 2 real**; 0 uploads.
-- `retire_sample_accounts.py` (preview only) lists exactly the 8 Mackenzie accounts.
-
-## 5. Security
-
-| Check | Result |
-|---|---|
-| Passwords | Argon2 (`pwdlib`), 10+ characters, constant-time response for unknown emails |
-| Tokens | JWT with expiry; file links can't sign in; removed members and changed passwords end sessions |
-| Family isolation and roles | every query filtered by `family_id`; role checks; covered by 36 tests |
-| Privacy visibility, minors | `visibility.py`; `test_privacy.py` |
-| Files | type checked by content, size limits, signed 12 h links, private cache headers, `nosniff` |
-| CORS | only `FRONTEND_ORIGIN` / `EXTRA_ORIGINS` |
-| Rate limits | sign-in, sign-up, reset, family code, invite links (in memory, one instance) |
-| API docs | hidden in production |
-| Secrets in Git | none tracked, none in history; `.gitignore` tightened |
-| **Fixed**: file-link tokens in access logs | redacted (`RedactTokens`, `tests/test_logging.py`) |
-| **Open**: sample accounts in the live database | removal script ready, needs approval |
-| NOT VERIFIED | penetration testing; Content-Security-Policy header (not added: needs testing on the real host) |
-
-## 6. Files and media
-
-Files were stored on the server's disk (`UPLOAD_DIR`), which most hosts wipe on deploy. Added `STORAGE=supabase`:
-a private bucket, files still served only through the signed link check. Tested against a stand-in for Supabase
-(`tests/test_storage.py`). **NOT VERIFIED** against a real Supabase bucket (needs a bucket and the service key).
-
-## 7. Test results (run 20 Nov 2026)
-
-| Command | Result |
-|---|---|
-| `npm test` | 97 passed, 2 skipped (the live tests, run separately below) |
-| `npm run lint` | no problems |
-| `npm run build:all` | `dist/` and `release/FamilyRoots.html` built |
-| `backend\.venv\Scripts\python.exe -m pytest backend\tests --cov=app --cov-report=term-missing -q` | 366 passed, 8 skipped, 99 % coverage |
-| `ruff check .` (backend) | all checks passed |
-| `python scripts/live_sync_check.py` | 2 passed: every kind of change saved to a real (throwaway) server; a new family sees only its founder |
-| Layout at 375 px and 820 px (headless Chrome: home, overview, tree, messages) | no horizontal scrolling, controls usable |
-
-NOT VERIFIED: the signed-in app in a real browser against a running server (tests cover it with jsdom and the live
-API test); screen-reader pass; real email delivery (not built).
-
-## 8. Remaining blockers before release
-
-1. **Approve and run** `scripts/retire_sample_accounts.py --apply` on the live database (or remove the sample family another way).
-2. Create a private Supabase Storage bucket and set `STORAGE=supabase` (or use a persistent disk).
-3. Choose hosts (`DEPLOY.md` → Choosing hosts) and set the production variables from the templates.
-4. Email sending is not built: invitations and resets rely on copied links.
-5. New interface text is English-only in French, Kinyarwanda and Swahili.
-
-## 9. Next steps
-
-1. Review this branch; approve a commit.
-2. Approve step 8.1 (I can run it).
-3. Create the bucket; deploy the server, then the web app (`DEPLOY.md` §1–2).
-4. Run the checklist in `DEPLOY.md` §3.
+1. **Is there real family data in the Supabase database?** Not checked (no live access). The owner runs the read-only
+   `backend/scripts/check_database.py` against it (docs/DATA_MIGRATION.md, step 1) before choosing "start Neon empty"
+   or "move the data".
+2. **Sample accounts in the live database:** if present, retire them with `scripts/retire_sample_accounts.py
+   --apply` (reversible), with the owner's approval. They can't sign in to the new production server either way.
+3. **`TRUSTED_PROXY_HOPS` on Render** is provisional (1) until measured with `scripts/check_client_ip.py`.
+4. **Erasing files of closed accounts and deleted items** (they stay in the bucket today): a product/privacy decision.
+5. **Sign-in token in `localStorage`:** acceptable under the strict CSP; moving it to an HttpOnly cookie would need a
+   CSRF design and is a larger change.
+6. Known limitations (one API instance, email needs a domain, no email confirmation, partial translations, chat
+   refreshes every 20 s instead of using the existing WebSocket): DEPLOY.md → Known limitations.

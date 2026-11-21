@@ -1,45 +1,90 @@
 # FamilyRoots – Living Archive
 
 A private archive for a family's tree, photos, stories, records and conversations (HCD Group 3).
-Built with **React 19**, **Tailwind CSS v4** and **React Router**, bundled by **Vite**.
 
-## Use it
+| Part | Technology | Where it runs in production |
+|---|---|---|
+| Web app (this folder) | React 19, React Router 7 (hash routing), Tailwind CSS 4, Vite 8; Node 24 | **Vercel** (static files) |
+| API (`backend/`) | Python 3.12, FastAPI, SQLModel/SQLAlchemy 2, Alembic, JWT + Argon2 | **Render** (one web service) |
+| Database | PostgreSQL 17 | **Neon** |
+| Photos, recordings, scans | private bucket | **Supabase Storage** |
+| Checks | GitHub Actions on Ubuntu | every push |
 
-There are three ways to use FamilyRoots. None needs an account or a server of your own.
+How they fit, what to set where, and the exact order: [DEPLOY.md](DEPLOY.md). Every endpoint:
+[docs/API.md](docs/API.md). Files: [docs/STORAGE.md](docs/STORAGE.md). Moving the old Supabase database to Neon:
+[docs/DATA_MIGRATION.md](docs/DATA_MIGRATION.md). Security review and what's still open: [AUDIT.md](AUDIT.md).
 
-| Way | How | Works offline | Installable |
-|---|---|---|---|
-| **One file** | Double-click `release/FamilyRoots.html`. Copy it to a USB stick, email it, open it on any computer. | Yes, always | No |
-| **Hosted** | Upload the contents of `dist/` to any static host (GitHub Pages, Netlify, a school server…). | Yes, after the first visit | Yes: *Install FamilyRoots app* in the account menu or Settings |
-| **Development** | `npm install` then `npm run dev`, open http://localhost:5173 | – | – |
+## Ways to use it
 
-**With a family server** (the FastAPI backend in `backend/`): copy `.env.example` to `.env.local`, start the backend
-(see `backend/README.md`), then `npm run dev`. FamilyRoots then asks you to sign in (demo accounts such as
-`mary@example.com` / `familyroots123`). Signed in, **every screen shows that family's own archive from the server**
-and every change is saved there (`src/lib/serverArchive.js`, `src/lib/useServerSync.js`): a new family starts with
-only its founder, never the sample family. The footer says "Saving…" / "Saved to the family archive"; a change the
-server refuses is explained and the screen reloads to what is saved. Visitors who aren't signed in can choose
-**Look around a sample family first** on the home page: the sample, on their device only, with a banner saying so.
-Without `VITE_API_URL`, nothing changes: no sign-in, everything on the device. To deploy, see [DEPLOY.md](DEPLOY.md).
+| Way | How | Data lives |
+|---|---|---|
+| **With a family server** (production) | the deployed web app; sign in or create an account | on the server (Neon + Supabase Storage), shared by the family |
+| **Demo** | any build without `VITE_API_URL`, or *Look around a sample family first* | in that browser only (localStorage; recordings in IndexedDB) |
+| **One file** | double-click `release/FamilyRoots.html` (`npm run build:single`) | in that browser only; works offline, never uses a server |
 
-Without a server, everything you add is saved in the browser on that device (localStorage; recordings in IndexedDB). It starts with the sample
-Mackenzie family; **Settings & Accessibility → Restore the sample family** brings it back (and can be undone).
-Use **Settings → Download my archive** or **Privacy & Consent → Download my data** to keep a copy.
+Signed in, **every screen shows that family's own archive from the server** and every change is saved there
+(`src/lib/serverArchive.js`, `src/lib/useServerSync.js`); a new family starts with only its founder, never the sample
+family. Signing out removes the account's drafts, "Recent" list and saved recordings from the device
+(`src/lib/deviceData.js`). In the demo, **Settings → Restore the sample family** brings the sample back, and
+**Settings → Download my archive** / **Privacy → Download my data** keep a copy.
 
-## Build it
+## Run it on your computer
+
+Needs Node 24 and, for the API, Python 3.12.
 
 ```bash
-npm install
-npm run build          # hosted version            -> dist/
-npm run build:single   # one-file version            -> release/FamilyRoots.html
-npm run build:all      # both
-npm run preview        # serve dist/ at http://localhost:4173 to try the hosted version
-npm run lint
+npm ci
+npm run dev                      # http://localhost:5173 — the demo, no server needed
+```
+
+With the API (two terminals; the API's own setup, including the sample family, is in [backend/README.md](backend/README.md)):
+
+```bash
+cp .env.example .env.local       # VITE_API_URL=http://localhost:8000/api/v1
+npm run dev                      # sign in as mary@example.com / familyroots123 (sample accounts: development only)
+```
+
+The web app has one setting, **`VITE_API_URL`**: the API's address ending in `/api/v1`, or unset for the demo. It is
+public (it ends up in the JavaScript), so it never holds a secret; all secrets belong to the API (DEPLOY.md →
+Environment variables). Real `.env` files are git-ignored; only `*.example` templates are committed.
+
+## Commands
+
+```bash
+npm run dev            # development server
+npm run lint           # oxlint
+npm test               # Vitest (jsdom): components, session and device data, Directory sorting, CSP, vercel.json
+npm run build          # dist/ for Vercel: adds the Content-Security-Policy built from VITE_API_URL
+npm run build:single   # release/FamilyRoots.html (offline demo)
+npm run preview        # serve dist/ at http://localhost:4173
 npm run fonts          # after adding an icon: refresh the self-hosted fonts (needs internet once)
 ```
 
-The app never loads anything from the internet. Fonts live in `src/assets/fonts`, and the icon font contains only the icons
-the app uses. If a newly added icon shows as a word (e.g. "home"), run `npm run fonts`.
+A Vercel **production** build stops unless `VITE_API_URL` is an `https://…/api/v1` address that isn't localhost.
+The app never loads anything from other sites: fonts live in `src/assets/fonts`, and the icon font contains only the
+icons the app uses (if a new icon shows as a word, e.g. "home", run `npm run fonts`).
+
+## Tests
+
+| Where | Command | What |
+|---|---|---|
+| Web app | `npm run lint`, `npm test`, `npm run build` | components, sign-in and session handling, device clean-up on sign-out, Directory sorting, the CSP and `vercel.json` |
+| API | `cd backend; python -m pytest; ruff check .` | about 480 tests: see backend/README.md → Tests and lint |
+| API on PostgreSQL | `TEST_DATABASE_URL=… python -m pytest` | the same suite with the schema built by the migrations |
+| Both together | `python backend/scripts/live_sync_check.py` | the real app against a throwaway API |
+
+CI (`.github/workflows/ci.yml`, Ubuntu) runs all of these on every push, plus PostgreSQL 17 migrations
+(`alembic upgrade head` + `alembic check`), the production start-up with the Render start command, and a Vercel-style
+production build.
+
+## Security in brief
+
+Each family sees only its own archive (checked on every request, and tested). Passwords are hashed with Argon2;
+sign-ins are signed tokens that stop working when the password changes. Photos and recordings are in a private bucket
+and reach the browser only through short-lived signed links. Sign-in, sign-up and reset attempts are limited per
+visitor. The web app runs under a strict Content-Security-Policy. A production API refuses to start with unsafe
+settings (sample keys, SQLite, unencrypted database, out-of-date schema…) and refuses the sample accounts. Details,
+and what remains open: [AUDIT.md](AUDIT.md).
 
 ## Screens
 
@@ -62,30 +107,41 @@ the app uses. If a newly added icon shows as a word (e.g. "home"), run `npm run 
 ## Project layout
 
 ```
+index.html, vite.config.js   page shell; build: service worker list, CSP (security-headers.js), single-file mode
+security-headers.js          the Content-Security-Policy and the production check of VITE_API_URL
+vercel.json                  Vercel build, security headers and caching
+render.yaml                  Render Blueprint for the API (backend/)
 src/
   main.jsx               app entry: providers, fonts, service worker registration
   App.jsx                routes (HashRouter, so URLs look like #/tree?person=anna)
-  sw.js                  service worker template (vite.config.js fills in the file list)
-  index.css              Tailwind import + design tokens (@theme) + Easy-to-Read mode
-  data.js                sample archive: people, memories, stories, milestones, records, messages, members, privacy
-  lib/store.jsx          StoreProvider / useStore(): state, update(), kinship helpers
-  lib/format.js          dates, durations, cx() class joiner
-  lib/deviceData.js      what a signed-in account leaves on the device (drafts, Recent, recordings) and clearing it
-                         on sign-out, or when a different account signs in after a sign-in ran out
-  components/ui.jsx      Button, Tag, Chip, Card, Avatar, Photo, Field, Input …
-  components/Layout.jsx  sidebar, top bar, footer
-  components/Modal.jsx   useModal().open(<Dialog/>) with focus trap
-  components/Toasts.jsx  useToast()(title, { sub, action, onAction })
-  components/AudioPlayer.jsx
+  sw.js                  service worker template (caches this site's own files only, never the API)
+  index.css              Tailwind import + design tokens (@theme), dark theme, Easy-to-Read mode
+  data.js                the demo's sample archive
+  lib/api.js             the only place that calls the API: address, sign-in token, errors
+  lib/serverArchive.js   load the family's archive from the API, and turn each change into API calls
+  lib/useServerSync.js   keeps the store in step with the server while signed in
+  lib/StoreProvider.jsx, lib/store.js        the archive state, undo/redo, kinship helpers
+  lib/SessionProvider.jsx, lib/session.js    who is signed in; sign-in, sign-out
+  lib/deviceData.js      what an account leaves on the device, and clearing it on sign-out or account change
+  lib/useDraft.js        autosaved form drafts
+  lib/audioStore.js      recordings in IndexedDB until they are uploaded
+  lib/peopleSort.js      the Directory's sort orders
+  lib/printStyle.js      the Legacy Archive print window's stylesheet (hashed into the CSP)
+  lib/i18n*.js           English, French, Kinyarwanda, Swahili
+  components/            shared UI (ui.jsx: Button, Card, Field…), Layout (sidebar, top bar), Modal, Toasts, Tour…
   dialogs/               shared dialogs (invite, add person, add memory, message)
-  views/                 one file per screen (5.1–5.7 in the design report); views/messages/ holds the chat parts
+  views/                 one file per screen; views/public/ the public pages; views/messages/ the chat parts
+  test/                  Vitest tests
+backend/                 the API: see backend/README.md
+docs/                    API.md (generated), STORAGE.md, DATA_MIGRATION.md
+.github/workflows/ci.yml checks on every push
 ```
 
 ## Styling notes
 
 - Colours, fonts and radii live in `@theme` in `src/index.css`, for example `bg-pine-900`, `text-muted`, `border-line`, `rounded-card`, `text-small`.
 - **Easy-to-Read** adds `class="easy"` to `<html>`. That raises the root font size from 15px to 18px and strengthens the muted colours. Because sizes are in rem, the whole UI scales. Use the `easy:` variant for extra tweaks (buttons use `easy:min-h-12`).
-- **One app colour**: the whole app uses one navy blue (`#1e3a8a`; a brighter `#4065c9` in the dark theme), chosen to suit every age: over 10:1 contrast with white text, clear for the common colour-vision differences, and familiar as "clickable". Under the pointer things turn a soft slate blue with navy text; clicked or selected things are navy with white text. Nothing changes colour between sections; the highlighted menu item, page title and icon show where you are. `bg-sec`, `bg-sec-soft`, `text-sec-ink`, `border-sec-line`, the hover/press utilities (`hover-fill`, `hover-tint`, `lift`) and the `primary` button all follow it. Settings → Accent colour can swap it (Forest, Ocean, Plum, Clay) for the whole app at once. Gold and rose stay for meaning (birthdays and "in loving memory", errors and alerts), always with an icon and words.
+- **One app colour** for everything clickable: Family green (`#245b4a`) by default, muted gold (`#c6a66b`, with charcoal text) in the dark theme. Under the pointer things turn a soft tint with coloured text; selected things are filled. Nothing changes colour between sections; the highlighted menu item, page title and icon show where you are. `bg-sec`, `bg-sec-soft`, `text-sec-ink`, `border-sec-line`, the hover/press utilities (`hover-fill`, `hover-tint`, `lift`) and the `primary` button all follow it. Settings → Accent colour swaps it (Heritage, Blue, Ocean, Plum, Clay) for the whole app at once, in both themes. Gold and rose stay for meaning (birthdays and "in loving memory", errors and alerts), always with an icon and words.
 - Breakpoints match the original CSS: `sm` = 700px, `md` = 980px, `lg` = 1200px.
 - When you override a component's default class from outside, add the `!` modifier (for example `className="p-0!"`). Two Tailwind classes that set the same property are resolved by stylesheet order, not by their order in `className`.
 
