@@ -3,6 +3,14 @@
 A private archive for a family's tree, photos, stories, records and conversations (HCD Group 3).
 Built with **React 19**, **Tailwind CSS v4** and **React Router**, bundled by **Vite**.
 
+## Repository branches
+
+- `main` - complete, stable, integrated application and production branch.
+- `frontend` - React, Vite, Tailwind, responsive UI, theme, API integration and frontend tests.
+- `backend` - FastAPI, SQLModel/SQLAlchemy, migrations, authentication, storage, email and backend tests.
+
+The `feature/public-experience` branch remains as a preserved integration/history branch.
+
 ## Use it
 
 There are three ways to use FamilyRoots. None needs an account or a server of your own.
