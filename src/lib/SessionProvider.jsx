@@ -2,6 +2,7 @@
    Signed in, it hands the account to the store, which then shows and saves that family's own archive. */
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ApiError, SIGNED_OUT_EVENT, authApi, connected, getToken, setToken } from "./api";
+import { claimDevice, releaseDevice } from "./deviceData";
 import { SessionContext } from "./session";
 import { useStore } from "./store";
 
@@ -12,14 +13,18 @@ const trying = () => { try { return sessionStorage.getItem(TRYING) === "1"; } ca
 const setTrying = (on) => { try { if (on) sessionStorage.setItem(TRYING, "1"); else sessionStorage.removeItem(TRYING); } catch { /* storage blocked */ } };
 
 export function SessionProvider({ children }) {
-  const { setEasy, server } = useStore();
+  const { setEasy, server, clearRecent } = useStore();
   const [me, setMe] = useState(null);
   const [error, setError] = useState(null);
   const [status, setStatus] = useState(() => (!connected ? "demo" : getToken() ? "loading" : trying() ? "demo" : "signedOut"));
 
   // Ask the server who the saved token belongs to. State only changes once it answers.
+  // Another account's drafts, Recent list and recordings left on this device are cleared first (deviceData.js).
   const load = useCallback(() => authApi.me().then(
-    (m) => { setMe(m); setError(null); setStatus("signedIn"); setTrying(false); return m; },
+    (m) => {
+      if (claimDevice(m.id)) clearRecent();
+      setMe(m); setError(null); setStatus("signedIn"); setTrying(false); return m;
+    },
     (e) => {
       // A refused sign-in (401) has already cleared the token; anything else means the server is unreachable.
       if (e instanceof ApiError && e.status === 401) { setMe(null); setStatus("signedOut"); return null; }
@@ -27,7 +32,7 @@ export function SessionProvider({ children }) {
       setStatus("error");
       return null;
     },
-  ), []);
+  ), [clearRecent]);
 
   // A sign-in saved on this device is checked once when the app opens.
   useEffect(() => {
@@ -57,12 +62,18 @@ export function SessionProvider({ children }) {
     return m;
   }, [load, setEasy]);
 
+  /** Signing out of a family server also removes what the account left on this device (drafts, Recent list,
+   *  recordings). Leaving the demo keeps the demo's own things. */
   const signOut = useCallback(() => {
+    if (getToken()) {
+      releaseDevice();
+      clearRecent();
+    }
     setToken(null);
     setTrying(false);
     setMe(null);
     if (connected) setStatus("signedOut");
-  }, []);
+  }, [clearRecent]);
 
   /** Visitors: look around the sample family on this device (see TRYING). */
   const tryDemo = useCallback(() => {

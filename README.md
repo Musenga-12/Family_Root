@@ -70,6 +70,8 @@ src/
   data.js                sample archive: people, memories, stories, milestones, records, messages, members, privacy
   lib/store.jsx          StoreProvider / useStore(): state, update(), kinship helpers
   lib/format.js          dates, durations, cx() class joiner
+  lib/deviceData.js      what a signed-in account leaves on the device (drafts, Recent, recordings) and clearing it
+                         on sign-out, or when a different account signs in after a sign-in ran out
   components/ui.jsx      Button, Tag, Chip, Card, Avatar, Photo, Field, Input …
   components/Layout.jsx  sidebar, top bar, footer
   components/Modal.jsx   useModal().open(<Dialog/>) with focus trap

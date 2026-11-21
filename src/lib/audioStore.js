@@ -54,3 +54,18 @@ export async function loadAllAudio() {
     });
   } catch { return {}; }
 }
+
+/** Forget every saved recording (signing out of a family server: they belong to that account, not this device).
+ *  Resolves false when storage is unavailable. */
+export async function clearAudio() {
+  try {
+    const d = await db();
+    await new Promise((resolve, reject) => {
+      const tx = d.transaction(STORE, "readwrite");
+      tx.objectStore(STORE).clear();
+      tx.oncomplete = resolve;
+      tx.onerror = () => reject(tx.error);
+    });
+    return true;
+  } catch { return false; }
+}
