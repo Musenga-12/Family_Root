@@ -73,8 +73,13 @@ def create_db() -> None:
     if not SQLITE:
         current, head = migration_status()
         if current != head:
-            log.error("Database schema is at migration %s, but the code expects %s. Run `alembic upgrade head` in "
-                      "backend/ after reviewing it (README: Database migrations).", current or "(none)", head)
+            problem = (f"Database schema is at migration {current or '(none)'}, but the code expects {head}. Run `alembic "
+                       "upgrade head` in backend/ after reviewing it (README: Database migrations).")
+            # A production server on the wrong schema would fail on some requests or save data in the wrong shape, so it
+            # doesn't start. Development only reports it, so a developer can still look around.
+            if settings.production:
+                raise RuntimeError(problem)
+            log.error(problem)
         return
     SQLModel.metadata.create_all(engine)
     add_missing_columns()

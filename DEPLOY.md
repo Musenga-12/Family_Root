@@ -33,25 +33,55 @@ Settings: copy `backend/.env.production.example` into the host's environment var
 | `ENVIRONMENT` | `production`: start-up safety checks on, `/docs` hidden |
 | `SECRET_KEY` | long random value: `python -c "import secrets; print(secrets.token_urlsafe(48))"` |
 | `DATABASE_URL` | Supabase connection string (Session pooler), driver `postgresql+psycopg://` |
-| `FRONTEND_ORIGIN` | the web app's address, e.g. `https://familyroots.example.org` (only this origin may call the API) |
+| `FRONTEND_ORIGIN` | the web app's address, exactly `https://host` with no path or wildcard, e.g. `https://familyroots.example.org`. Only this origin (and any in `EXTRA_ORIGINS`, same rules) may call the API |
+| `TRUSTED_PROXY_HOPS` | `1` to start with on Render, then confirm it: see [Visitor addresses behind a proxy](#visitor-addresses-behind-a-proxy) |
 | `API_BASE_URL` | the server's own public address (photo and audio links are built from it) |
 | `STORAGE` | `supabase` (recommended) or `local` |
 | `SUPABASE_URL`, `SUPABASE_SERVICE_KEY`, `SUPABASE_BUCKET` | for `STORAGE=supabase`: create a **private** bucket (Storage → New bucket, Public off). The service key stays on the server. |
 | `UPLOAD_DIR` | for `STORAGE=local`: a folder on a **persistent** disk |
 | `EMAIL_PROVIDER`, `RESEND_API_KEY`, `EMAIL_FROM` | leave unset until you have a domain (see [Email](#email)): "Forgot password" then points to an Admin reset link, and invitations are shared by link |
 
-The server refuses to start in production with the sample `SECRET_KEY`, with `localhost` addresses, with
-`STORAGE=supabase` but no key, or with email half set up (or set to the console), and it logs a warning while sample accounts can sign in or files go to a local disk.
+The server refuses to start in production with the sample `SECRET_KEY`, with `localhost` addresses, with origins that
+aren't exact `https://` addresses, with a SQLite `DATABASE_URL`, with a database that isn't at the latest migration,
+with `STORAGE=supabase` but no key, or with email half set up (or set to the console). It logs a warning while sample
+accounts can sign in, files go to a local disk, or `TRUSTED_PROXY_HOPS` is 0.
 
 Commands, from `backend/`:
 
 ```bash
 pip install -r requirements.txt -c constraints.txt
 alembic upgrade head                                  # only after reviewing new migrations; never on a test database
-uvicorn app.main:app --host 0.0.0.0 --port $PORT --proxy-headers
+uvicorn app.main:app --host 0.0.0.0 --port $PORT --no-proxy-headers
 ```
 
 Health check for the host: `GET /health`.
+
+`--no-proxy-headers`: the app works out visitors' addresses itself (next section), so uvicorn must not rewrite them
+from `X-Forwarded-For`; with `--forwarded-allow-ips '*'` it would take the first entry, which visitors can write
+themselves. Run **one** server process (no `--workers`): live chat and the attempt limits are kept in memory.
+
+### Visitor addresses behind a proxy
+
+Sign-in, sign-up and password-reset attempts are limited per visitor address. On Render (and most hosts) requests
+reach the server through the host's proxy, so the connection always comes from the proxy, and the visitor's address
+is in `X-Forwarded-For`. Each proxy *adds* to that header; whatever the visitor sent stays at the front. So the app
+trusts only the last `TRUSTED_PROXY_HOPS` entries, those added by the host's own proxies, and never the rest:
+
+| `TRUSTED_PROXY_HOPS` | Too low (e.g. 0 behind a proxy) | Right | Too high |
+|---|---|---|---|
+| Effect | every visitor shares one limit: 20 wrong passwords anywhere lock everyone out for 5 minutes | each visitor has their own limit | visitors can dodge the limit by sending a made-up address each time |
+
+How many proxies a host adds isn't documented reliably (reports about Render differ), so start with `1` and check it
+from the outside after the first deploy, from `backend/` on your computer:
+
+```bash
+python scripts/check_client_ip.py https://YOUR-API-ADDRESS            # step 1: 21 failed sign-ins, unknown emails
+python scripts/check_client_ip.py https://YOUR-API-ADDRESS --single   # step 2, within 5 min, from ANOTHER network
+```
+
+Step 1 must say PASSED (otherwise lower the number); step 2, run from e.g. a phone's mobile data, must say PASSED
+(otherwise raise it). Change the variable, redeploy, wait 5 minutes and repeat both steps until both pass. Your own
+address can't sign in for 5 minutes after step 1; no account is affected.
 
 ## Email
 

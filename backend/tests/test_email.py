@@ -256,7 +256,7 @@ def test_templates_escape_names_and_have_plain_text():
 
 def test_production_refuses_unsafe_email_settings():
     base = dict(environment="production", secret_key="k" * 48, frontend_origin="https://app.example.org",
-                api_base_url="https://api.example.org")
+                api_base_url="https://api.example.org", database_url="postgresql+psycopg://u:p@db.example.org/familyroots")
     with pytest.raises(RuntimeError, match="console"):
         check_settings(Settings(_env_file=None, **base, email_provider="console"))
     with pytest.raises(RuntimeError, match="RESEND_API_KEY"):

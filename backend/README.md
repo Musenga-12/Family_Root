@@ -168,7 +168,8 @@ Then add a migration for the new table (next section).
 ## Database migrations (Alembic)
 
 The database server (Supabase) is changed only by migrations in `migrations/versions/`, never at startup. On start the
-server just checks the database is at the latest migration and logs an error if it isn't. SQLite (the tests and the
+server just checks the database is at the latest migration: in production it refuses to start if it isn't; in
+development it logs an error and carries on. SQLite (the tests and the
 on-device `familyroots.db`) is still set up directly from `models.py`.
 
 The database address comes from `DATABASE_URL` in `.env`, as for the app; it is never written into `alembic.ini`.
@@ -234,14 +235,17 @@ Set `ENVIRONMENT=production` in `.env`. The server then refuses to start until:
 
 - `SECRET_KEY` is a long random value: `python -c "import secrets; print(secrets.token_urlsafe(48))"`.
   Changing it signs everyone out once.
-- `FRONTEND_ORIGIN` and `API_BASE_URL` are the real public addresses (not localhost).
+- `FRONTEND_ORIGIN` and `API_BASE_URL` are the real public addresses (not localhost), and `FRONTEND_ORIGIN` /
+  `EXTRA_ORIGINS` are exact `https://` addresses (no path, no wildcard).
+- `DATABASE_URL` is a PostgreSQL database (not a SQLite file) at the latest migration (`alembic upgrade head`).
 
 In production `/docs` is switched off, and password-reset links are no longer written to the log (until email
 sending exists, an Admin makes one with `POST /members/{id}/reset-link`). `GET /health` reports
 `{"status": "ok", "database": "ok"}`, or 503 if the database doesn't answer.
 
 Single process only, for now: the live chat (`realtime.py`) and the attempt limits (`ratelimit.py`) keep their state
-in memory. Behind a proxy, start uvicorn with `--proxy-headers` so limits apply per visitor, not per proxy.
+in memory. Behind a proxy, set `TRUSTED_PROXY_HOPS` so limits apply per visitor, not per proxy, and start uvicorn with
+`--no-proxy-headers` (DEPLOY.md → Visitor addresses behind a proxy).
 Uploaded files live on the server's disk under `UPLOAD_DIR`: back that folder up together with the database.
 
 ## Limits and rules worth knowing

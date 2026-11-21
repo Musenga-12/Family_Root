@@ -51,6 +51,14 @@ class Settings(BaseSettings):
     file_link_minutes: int = 60 * 12
     # Limits on sign-in, sign-up and password-reset attempts (see app/ratelimit.py).
     rate_limit_enabled: bool = True
+    # How many proxies of our own sit in front of this server and add the visitor's address to X-Forwarded-For
+    # (0: none, the connection's own address is the visitor's). Anything further left in the header was written by
+    # the visitor and is never trusted. See ratelimit.client_ip and DEPLOY.md → Visitor addresses behind a proxy.
+    trusted_proxy_hops: int = 0
+
+    def origins(self) -> list[str]:
+        """FRONTEND_ORIGIN and EXTRA_ORIGINS: the only web addresses whose pages may call this API."""
+        return [o.strip().rstrip("/") for o in [self.frontend_origin, *self.extra_origins.split(",")] if o.strip()]
 
     @property
     def production(self) -> bool:
@@ -65,6 +73,16 @@ def check_settings(s: "Settings") -> None:
     for name, value in (("FRONTEND_ORIGIN", s.frontend_origin), ("API_BASE_URL", s.api_base_url)):
         if "localhost" in value or "127.0.0.1" in value:
             problems.append(f"{name} still points at this computer ({value})")
+    if s.production:
+        if s.database_url.strip().lower().startswith("sqlite"):
+            # A file on the server's disk: most hosts (Render included) wipe it on every deploy, losing every family's data.
+            problems.append("DATABASE_URL is a SQLite file; production needs the PostgreSQL database (see DEPLOY.md)")
+        for origin in s.origins():
+            scheme, _, rest = origin.partition("://")
+            if scheme != "https" or not rest or "*" in origin or "/" in rest:
+                problems.append(f"FRONTEND_ORIGIN / EXTRA_ORIGINS must be exact https:// addresses with no path or wildcard, not {origin!r}")
+    if not 0 <= s.trusted_proxy_hops <= 5:
+        problems.append(f"TRUSTED_PROXY_HOPS must be between 0 and 5, not {s.trusted_proxy_hops}")
     if s.storage.strip().lower() == "supabase" and not (s.supabase_url and s.supabase_service_key):
         problems.append("STORAGE=supabase needs SUPABASE_URL and SUPABASE_SERVICE_KEY")
     if s.storage.strip().lower() not in ("local", "supabase"):
@@ -72,6 +90,9 @@ def check_settings(s: "Settings") -> None:
     if s.production and not problems and s.storage.strip().lower() == "local":
         log.warning("Uploads are stored on this server's disk (%s). Use a persistent disk, or STORAGE=supabase, so photos "
                     "survive redeploys.", s.upload_dir)
+    if s.production and not problems and s.trusted_proxy_hops == 0:
+        log.warning("TRUSTED_PROXY_HOPS=0: attempt limits use the connection's address. Behind a host's proxy (Render, "
+                    "Railway…) every visitor then shares one limit; set it as in DEPLOY.md → Visitor addresses behind a proxy.")
     provider = s.email_provider.strip().lower()
     if provider not in ("", "resend", "resend-test", "smtp", "console", "none"):
         problems.append(f"EMAIL_PROVIDER must be resend, resend-test, smtp, console or none, not {provider!r}")

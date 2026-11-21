@@ -80,6 +80,28 @@ def test_cors_allows_the_app_only(client):
     assert "access-control-allow-origin" not in other.headers
 
 
+def preflight(client, method: str, headers: str = "") -> object:
+    h = {"Origin": "http://localhost:5173", "Access-Control-Request-Method": method}
+    if headers:
+        h["Access-Control-Request-Headers"] = headers
+    return client.options(f"{API}/memories/m1", headers=h)
+
+
+def test_cors_allows_only_what_the_app_sends(client):
+    """The app sends a bearer token and JSON or multipart bodies (src/lib/api.js), and never relies on cookies."""
+    for method in ("GET", "POST", "PUT", "PATCH", "DELETE"):
+        r = preflight(client, method, "authorization,content-type")
+        assert r.status_code == 200, method
+        assert r.headers["access-control-allow-origin"] == "http://localhost:5173"
+        assert "access-control-allow-credentials" not in r.headers  # cookies are never sent along
+    assert preflight(client, "TRACE").status_code == 400
+    assert preflight(client, "GET", "x-made-up-header").status_code == 400
+    # An actual (not preflight) request from the app doesn't invite credentials either.
+    r = client.get("/health", headers={"Origin": "http://localhost:5173"})
+    assert r.headers["access-control-allow-origin"] == "http://localhost:5173"
+    assert "access-control-allow-credentials" not in r.headers
+
+
 def test_unexpected_errors_are_safe(client, monkeypatch):
     import app.routers.auth as auth_router
 
@@ -134,9 +156,61 @@ def test_production_refuses_unsafe_settings():
         check_settings(Settings(_env_file=None, environment="production", secret_key="dev-only-secret-change-me"))
     with pytest.raises(RuntimeError, match="FRONTEND_ORIGIN"):
         check_settings(Settings(_env_file=None, environment="production", secret_key="s" * 40))
-    check_settings(Settings(_env_file=None, environment="production", secret_key="s" * 40, frontend_origin="https://family.example",
-                            api_base_url="https://api.family.example"))
+    check_settings(production())
     check_settings(Settings(_env_file=None))  # development: only a warning
+
+
+PG = "postgresql+psycopg://user:password@db.example/familyroots?sslmode=require"
+
+
+def production(**changes) -> Settings:
+    """Safe production settings, with `changes` applied."""
+    return Settings(_env_file=None, **{"environment": "production", "secret_key": "s" * 40, "database_url": PG,
+                                       "frontend_origin": "https://family.example", "api_base_url": "https://api.family.example",
+                                       "trusted_proxy_hops": 1, **changes})
+
+
+@pytest.mark.parametrize("database_url", ["sqlite:///./familyroots.db", "SQLite:////var/data/familyroots.db"])
+def test_production_refuses_a_sqlite_database(database_url):
+    """A SQLite file on the server's disk is wiped on most hosts' redeploys, with every family's data."""
+    with pytest.raises(RuntimeError, match="DATABASE_URL is a SQLite file"):
+        check_settings(production(database_url=database_url))
+    check_settings(Settings(_env_file=None, database_url=database_url))  # fine on a developer's computer
+
+
+@pytest.mark.parametrize("origins", [
+    {"frontend_origin": "http://family.example"},                                  # not https
+    {"frontend_origin": "https://family.example/app"},                             # a path
+    {"extra_origins": "https://*.vercel.app"},                                     # a wildcard
+    {"extra_origins": "https://preview.example, http://old.example"},             # one bad among good
+    {"frontend_origin": "family.example"},                                         # no scheme
+])
+def test_production_needs_exact_https_origins(origins):
+    with pytest.raises(RuntimeError, match="exact https:// addresses"):
+        check_settings(production(**origins))
+
+
+def test_production_allows_extra_exact_origins():
+    s = production(extra_origins="https://preview.family.example, https://www.family.example/")
+    check_settings(s)
+    assert s.origins() == ["https://family.example", "https://preview.family.example", "https://www.family.example"]
+
+
+def test_proxy_hops_must_be_sensible():
+    with pytest.raises(RuntimeError, match="TRUSTED_PROXY_HOPS"):
+        check_settings(production(trusted_proxy_hops=-1))
+    with pytest.raises(RuntimeError, match="TRUSTED_PROXY_HOPS"):
+        check_settings(production(trusted_proxy_hops=9))
+
+
+def test_production_without_proxy_hops_is_warned_about(caplog):
+    with caplog.at_level("WARNING", logger="familyroots"):
+        check_settings(production(trusted_proxy_hops=0))
+    assert "TRUSTED_PROXY_HOPS=0" in caplog.text
+    caplog.clear()
+    with caplog.at_level("WARNING", logger="familyroots"):
+        check_settings(production())
+    assert "TRUSTED_PROXY_HOPS" not in caplog.text
 
 
 def test_docs_are_served_in_development(client):

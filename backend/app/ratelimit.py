@@ -2,9 +2,10 @@
 passwords, family codes or invitation links by trying thousands of them.
 
 Counts are kept in memory, which works for one server process (the same assumption as realtime.py). With several
-processes or servers, keep them in Redis (or similar) instead. Behind a proxy, start the server with
---proxy-headers (and --forwarded-allow-ips) so request.client is the visitor's address, not the proxy's.
+processes or servers, keep them in Redis (or similar) instead. Behind a proxy (Render and most hosts), set
+TRUSTED_PROXY_HOPS so attempts are counted per visitor, not per proxy (see client_ip).
 """
+import ipaddress
 import threading
 import time
 from collections import defaultdict, deque
@@ -46,7 +47,26 @@ limiter = RateLimiter()
 
 
 def client_ip(request: Request) -> str:
-    return request.client.host if request.client else "unknown"
+    """The visitor's address, for counting their attempts.
+
+    With TRUSTED_PROXY_HOPS=0 it is the address the connection came from. Behind N proxies of our own, each adds the
+    address it received the request from to the end of X-Forwarded-For, so the visitor is the Nth entry from the right.
+    Entries further left were sent by the visitor and could be anything; trusting them (as the leftmost-entry rule of
+    `--forwarded-allow-ips '*'` does) would let anyone dodge the limits by sending a new made-up address each time.
+    A header that is missing, too short or not an address falls back to the connection's address.
+    """
+    peer = request.client.host if request.client else "unknown"
+    hops = settings.trusted_proxy_hops
+    if hops <= 0:
+        return peer
+    # Several X-Forwarded-For headers count as one list, in order (RFC 9110, section 5.3).
+    entries = [e.strip() for h in request.headers.getlist("x-forwarded-for") for e in h.split(",") if e.strip()]
+    if len(entries) < hops:
+        return peer
+    try:
+        return str(ipaddress.ip_address(entries[-hops]))
+    except ValueError:
+        return peer
 
 
 def limit(name: str, times: int, seconds: int):

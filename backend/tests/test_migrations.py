@@ -120,6 +120,32 @@ def test_a_database_server_is_only_checked_at_startup(client, monkeypatch, caplo
     assert "alembic upgrade head" in caplog.text
 
 
+@pytest.mark.parametrize("current", [None, "0002", "9999"])
+def test_production_does_not_start_on_the_wrong_schema(client, monkeypatch, current):
+    """Behind (or never migrated, or newer than this code): a production server refuses to start."""
+    import app.db as db
+    from app.config import settings
+
+    changed = []
+    monkeypatch.setattr(db, "SQLITE", False)
+    monkeypatch.setattr(db.SQLModel.metadata, "create_all", lambda *a, **k: changed.append("create_all"))
+    monkeypatch.setattr(db, "migration_status", lambda: (current, "0003"))
+    monkeypatch.setattr(settings, "environment", "production")
+    with pytest.raises(RuntimeError, match="alembic upgrade head"):
+        db.create_db()
+    assert changed == []  # and it still never changes the database itself
+
+
+def test_production_starts_on_the_current_schema(client, monkeypatch):
+    import app.db as db
+    from app.config import settings
+
+    monkeypatch.setattr(db, "SQLITE", False)
+    monkeypatch.setattr(db, "migration_status", lambda: ("0003", "0003"))
+    monkeypatch.setattr(settings, "environment", "production")
+    db.create_db()
+
+
 def test_migration_status_reads_the_database(client):
     from app.db import migration_status
 
