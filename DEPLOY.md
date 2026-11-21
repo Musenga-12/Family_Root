@@ -46,7 +46,7 @@ The server refuses to start in production with the sample `SECRET_KEY`, with `lo
 Commands, from `backend/`:
 
 ```bash
-pip install -r requirements.txt
+pip install -r requirements.txt -c constraints.txt
 alembic upgrade head                                  # only after reviewing new migrations; never on a test database
 uvicorn app.main:app --host 0.0.0.0 --port $PORT --proxy-headers
 ```

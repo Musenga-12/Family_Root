@@ -8,10 +8,10 @@ from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.engine import URL
 from sqlmodel import SQLModel
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))  # backend/
 import app.models  # noqa: F401
 
-source = Path(__file__).resolve().parent / "familyroots.db"
+source = Path(__file__).resolve().parents[2] / "familyroots.db"
 
 if not source.exists():
     raise SystemExit(f"SQLite database not found: {source}")

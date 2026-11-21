@@ -6,9 +6,9 @@ The backend for the FamilyRoots React app in the parent folder.
 
 ```powershell
 cd backend
-py -m venv .venv
+py -3.12 -m venv .venv       # the Python version in .python-version (CI and the server use it too)
 .venv\Scripts\Activate.ps1
-pip install -r requirements.txt -r requirements-dev.txt   # dev: tests and lint
+pip install -r requirements.txt -r requirements-dev.txt -c constraints.txt   # dev: tests and lint
 copy .env.example .env      # then edit SECRET_KEY
 python seed.py              # optional: loads the Mackenzie sample family
 ```
@@ -201,9 +201,19 @@ alembic upgrade head   # 0002: links each founder of an empty tree to a first pe
                        # 0003: removes TRUNCATE/REFERENCES/TRIGGER from Supabase's anon and authenticated roles
 ```
 
-A **new, empty** database: `alembic upgrade head` builds everything (instead of `create_supabase_schema.py`).
+A **new, empty** database: `alembic upgrade head` builds everything (instead of the superseded
+`scripts/legacy_supabase/create_supabase_schema.py`).
 
 `0001` can't be downgraded: that would drop every table.
+
+## Dependencies
+
+`requirements.txt` (the server) and `requirements-dev.txt` (tests and lint) list what the app needs, with minimum
+versions. `constraints.txt` pins the exact versions of everything they install, so CI, the server and every
+developer get the set the tests passed with. Always install with `-c constraints.txt`.
+
+To upgrade, in a fresh venv: install without `-c`, run the tests and `ruff check`, then write the new pins with
+`pip freeze` (keep the header and the hand-pinned `uvloop` line, which Windows never installs) and commit both files.
 
 ## Tests and lint
 

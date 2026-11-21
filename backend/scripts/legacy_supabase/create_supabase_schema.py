@@ -10,7 +10,7 @@ from sqlalchemy.engine import URL
 from sqlmodel import SQLModel
 
 # Load the existing Family Roots models.
-sys.path.insert(0, str(Path(__file__).resolve().parent))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))  # backend/
 
 import app.models  # noqa: F401
 

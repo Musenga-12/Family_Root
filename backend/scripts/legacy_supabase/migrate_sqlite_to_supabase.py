@@ -17,10 +17,10 @@ from sqlmodel import SQLModel
 from sqlmodel.sql.sqltypes import UTCDateTime
 
 # Register Family Roots models without loading the application database engine.
-sys.path.insert(0, str(Path(__file__).resolve().parent))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))  # backend/
 import app.models  # noqa: F401
 
-SOURCE = Path(__file__).resolve().parent / "familyroots.db"
+SOURCE = Path(__file__).resolve().parents[2] / "familyroots.db"
 EXPECTED_RECORDS = 120
 
 
