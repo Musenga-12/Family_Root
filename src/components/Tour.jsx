@@ -68,8 +68,8 @@ export default function Tour({ onClose }) {
       {rect ? (
         <div aria-hidden="true" className="pointer-events-none fixed rounded-xl transition-all duration-200"
           style={{ left: rect.left - pad, top: rect.top - pad, width: rect.width + pad * 2, height: rect.height + pad * 2,
-            boxShadow: "0 0 0 9999px rgba(10,30,24,.55), 0 0 0 3px var(--color-mint)" }} />
-      ) : <div aria-hidden="true" className="fixed inset-0 bg-[rgba(10,30,24,.55)]" />}
+            boxShadow: "0 0 0 9999px color-mix(in oklab, var(--color-scrim) 55%, transparent), 0 0 0 3px var(--color-mint)" }} />
+      ) : <div aria-hidden="true" className="fixed inset-0 bg-scrim/55" />}
 
       <div role="dialog" aria-modal="true" aria-labelledby={titleId} style={{ ...pos, width: W }}
         className="fixed animate-pop rounded-card border border-line bg-surface p-5 shadow-pop">

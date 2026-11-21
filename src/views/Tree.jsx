@@ -52,7 +52,7 @@ function PNode({ p, selected, dim, onSelect }) {
       aria-label={`${fullName(p)}, ${relationToMe(p)}, ${life}`}
       className={cx(
         "lift relative flex w-full min-w-45 cursor-pointer items-center gap-2.5 rounded-[14px] border-2 px-3 py-2.5 text-left",
-        p.died ? "border-gold/45 bg-gold-100/45 dark:border-gold/50 dark:bg-gold-100" : "border-mint-200 bg-surface",
+        p.died ? "border-gold/45 bg-gold-100/45 dark:border-gold/50 dark:bg-gold-100" : "border-mint-200 bg-surface dark:border-success/40",
         selected && "border-sec! shadow-[0_0_0_3px_var(--sec-line)]",
         dim && "opacity-30",
       )}>
@@ -417,7 +417,7 @@ export default function Tree() {
 
       <div aria-label={t("tree.legend")} className="mt-2.5 flex flex-wrap items-center gap-x-4.5 gap-y-2 rounded-xl bg-surface-2 px-3.5 py-2.5 text-xsmall text-muted">
         <strong className="text-xsmall">{t("tree.legendTitle")}</strong>
-        <span><i className="mr-1.5 inline-block size-3 rounded-full border-2 border-pine-600 align-middle" />{t("tree.legendLiving")}</span>
+        <span><i className="mr-1.5 inline-block size-3 rounded-full border-2 border-pine-600 align-middle dark:border-success" />{t("tree.legendLiving")}</span>
         <span><i className="mr-1.5 inline-block size-3 rounded-full border-2 border-gold align-middle" />{t("tree.legendMemory")}</span>
         <span><i className="mr-1.5 inline-block w-4.5 border-t-2 border-ink align-middle" />{t("tree.legendLine")}</span>
         <span><i className="mr-1.5 inline-block w-4.5 border-t-2 border-dashed border-ink align-middle" />{t("tree.legendPending")}</span>

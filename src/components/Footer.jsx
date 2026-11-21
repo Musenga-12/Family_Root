@@ -83,7 +83,7 @@ export function SiteFooter() {
 export function AppFooter({ status }) {
   const t = useT();
   return (
-    <footer data-no-print className="flex flex-wrap items-center justify-between gap-x-5 gap-y-2 border-t border-line bg-surface-2 px-4 py-3 pr-24 text-xsmall text-muted sm:px-7 sm:pr-24">
+    <footer data-no-print className="footer-strip flex flex-wrap items-center justify-between gap-x-5 gap-y-2 border-t border-line bg-surface-2 px-4 py-3 pr-24 text-xsmall text-muted sm:px-7 sm:pr-24">
       <span className="min-w-0"><Icon name="verified_user" size="sm" className="text-pine-700" /> {t("footer.privacy")} • {status}</span>
       <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
         <Link to="/privacy" className={appLink}>{t("nav.privacy")}</Link>

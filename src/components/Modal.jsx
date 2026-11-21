@@ -64,7 +64,7 @@ export function Dialog({ title, sub, wide, sec, footer, children }) {
   }, []);
 
   return (
-    <div className="fixed inset-0 z-80 grid animate-fade place-items-center bg-[rgba(10,30,24,.45)] p-4"
+    <div className="fixed inset-0 z-80 grid animate-fade place-items-center bg-scrim/45 p-4"
       onMouseDown={(e) => e.target === e.currentTarget && close()}>
       <div ref={ref} role="dialog" aria-modal="true" aria-labelledby={titleId} data-sec={sec}
         className={cx("max-h-[calc(100vh-32px)] w-full animate-pop overflow-auto rounded-card border-t-6 border-sec bg-surface shadow-pop", wide ? "max-w-180" : "max-w-140")}>

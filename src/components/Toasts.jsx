@@ -50,7 +50,7 @@ function Toast({ t, onDismiss }) {
   const hold = { onMouseEnter: () => setPaused(true), onMouseLeave: () => setPaused(false), onFocus: () => setPaused(true), onBlur: () => setPaused(false) };
   return (
     <div role={t.error ? "alert" : "status"} {...hold}
-      className="relative flex animate-pop items-center gap-3 overflow-hidden rounded-[14px] bg-pine-950 px-3.5 py-3 text-white shadow-pop">
+      className="relative flex animate-pop items-center gap-3 overflow-hidden rounded-[14px] bg-pine-950 px-3.5 py-3 text-white shadow-pop dark:bg-surface-3 dark:ring-1 dark:ring-sec-line">
       <Icon name={t.icon || (t.error ? "error" : "check_circle")} className={t.error ? "text-[#ffb4ab]" : "text-mint"} />
       <div className="min-w-0 flex-1">
         <strong>{t.title}</strong>

@@ -22,7 +22,7 @@ const BTN_VARIANTS = {
     "active:translate-y-0 active:border-(--sec-press) active:bg-(--sec-press) active:text-sec-on"),
   brand: "bg-pine-900 border-pine-900 text-white hover:bg-pine-700 hover:-translate-y-px hover:ring-4 hover:ring-mint-200 active:bg-pine-950",
   tint: "hover-fill bg-sec-soft border-sec-line text-sec-ink",
-  mint: "bg-mint border-mint text-pine-900 hover:-translate-y-px hover:border-mint-btn-hover hover:bg-mint-btn-hover hover:text-white active:bg-pine-950",
+  mint: "bg-mint border-mint text-pine-900 hover:-translate-y-px hover:border-mint-btn-hover hover:bg-mint-btn-hover hover:text-mint-btn-on active:bg-pine-950",
   soft: "hover-fill bg-sec-soft border-transparent text-sec-ink",
   ghost: "hover-fill bg-transparent border-transparent text-sec-ink",
   danger: "bg-[linear-gradient(135deg,var(--color-rose),#8f2f29)] border-transparent text-white shadow-[0_4px_12px_-6px_var(--color-rose)] hover:-translate-y-px hover:bg-none hover:bg-[#8f2f29] hover:ring-4 hover:ring-rose-ring active:bg-[#6f241f]",

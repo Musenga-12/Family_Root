@@ -125,7 +125,7 @@ function Sidebar({ open, onClose, onDismiss }) {
           </button>
         </div>
       </aside>
-      {open && <div aria-hidden="true" className="fixed inset-0 z-35 bg-[rgba(10,30,24,.4)] md:hidden" onClick={onDismiss} />}
+      {open && <div aria-hidden="true" className="fixed inset-0 z-35 bg-scrim/40 md:hidden" onClick={onDismiss} />}
     </>
   );
 }

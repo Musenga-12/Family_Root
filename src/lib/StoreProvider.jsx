@@ -113,6 +113,8 @@ export function StoreProvider({ children }) {
     html.dataset.accent = prefs.accent;
     html.dataset.text = prefs.text;
     html.lang = prefs.lang;
+    // The browser / installed-app title bar follows the theme too (the dark page colour, or the brand green).
+    document.querySelector('meta[name="theme-color"]')?.setAttribute("content", dark ? "#15191f" : "#245b4a");
     setFeedbackPrefs(prefs);
     pref("prefs", JSON.stringify(prefs));
   }, [prefs, dark]);

@@ -49,11 +49,11 @@ function Quote({ t, m, mine, onClick, onClose }) {
   return (
     <Tag type={onClick ? "button" : undefined} onClick={onClick}
       className={cx("flex w-full min-w-0 items-stretch gap-2 overflow-hidden rounded-lg border-0 p-0 text-left",
-        mine ? "bg-white/12 text-white" : "bg-surface-2 text-ink", onClick && "cursor-pointer hover:brightness-(--hover-brightness)")}>
+        mine ? "bg-sec-on/12 text-sec-on" : "bg-surface-2 text-ink", onClick && "cursor-pointer hover:brightness-(--hover-brightness)")}>
       <span aria-hidden="true" className={cx("w-1 shrink-0", mine ? "bg-sec-on/70" : "bg-sec")} />
       <span className="min-w-0 flex-1 py-1.5 pr-2">
         <strong className={cx("block text-xsmall", mine ? "text-sec-on" : nameTone(t, m.by))}>{onClose ? tr("msg.replyingTo", { name: who }) : who}</strong>
-        <span className={cx("line-clamp-2 text-small", mine ? "text-white/85" : "text-muted")}>{m.img && !m.deleted && <Icon name="photo_camera" size="xs" />} {snippet(m)}</span>
+        <span className={cx("line-clamp-2 text-small", mine ? "text-sec-on/85" : "text-muted")}>{m.img && !m.deleted && <Icon name="photo_camera" size="xs" />} {snippet(m)}</span>
       </span>
       {m.img && !m.deleted && <img src={m.img} alt="" className="size-12 shrink-0 object-cover" />}
       {onClose && <IconButton icon="close" label={tr("msg.cancelReply")} className="m-1 size-8! self-center border-0! bg-transparent! hover:bg-sec-hover! hover:text-sec-ink! active:bg-sec! active:text-sec-on!" onClick={onClose} />}
@@ -126,7 +126,7 @@ function Bubble({ t, m, prev, next, q, flash, onReply, onJump, onOpenImage, setR
           {dx > 20 && <Icon name="reply" className="absolute top-1/2 -left-8 -translate-y-1/2 text-muted" />}
           {t.group && !mine && first && <strong className={cx("mb-0.5 block text-xsmall", nameTone(t, m.by))}>{who?.first} <span className="font-normal text-muted">· {who && kin(who.role)}</span></strong>}
           {m.deleted ? (
-            <p className={cx("flex items-center gap-1.5 pr-14 italic", mine ? "text-white/70" : "text-muted")}><Icon name="block" size="sm" /> {tr(mine ? "msg.youDeleted" : "chat.deleted")}</p>
+            <p className={cx("flex items-center gap-1.5 pr-14 italic", mine ? "text-sec-on/70" : "text-muted")}><Icon name="block" size="sm" /> {tr(mine ? "msg.youDeleted" : "chat.deleted")}</p>
           ) : (
             <>
               {quoted && <div className="mb-1.5"><Quote t={t} m={quoted} mine={mine} onClick={() => onJump(quoted.id)} /></div>}

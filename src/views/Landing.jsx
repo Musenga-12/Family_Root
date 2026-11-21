@@ -64,7 +64,7 @@ function Hero() {
           {status === "demo" && <p className="mt-3 text-small text-muted">{t("pub.demoNote")}</p>}
           <ul className="m-0 mt-6 flex list-none flex-wrap gap-x-5 gap-y-2 p-0 text-small text-muted">
             {["home.trust1", "home.trust2", "home.trust3"].map((k) => (
-              <li key={k} className="flex items-center gap-1.5"><Icon name="check_circle" size="sm" className="text-pine-700 dark:text-mint" />{t(k)}</li>
+              <li key={k} className="flex items-center gap-1.5"><Icon name="check_circle" size="sm" className="text-success" />{t(k)}</li>
             ))}
           </ul>
         </div>

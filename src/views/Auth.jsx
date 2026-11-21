@@ -15,7 +15,7 @@ import { PagePhoto } from "./public/photos";
 
 // Titles and subtitles are au.role.<key> and au.role.<key>Sub.
 const ROLES = [["elder", "elderly"], ["parent", "family_restroom"], ["youth", "sentiment_satisfied"]];
-const STRENGTH_COLOR = ["", "bg-rose", "bg-gold", "bg-pine-600", "bg-pine-800"];
+const STRENGTH_COLOR = ["", "bg-rose", "bg-gold", "bg-pine-600 dark:bg-success/75", "bg-pine-800 dark:bg-success"];
 
 function passStrength(v) {
   let s = 0;

@@ -48,8 +48,13 @@
   --color-rose-ring: #fbe1de;
   --color-rec: #d63c33;
   --color-focus: #245b4a;
-  /* Hover fill of the mint button (the dark theme swaps it, see below). */
+  /* Hover fill of the mint button and its text there (the dark theme swaps both, see below). */
   --color-mint-btn-hover: var(--color-pine-900);
+  --color-mint-btn-on: #fff;
+  /* Done / confirmed states (check marks). Follows the brand green in the light theme. */
+  --color-success: var(--color-pine-700);
+  /* Backdrop behind dialogs, the command palette, the tour and the mobile menu (used with an opacity, e.g. bg-scrim/45). */
+  --color-scrim: rgb(10 30 24);
 
   --font-serif: "Playfair Display", Georgia, "Times New Roman", serif;
   --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -189,15 +194,38 @@
   & a.hover-fill .ms { transition: transform 0.2s cubic-bezier(0.2, 0.7, 0.3, 1); }
   & a.hover-fill:is(:hover, :focus-visible) .ms { transform: translateX(2px); }
 }
-/* Dark theme: a deeper wash, so the band still stands apart from the dark page. */
+/* Dark theme: a painted charcoal band, one step deeper than the page, with a muted-gold wash flowing in from the
+   top-left and a fine gold rule that fades out at both ends. The light accent (gold with the default accent)
+   carries the links and hover states. */
 html.dark .footer-paint {
-  --color-surface: color-mix(in oklab, #fff 7%, var(--color-pine-950));
-  background-color: var(--color-pine-950);
+  --color-ink: #f1f3f5;
+  --color-muted: #b3bcc6;
+  --color-line: color-mix(in oklab, var(--color-mint) 16%, #2a313a);
+  --color-surface: #232a33;
+  --sec-hover: color-mix(in oklab, var(--color-mint) 14%, transparent);
+  --sec-hover-line: color-mix(in oklab, var(--color-mint) 40%, transparent);
+  background-color: #111419;
   background-image:
-    radial-gradient(60rem 22rem at 8% 0%, color-mix(in oklab, var(--color-mint) 12%, transparent), transparent 70%),
-    radial-gradient(40rem 20rem at 95% 100%, color-mix(in oklab, var(--color-gold) 12%, transparent), transparent 70%),
-    linear-gradient(170deg, var(--color-pine-900) 0%, var(--color-pine-950) 55%, color-mix(in oklab, var(--color-pine-950) 70%, #000) 100%);
-  box-shadow: 0 -18px 40px -28px rgba(0, 0, 0, 0.6);
+    radial-gradient(70rem 16rem at 12% -4rem, color-mix(in oklab, var(--color-mint) 11%, transparent), transparent 70%),
+    radial-gradient(44rem 18rem at 100% 105%, color-mix(in oklab, var(--color-gold) 8%, transparent), transparent 70%),
+    linear-gradient(180deg, #1a1f26 0%, #14181d 55%, #101317 100%);
+  box-shadow: 0 -1px 0 color-mix(in oklab, var(--color-mint) 14%, transparent), 0 -24px 48px -32px rgb(0 0 0 / 0.7);
+  &::before {
+    height: 2px;
+    background: linear-gradient(90deg, transparent, color-mix(in oklab, var(--color-mint) 70%, transparent) 22%,
+      var(--color-gold) 50%, color-mix(in oklab, var(--color-mint) 70%, transparent) 78%, transparent);
+  }
+  /* A soft brushed sweep under the rule, so the band looks painted rather than flat. */
+  &::after {
+    content: ""; position: absolute; inset: 0 0 auto; height: 9rem; z-index: -1; pointer-events: none;
+    background: radial-gradient(60% 100% at 50% 0%, color-mix(in oklab, var(--color-gold) 9%, transparent), transparent 75%);
+  }
+}
+
+/* The slim workspace footer: in the dark theme a fine gold rule and a faint warm wash set it apart from the page. */
+html.dark .footer-strip {
+  border-top-color: color-mix(in oklab, var(--color-gold) 22%, var(--color-line));
+  background-image: linear-gradient(180deg, color-mix(in oklab, var(--color-gold) 4%, transparent), transparent 70%);
 }
 
 /* Used from inline styles (toast time-left bar), so declared outside @theme where unused keyframes are dropped. */
@@ -248,12 +276,13 @@ html[data-text="lg"] { font-size: 17.5px; }
 /* Note: `html.dark :root` never matches (:root is <html> itself), so the root is listed as `html.dark`. */
 html.dark, html.dark [data-sec] {
   --sec: var(--color-pine-600);
-  --sec-soft: color-mix(in oklab, var(--sec) 18%, var(--color-surface));
-  --sec-line: color-mix(in oklab, var(--sec) 40%, var(--color-surface));
+  --sec-soft: color-mix(in oklab, var(--sec) 16%, var(--color-surface));
+  --sec-line: color-mix(in oklab, var(--sec) 38%, var(--color-surface));
   --sec-ink: var(--color-mint);
-  --sec-hover: color-mix(in oklab, var(--sec) 30%, #2d3d32);
-  --sec-hover-tint: color-mix(in oklab, var(--sec) 22%, #2d3d32);
-  --sec-hover-line: color-mix(in oklab, var(--sec) 60%, #8a9e90);
+  /* Hover colours are mixed into the charcoal hover surface (surface-3), never into the brand green. */
+  --sec-hover: color-mix(in oklab, var(--sec) 22%, #2e3742);
+  --sec-hover-tint: color-mix(in oklab, var(--sec) 12%, #252d36);
+  --sec-hover-line: color-mix(in oklab, var(--sec) 70%, #8a96a3);
   --sec-edge: var(--sec-hover-line);
   /* The dark surface is darker than surface-2, so lifting to it made rows dimmer on hover. */
   --surface-hover: var(--sec-hover-tint);
@@ -272,9 +301,33 @@ html.easy, html.easy [data-sec] {
 /* Easy-to-Read in the dark theme: the light slate above would put light-blue text on a pale fill (1.2:1),
    so dark keeps its own, slightly stronger hover colours and a brighter outline. */
 html.dark.easy, html.dark.easy [data-sec] {
-  --sec-hover: color-mix(in oklab, var(--sec) 34%, #31433a);
-  --sec-hover-tint: color-mix(in oklab, var(--sec) 26%, #31433a);
-  --sec-hover-line: color-mix(in oklab, var(--sec) 75%, #9cb0a2);
+  --sec-hover: color-mix(in oklab, var(--sec) 18%, #323c47);
+  --sec-hover-tint: color-mix(in oklab, var(--sec) 18%, #2e3742);
+  --sec-hover-line: color-mix(in oklab, var(--sec) 82%, #a5afba);
+  --sec-line: color-mix(in oklab, var(--sec) 50%, var(--color-surface));
+}
+
+/* Premium warm dark: with the default Family accent, the dark theme trades the green for muted gold.
+   The brand scale is re-tinted to layered charcoal (pine) and light gold (mint), so every brand tile, dark card,
+   badge and "light accent" text follows without per-component overrides. Gold fills carry charcoal text
+   (7.6:1; white on gold would be 2.3:1). Other accents keep their own hue on the same charcoal base. */
+html.dark[data-accent="family"] {
+  --color-pine-950: #13171c;
+  --color-pine-900: #2b333d;
+  --color-pine-800: #343d48;
+  --color-pine-700: #3d4754;
+  --color-pine-600: #4a5562;
+  --color-mint: #d9be88;
+  --color-mint-hover: #e3cb9b;
+  --color-focus: #c6a66b;
+  --color-mint-btn-on: #15191f;
+}
+html.dark[data-accent="family"], html.dark[data-accent="family"] [data-sec] {
+  --sec: #c6a66b;
+  --sec-ink: #d9be88;
+  --sec-on: #15191f;
+  /* Pressed: a deeper, richer gold that still carries charcoal text at 6.7:1. */
+  --sec-press: color-mix(in oklab, var(--sec) 80%, #8a6f3c);
 }
 
 /* Accent colour preference: re-tints the pine/mint scale used for buttons, highlights and focus rings.
@@ -307,34 +360,40 @@ html:not(.dark) { color-scheme: light; }
 /* Dark theme tokens. Tints derive from the active accent, so every accent works in both themes. */
 html.dark {
   color-scheme: dark;
-  /* Its own palette, not an inversion: deep green-black page, a slightly lifted sidebar (surface-2), cards a step
-     above that, and a hover surface above the cards. Secondary text keeps 6.7:1 on cards. */
-  --color-bg: #151d19;
-  --color-surface: #222f28;
-  --color-surface-2: #1b2922;
-  --color-surface-3: #2d3d32;
-  --color-line: #35443a;
-  --color-ink: #f3f2eb;
-  --color-muted: #aab7ac;
-  --color-faint: #9aa79d;
-  --color-on-dark: #dce8df;
-  --color-sage-100: #26342c;
+  /* Premium warm dark, its own palette rather than an inversion: a deep charcoal page (never pure black), a lifted
+     sidebar/input layer (surface-2), cards a step above that, and a hover layer above the cards.
+     Contrast: body text 12.5:1 and secondary text 6.3:1 on cards; faint text 5.4:1; borders are soft on purpose,
+     and controls also differ from their surface in fill. */
+  --color-bg: #15191f;
+  --color-surface: #252d36;
+  --color-surface-2: #1d232b;
+  --color-surface-3: #2e3742;
+  --color-line: #3b4654;
+  --color-ink: #f1f3f5;
+  --color-muted: #a5afba;
+  --color-faint: #9ca6b2;
+  --color-on-dark: #dde2e8;
+  --color-sage: #8fa598;
+  --color-sage-100: #28323b;
   --color-terra: #d18a69;
-  --color-terra-100: #3a2b23;
-  --color-terra-ink: #e3a585;
-  --color-gold: #d4ad62;
-  --color-gold-100: #3a321f;
-  --color-gold-ink: #e8c98a;
-  --color-rose: #e8746a;
-  --color-rose-100: #3e1f1c;
-  --color-rose-ring: color-mix(in oklab, var(--color-rose) 45%, #222f28);
+  --color-terra-100: color-mix(in oklab, var(--color-terra) 16%, var(--color-surface));
+  --color-terra-ink: #e8ad8f;
+  --color-gold: #c6a66b;
+  --color-gold-100: color-mix(in oklab, var(--color-gold) 16%, var(--color-surface));
+  --color-gold-ink: #e2c891;
+  --color-rose: #ef8f86;
+  --color-rose-100: color-mix(in oklab, var(--color-rose) 13%, var(--color-surface));
+  --color-rose-ring: color-mix(in oklab, var(--color-rose) 45%, var(--color-surface));
+  --color-success: #69b58a;
+  --color-scrim: #07090c;
   /* The mint button's dark hover sank into the dark page; use the bright accent fill (white text 5:1+). */
   --color-mint-btn-hover: var(--sec);
-  --color-mint-100: color-mix(in oklab, var(--color-mint) 14%, #222f28);
-  --color-mint-200: color-mix(in oklab, var(--color-mint) 20%, #222f28);
+  --color-mint-100: color-mix(in oklab, var(--color-mint) 14%, var(--color-surface));
+  --color-mint-200: color-mix(in oklab, var(--color-mint) 20%, var(--color-surface));
   --color-focus: var(--color-mint);
-  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3), 0 4px 16px rgba(0, 0, 0, 0.22);
-  --shadow-pop: 0 10px 36px rgba(0, 0, 0, 0.45);
+  /* Layered depth: a faint top highlight on cards and soft, deep shadows below. */
+  --shadow-card: inset 0 1px 0 rgb(255 255 255 / 0.035), 0 1px 2px rgb(0 0 0 / 0.35), 0 8px 24px -10px rgb(0 0 0 / 0.45);
+  --shadow-pop: 0 0 0 1px rgb(255 255 255 / 0.05), 0 18px 48px -12px rgb(0 0 0 / 0.65);
 }
 /* Pine text is tuned for light surfaces; on dark surfaces use the light accent instead (but not on bright mint/white chips). */
 html.dark :is(.text-pine-600, .text-pine-700, .text-pine-800, .text-pine-900):not(.bg-mint, .bg-mint-hover, [class*="bg-white"]) {
@@ -349,9 +408,9 @@ html.easy {
   --color-line: #c3ccc0;
 }
 html.dark.easy {
-  --color-muted: #ccd6ce;
-  --color-faint: #b4c0b7;
-  --color-line: #4a5b4f;
+  --color-muted: #c6ced7;
+  --color-faint: #b2bbc6;
+  --color-line: #4d5968;
 }
 
 @layer base {

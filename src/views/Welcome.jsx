@@ -47,7 +47,7 @@ function Hello({ name, family, admin }) {
       <div className="rounded-2xl bg-surface-2 p-4">
         <strong className="text-small">{t("ob.whatNext")}</strong>
         <ul className="m-0 mt-2 grid list-none gap-2 p-0">
-          {t("ob.whatNextList").map((x) => <li key={x} className="flex items-start gap-2 text-small"><Icon name="check_circle" size="sm" className="text-pine-700 dark:text-mint" />{x}</li>)}
+          {t("ob.whatNextList").map((x) => <li key={x} className="flex items-start gap-2 text-small"><Icon name="check_circle" size="sm" className="text-success" />{x}</li>)}
         </ul>
       </div>
     </div>
@@ -71,7 +71,7 @@ function ThisIsMe() {
     archiveApi.people().then((list) => { if (live) setPeople(list); }, (e) => { if (live) setError(e.message); });
     return () => { live = false; };
   }, [linked]);
-  if (linked) return <p className="flex items-center gap-2 rounded-xl bg-surface-2 p-3 text-small"><Icon name="check_circle" size="sm" className="text-pine-700 dark:text-mint" /> {t("ob.me.linked")}</p>;
+  if (linked) return <p className="flex items-center gap-2 rounded-xl bg-surface-2 p-3 text-small"><Icon name="check_circle" size="sm" className="text-success" /> {t("ob.me.linked")}</p>;
   const save = async () => {
     if (!pick) return;
     setBusy(true);

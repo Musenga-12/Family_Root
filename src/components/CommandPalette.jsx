@@ -60,7 +60,7 @@ export default function CommandPalette({ onClose, actions }) {
 
   let index = -1;
   return (
-    <div className="fixed inset-0 z-85 grid animate-fade place-items-start justify-center bg-[rgba(10,30,24,.45)] px-4 pt-[10vh]"
+    <div className="fixed inset-0 z-85 grid animate-fade place-items-start justify-center bg-scrim/45 px-4 pt-[10vh]"
       onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <div role="dialog" aria-modal="true" aria-label={t("palette.title")}
         className="w-full max-w-155 animate-pop overflow-hidden rounded-card border border-line bg-surface shadow-pop">

@@ -14,8 +14,8 @@ import { THEME_ICON, usePrefActions } from "../lib/usePrefActions";
 
 const THEME_SWATCH = {
   light: { background: "#f7f5ef", color: "#245b4a" },
-  dark: { background: "#151d19", color: "#a9cdb9" },
-  system: { background: "linear-gradient(90deg, #f7f5ef 50%, #151d19 50%)", color: "#39745c" },
+  dark: { background: "#15191f", color: "#c6a66b" },
+  system: { background: "linear-gradient(90deg, #f7f5ef 50%, #15191f 50%)", color: "#8a7a4f" },
 };
 const ACCENTS = [["family", "#245b4a", "#a9cdb9"], ["heritage", "#c2410c", "#ffb27a"], ["blue", "#102a6b", "#93b6ff"], ["ocean", "#143a52", "#9fd4f0"], ["plum", "#3d1f48", "#e2bdf0"], ["clay", "#4c2617", "#f6c7a6"]];
 

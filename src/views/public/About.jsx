@@ -20,7 +20,7 @@ export default function About() {
           <h2 className="text-[1.4rem]!">{t("about.aims.title")}</h2>
           <ul className="m-0 mt-3 grid list-none gap-2.5 p-0">
             {t("about.aims").map((a) => (
-              <li key={a} className="flex items-start gap-2.5 text-muted"><Icon name="check_circle" size="sm" className="mt-0.5 text-pine-700 dark:text-mint" />{a}</li>
+              <li key={a} className="flex items-start gap-2.5 text-muted"><Icon name="check_circle" size="sm" className="mt-0.5 text-success" />{a}</li>
             ))}
           </ul>
         </Card>
