@@ -220,3 +220,23 @@ def test_production_without_proxy_hops_is_warned_about(caplog):
 
 def test_docs_are_served_in_development(client):
     assert client.get("/docs").status_code == 200 and client.get("/openapi.json").status_code == 200
+
+
+def test_production_refuses_every_secret_key_written_in_the_templates():
+    """Copying a template without replacing SECRET_KEY must never start a server: a published key signs anyone in."""
+    import re
+
+    root = Path(__file__).resolve().parents[2]
+    keys = {m for f in [*root.glob(".env*.example"), *(root / "backend").glob(".env*.example")]
+            for m in re.findall(r"^\s*#?\s*SECRET_KEY=(\S+)", f.read_text(encoding="utf-8"), re.M)}
+    assert len(keys) >= 2  # backend/.env.example and backend/.env.production.example
+    for key in keys:
+        with pytest.raises(RuntimeError, match="SECRET_KEY"):
+            check_settings(production(secret_key=key))
+
+
+@pytest.mark.parametrize("key", ["replace-me-with-something-long-and-random-1234", "CHANGE-ME-" + "x" * 30,
+                                 "your-secret-key-goes-here-0123456789abcdef", "placeholder" * 4])
+def test_production_refuses_obvious_placeholder_secret_keys(key):
+    with pytest.raises(RuntimeError, match="SECRET_KEY"):
+        check_settings(production(secret_key=key))

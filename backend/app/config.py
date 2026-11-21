@@ -7,7 +7,15 @@ from sqlalchemy.engine import make_url
 
 API_PREFIX = "/api/v1"
 DEV_SECRET = "dev-only-secret-change-me"
-PLACEHOLDER_SECRETS = {DEV_SECRET, "change-me-to-a-long-random-string"}  # the defaults shipped in this repo
+# The values in this repo's templates (.env.example, .env.production.example), and words that mark a value nobody
+# replaced. A SECRET_KEY that is published lets anyone sign a valid sign-in for any account.
+PLACEHOLDER_SECRETS = {DEV_SECRET, "change-me-to-a-long-random-string", "replace-with-a-long-random-value"}
+PLACEHOLDER_WORDS = ("replace", "change-me", "changeme", "your-", "example", "placeholder")
+
+
+def placeholder_secret(value: str) -> bool:
+    v = value.strip().lower()
+    return v in PLACEHOLDER_SECRETS or any(w in v for w in PLACEHOLDER_WORDS)
 
 log = logging.getLogger("familyroots")
 
@@ -110,7 +118,7 @@ def database_problems(name: str, url: str) -> list[str]:
 def check_settings(s: "Settings") -> None:
     """Refuse to start a production server with settings that are only safe on a developer's computer."""
     problems = []
-    if s.secret_key in PLACEHOLDER_SECRETS or len(s.secret_key) < 32:
+    if placeholder_secret(s.secret_key) or len(s.secret_key) < 32:
         problems.append("SECRET_KEY must be a long random value (32+ characters), e.g. python -c \"import secrets; print(secrets.token_urlsafe(48))\"")
     for name, value in (("FRONTEND_ORIGIN", s.frontend_origin), ("API_BASE_URL", s.api_base_url)):
         if "localhost" in value or "127.0.0.1" in value:
@@ -159,7 +167,7 @@ def check_settings(s: "Settings") -> None:
         return
     if s.production:
         raise RuntimeError("Unsafe production settings in backend/.env:\n- " + "\n- ".join(problems))
-    if s.secret_key in PLACEHOLDER_SECRETS:
+    if placeholder_secret(s.secret_key):
         log.warning("SECRET_KEY is the sample value: fine on your own computer, never on a server others can reach.")
 
 
