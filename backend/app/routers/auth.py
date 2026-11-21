@@ -10,8 +10,8 @@ from pydantic import BaseModel, EmailStr, Field, field_validator
 from sqlmodel import Session, select  # type: ignore[import-not-found]
 
 from app import mail, mail_templates
-from app.auth import (RESET_MINUTES, create_reset_link, create_token, get_current_user, hash_password, reset_token_status,
-                      use_reset_token, verify_password,
+from app.auth import (RESET_MINUTES, check_new_password, create_reset_link, create_token, get_current_user, hash_password,
+                      reset_token_status, sample_credentials_refused, use_reset_token, verify_password,
                       waste_password_check)
 from app.config import settings
 from app.db import get_session
@@ -134,6 +134,7 @@ def new_family_code(db: Session, last: str) -> str:
 @router.post("/auth/register", response_model=RegisterOut, status_code=201, dependencies=[Depends(limit("register", 10, 60 * 60))])
 def register(body: RegisterIn, response: Response, background: BackgroundTasks, db: Session = Depends(get_session)):
     email, name = body.email.lower(), body.name
+    check_new_password(body.password)
     if db.exec(select(User).where(User.email == email)).first():
         raise HTTPException(409, "An account with this email already exists")
     if pending_request(db, email):
@@ -191,6 +192,11 @@ def register(body: RegisterIn, response: Response, background: BackgroundTasks, 
 def sign_in(db: Session, email: str, password: str) -> TokenOut:
     email = email.strip().lower()
     limiter.hit(f"sign-in-email:{email}", 10, 15 * 60)  # also per account, so spreading guesses over many addresses doesn't help
+    if sample_credentials_refused(email, password):
+        # The sample family's accounts, or their published password: never in production. Same answer and time as a
+        # wrong password, so this says nothing about which accounts exist.
+        waste_password_check(password)
+        raise HTTPException(401, "Email or password is incorrect")
     user = db.exec(select(User).where(User.email == email)).first()
     if not user:
         req = pending_request(db, email)
@@ -345,6 +351,7 @@ class ChangeIn(BaseModel):
 
 
 def set_password(db: Session, user: User, password: str) -> None:
+    check_new_password(password)
     user.password_hash = hash_password(password)
     user.password_changed_at = now()  # signs out every other device
     db.add(user)

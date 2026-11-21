@@ -10,7 +10,8 @@ from pathlib import Path
 
 from sqlmodel import Session, select
 
-from app.auth import hash_password
+from app.auth import SAMPLE_PASSWORD, hash_password
+from app.config import settings
 from app.models import now
 from app.db import create_db, engine
 from app.models import (AccessLog, Album, AlbumBase, Consent, Event, Family, Invite, JoinRequest, LegacyRecord, Memory,
@@ -18,7 +19,7 @@ from app.models import (AccessLog, Album, AlbumBase, Consent, Event, Family, Inv
                         PersonBase, Poll, Prompt, PromptReply, RecordBase, Story, StoryBase, Thread, ThreadMember, User,
                         UserPrivacy)
 
-DEMO_PASSWORD = "familyroots123"
+DEMO_PASSWORD = SAMPLE_PASSWORD  # published: a production server refuses it (app/auth.py)
 SEED = json.loads((Path(__file__).parent / "seed_data.json").read_text(encoding="utf-8"))
 PERSON_FIELDS = set(PersonBase.model_fields) | {"id", "parents", "spouse", "tags"}
 MEMORY_FIELDS = set(MemoryBase.model_fields) | {"id", "tagged"}
@@ -29,11 +30,17 @@ MILESTONE_FIELDS = set(MilestoneBase.model_fields) | {"id", "icon", "people", "p
 
 
 def main() -> None:
+    # The sample family's accounts share a published password: a development and test database only.
+    if settings.production:
+        raise SystemExit("seed.py adds sample accounts with a published password. It never runs with ENVIRONMENT=production.")
     create_db()
     with Session(engine) as db:
         if db.exec(select(Family).where(Family.code == "MCK-8294")).first():
             print("Already seeded. Delete familyroots.db to start again.")
             return
+        # Only ever into an empty database, so sample people never mix with a real family's archive.
+        if db.exec(select(Family)).first():
+            raise SystemExit("This database already holds a family. seed.py only fills an empty database; nothing was changed.")
 
         family = Family(name="Mackenzie family", code="MCK-8294")
         db.add(family)

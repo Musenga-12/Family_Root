@@ -53,7 +53,8 @@ check_settings(settings)  # stops a production server with unsafe settings befor
 
 
 def warn_about_sample_accounts(db: Session) -> None:
-    """seed.py's demo accounts share a published password. On a production server they would let anyone in."""
+    """seed.py's sample accounts share a published password. A production server refuses them at sign-in
+    (app/auth.py), but they and their sample family don't belong in a real family's database."""
     if not settings.production:
         return
     from sqlmodel import select
@@ -61,8 +62,8 @@ def warn_about_sample_accounts(db: Session) -> None:
     from app.models import User
     sample = db.exec(select(User.email).where(User.email.like("%@example.com"), User.removed_at == None)).all()  # noqa: E711
     if sample:
-        log.warning("%d sample account(s) from seed.py (e.g. %s) can sign in with the published demo password. "
-                    "Remove the sample family from the production database before inviting real families.", len(sample), sample[0])
+        log.warning("%d sample account(s) from seed.py (e.g. %s) are in this database. They can't sign in here, but remove "
+                    "the sample family (scripts/retire_sample_accounts.py) before inviting real families.", len(sample), sample[0])
 
 
 @asynccontextmanager

@@ -14,6 +14,23 @@ from app.db import get_session
 from app.models import User, now
 
 ALGORITHM = "HS256"
+# The sample family's accounts (seed.py) are <id>@example.com with this password, published in the README and /docs.
+# A production server never lets them in, and nobody may choose this password there (see sample_credentials_refused).
+SAMPLE_PASSWORD = "familyroots123"
+SAMPLE_EMAIL_DOMAIN = "@example.com"  # reserved for examples (RFC 2606): no real person has an address there
+
+
+def sample_credentials_refused(email: str | None = None, password: str | None = None) -> bool:
+    """True on a production server for the sample accounts' email domain or their published password."""
+    if not settings.production:
+        return False
+    return bool((email and email.strip().lower().endswith(SAMPLE_EMAIL_DOMAIN)) or password == SAMPLE_PASSWORD)
+
+
+def check_new_password(password: str) -> None:
+    """A password someone is choosing: production refuses the sample accounts' published one."""
+    if sample_credentials_refused(password=password):
+        raise HTTPException(422, "This password is published in FamilyRoots' sample data. Choose another one.")
 hasher = PasswordHash.recommended()
 # Reads "Authorization: Bearer <token>", as before. Declaring it as an OAuth2 password flow lets the Authorize
 # button in /docs sign in with an email (in the "username" box) and password via POST /auth/token.
