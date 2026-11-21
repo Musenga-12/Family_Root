@@ -123,3 +123,18 @@ def test_read_all_and_unread_counts(client, auth):
     assert client.patch(f"{API}/threads/c2", headers=h, json={"unread": True}).json()["unread"] >= 1
     assert client.post(f"{API}/threads/read-all", headers=h).status_code == 204
     assert sum(t["unread"] for t in threads(client, h).values()) == 0
+
+
+def test_search_ignores_case_and_treats_wildcards_as_text(client, auth):
+    """The same on SQLite and PostgreSQL (whose LIKE is case-sensitive): "hello" finds "Hello", and % or _ are just
+    characters, so "%" doesn't match every message."""
+    mary = auth("mary")
+    hello = client.post(f"{API}/threads/c2/messages", headers=mary, json={"text": "Hello Grandad"}).json()
+    pct = client.post(f"{API}/threads/c2/messages", headers=mary, json={"text": "50% off at the bakery"}).json()
+
+    def found(q):
+        return [m["id"] for m in client.get(f"{API}/threads/c2/messages", params={"q": q}, headers=mary).json()["messages"]]
+
+    assert hello["id"] in found("hello") and hello["id"] in found("GRANDAD")
+    assert found("%") == [pct["id"]]
+    assert found("50_ off") == []

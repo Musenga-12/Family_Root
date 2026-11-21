@@ -255,7 +255,8 @@ def list_events(
         stmt = stmt.where(Event.date <= to)
     if not include_cancelled:
         stmt = stmt.where(Event.cancelled_at == None)  # noqa: E711
-    return events_out(db, user, list(db.exec(stmt.order_by(Event.date, Event.time)).all()))
+    # All-day events (no time) first on each day, on every database: PostgreSQL would otherwise put them last.
+    return events_out(db, user, list(db.exec(stmt.order_by(Event.date, Event.time.asc().nulls_first())).all()))
 
 
 @router.get("/events/{eid}", response_model=EventOut)

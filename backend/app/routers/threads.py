@@ -396,7 +396,8 @@ def list_messages(
         b = get_message(db, tid, before)
         stmt = stmt.where((Message.at < b.at) | ((Message.at == b.at) & (Message.id < b.id)))
     if q:
-        stmt = stmt.where(Message.text.contains(q.strip()), Message.deleted_at == None)  # noqa: E711
+        # Case-insensitive on every database (PostgreSQL's LIKE isn't), and % or _ typed in the box are just characters.
+        stmt = stmt.where(Message.text.icontains(q.strip(), autoescape=True), Message.deleted_at == None)  # noqa: E711
     if starred:
         stmt = stmt.where(Message.id.in_(select(MessageStar.message_id).where(MessageStar.user_id == user.id)),
                           Message.deleted_at == None)  # noqa: E711

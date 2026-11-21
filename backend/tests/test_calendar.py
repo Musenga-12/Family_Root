@@ -112,3 +112,13 @@ def test_anniversaries_skip_dates_that_dont_exist(client, auth):
     by_milestone = {i["milestone_id"]: i for i in cal}
     assert by_milestone[ok.json()["id"]]["years"] == 7 and by_milestone[ok.json()["id"]]["date"] == "2027-06-01"
     assert bad.json()["id"] not in by_milestone
+
+
+def test_all_day_gatherings_come_first_on_their_day(client, auth):
+    """Fixed order on every database (PostgreSQL would otherwise put gatherings without a time last)."""
+    james = auth("james")
+    late = lunch(client, james, date="2027-06-01", time="18:00")
+    all_day = lunch(client, james, date="2027-06-01")
+    early = lunch(client, james, date="2027-06-01", time="09:30")
+    day = [x["id"] for x in client.get(f"{API}/events?from=2027-06-01&to=2027-06-01", headers=james).json()]
+    assert day == [all_day["id"], early["id"], late["id"]]
