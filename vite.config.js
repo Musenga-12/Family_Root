@@ -2,7 +2,9 @@ import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
 import { createHash } from 'node:crypto'
 import { readFileSync, readdirSync } from 'node:fs'
+import { loadEnv } from 'vite'
 import { defineConfig } from 'vitest/config'
+import { contentSecurityPolicy, productionApiProblems } from './security-headers.js'
 
 /**
  * Normal build (dist/): emits sw.js with the full list of built files, so the installed app works offline
@@ -19,6 +21,25 @@ function serviceWorker() {
         .replace('__VERSION__', version)
         .replace('__PRECACHE__', JSON.stringify(['./', ...files]))
       this.emitFile({ type: 'asset', fileName: 'sw.js', source })
+    },
+  }
+}
+
+/**
+ * Normal build: the Content-Security-Policy as the first thing in <head> (see security-headers.js), built from the
+ * same VITE_API_URL the app uses. A Vercel production build stops if that address is missing, not https, or local,
+ * so a deployed app can never quietly be the demo or talk to a developer's computer.
+ */
+function securityPolicy(apiUrl) {
+  return {
+    name: 'familyroots-csp',
+    apply: 'build',
+    buildStart() {
+      const problems = process.env.VERCEL_ENV === 'production' ? productionApiProblems(apiUrl) : []
+      if (problems.length) this.error(`Production build refused:\n- ${problems.join('\n- ')}`)
+    },
+    transformIndexHtml() {
+      return [{ tag: 'meta', attrs: { 'http-equiv': 'Content-Security-Policy', content: contentSecurityPolicy(apiUrl) }, injectTo: 'head-prepend' }]
     },
   }
 }
@@ -64,10 +85,11 @@ function singleFile() {
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
   const single = mode === 'single'
+  const apiUrl = loadEnv(mode, process.cwd(), 'VITE_').VITE_API_URL || ''
   return {
     // Relative paths, so the build works from any folder or sub-path.
     base: './',
-    plugins: [react(), tailwindcss(), single ? singleFile() : serviceWorker()],
+    plugins: [react(), tailwindcss(), ...(single ? [singleFile()] : [serviceWorker(), securityPolicy(apiUrl)])],
     publicDir: single ? false : 'public',
     test: {
       environment: 'jsdom',

@@ -114,9 +114,17 @@ const MILESTONE_FIELDS = ["type", "title", "date", "approx", "source", "place", 
 const RECORD_FIELDS = ["title", "category", "date", "approx", "custodian", "source", "text", "visibility", "sealedUntil"];
 const EVENT_FIELDS = ["title", "date", "time", "place", "note"];
 
+/** "data:image/jpeg;base64,…" → Blob, without fetch() (which the Content-Security-Policy keeps to the API). */
+export function dataUrlToBlob(dataUrl) {
+  const [head, data = ""] = dataUrl.split(",", 2);
+  const type = head.slice(5).split(";")[0] || "application/octet-stream";
+  const bytes = head.includes(";base64") ? Uint8Array.from(atob(data), (c) => c.charCodeAt(0)) : new TextEncoder().encode(decodeURIComponent(data));
+  return new Blob([bytes], { type });
+}
+
 /** A photo chosen on this device (a data: URL) uploaded as a file. Resolves the upload id. */
 async function upload(dataUrl, name) {
-  const blob = await (await fetch(dataUrl)).blob();
+  const blob = dataUrlToBlob(dataUrl);
   const form = new FormData();
   form.append("file", blob, `${name}.${(blob.type.split("/")[1] || "jpg").replace("jpeg", "jpg")}`);
   return (await api("/uploads", { form })).id;

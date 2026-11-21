@@ -8,6 +8,7 @@ import { ME } from "../data";
 import { cx, fmtDate, todayISO, uid } from "../lib/format";
 import { rich, useT } from "../lib/i18n";
 import { canSpeak, useSpeech } from "../lib/speech";
+import { PRINT_CSS } from "../lib/printStyle";
 import { fullName, useStore } from "../lib/store";
 import { useDraft } from "../lib/useDraft";
 
@@ -58,7 +59,7 @@ function RecordDialog({ r }) {
     // Print just this record: a clean window with the record text, so nothing else on the page is printed.
     const w = window.open("", "_blank", "width=720,height=900");
     if (!w) { toast(t("lg.popups"), { error: true, sub: t("lg.popupsSub") }); return; }
-    w.document.write(`<!doctype html><title>${esc(r.title)}</title><style>body{font:16px/1.6 Georgia,serif;max-width:640px;margin:40px auto;color:#111}h1{font-size:22px}small{color:#555}</style>
+    w.document.write(`<!doctype html><title>${esc(r.title)}</title><style>${PRINT_CSS}</style>
       <h1>${esc(r.title)}</h1><small>${esc(category)} · ${fmtDate(r.date, r.approx)} · ${esc(t("lg.custodian"))}: ${esc(fullName(person(r.custodian)))}</small><p>${esc(r.text)}</p><small>${esc(t("lg.source"))}: ${esc(r.source)}</small>`);
     w.document.close();
     w.focus();
