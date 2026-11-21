@@ -9,16 +9,10 @@ import InviteDialog from "../dialogs/InviteDialog";
 import MessageDialog from "../dialogs/MessageDialog";
 import { cx, fmtDate } from "../lib/format";
 import { useT } from "../lib/i18n";
+import { DIRECTORY_SORTS } from "../lib/peopleSort";
 import { age, daysToBirthday, fullName, initials, useStore, year } from "../lib/store";
 
-const SORTS = {
-  generation: (a, b) => a.gen - b.gen || a.born.localeCompare(b.born),
-  nameAZ: (a, b) => fullName(a).localeCompare(fullName(b)),
-  nameZA: (a, b) => fullName(b).localeCompare(fullName(a)),
-  birthday: (a, b) => (a.died ? 999 : daysToBirthday(a) ?? 998) - (b.died ? 999 : daysToBirthday(b) ?? 998),
-  oldestPerson: (a, b) => a.born.localeCompare(b.born),
-  youngestPerson: (a, b) => b.born.localeCompare(a.born),
-};
+const SORTS = DIRECTORY_SORTS;
 
 const ALL = { branch: "all", status: "all", gen: "all" };
 
