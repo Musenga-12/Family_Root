@@ -48,7 +48,10 @@ describe.skipIf(!LIVE)("family server sync (live)", () => {
       for (const [name, value, filename] of opts.body.parts) {
         const file = value && typeof value === "object";
         chunks.push(Buffer.from(`--${b}\r\nContent-Disposition: form-data; name="${name}"${file ? `; filename="${filename}"\r\nContent-Type: ${value.type}` : ""}\r\n\r\n`));
-        chunks.push(file ? (value.bytes || Buffer.from(await value.arrayBuffer())) : Buffer.from(String(value)));
+        // The data: stand-in above carries its bytes as a Buffer; a real Blob (e.g. a photo chosen on the device, see
+        // dataUrlToBlob) has a bytes() *method* instead, so its contents are read with arrayBuffer().
+        chunks.push(file ? (Buffer.isBuffer(value.bytes) ? value.bytes : Buffer.from(new Uint8Array(await value.arrayBuffer())))
+          : Buffer.from(String(value)));
         chunks.push(Buffer.from("\r\n"));
       }
       chunks.push(Buffer.from(`--${b}--\r\n`));
