@@ -213,3 +213,31 @@ def test_accounts_close_after_the_grace_period(client, auth):
 
     assert login(client, "james@example.com").status_code == 401
     assert client.get(f"{API}/people/james", headers=auth("mary")).status_code == 200  # the tree keeps the person
+
+
+def test_due_accounts_keep_being_closed_while_the_server_runs(monkeypatch, caplog):
+    """Not only at start-up: an always-on server may run for weeks between deploys. A failure is logged and retried."""
+    import asyncio
+
+    import app.main as main
+
+    runs = []
+
+    def close_now():
+        runs.append(1)
+        if len(runs) == 2:
+            raise RuntimeError("database briefly unavailable")
+        return 1
+
+    monkeypatch.setattr(main, "close_due_accounts_now", close_now)
+
+    async def run_a_while():
+        task = asyncio.create_task(main.keep_closing_due_accounts(every=0.01))
+        while len(runs) < 4:
+            await asyncio.sleep(0.01)
+        task.cancel()
+
+    with caplog.at_level("INFO", logger="familyroots"):
+        asyncio.run(run_a_while())
+    assert len(runs) >= 4  # it went on after the failure
+    assert "Closing due accounts failed" in caplog.text and "Closed 1 account(s)" in caplog.text

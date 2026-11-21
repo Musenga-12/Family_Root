@@ -1,10 +1,12 @@
 """FamilyRoots API. Run from the backend folder: fastapi dev app/main.py  →  docs at http://localhost:8000/docs"""
+import asyncio
 import logging
 import re
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, suppress
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import JSONResponse
 from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError, OperationalError
@@ -66,13 +68,39 @@ def warn_about_sample_accounts(db: Session) -> None:
                     "the sample family (scripts/retire_sample_accounts.py) before inviting real families.", len(sample), sample[0])
 
 
+CLOSE_ACCOUNTS_EVERY = 6 * 60 * 60  # seconds
+
+
+def close_due_accounts_now() -> int:
+    with Session(engine) as db:
+        return privacy.close_due_accounts(db)
+
+
+async def keep_closing_due_accounts(every: float = CLOSE_ACCOUNTS_EVERY) -> None:
+    """Accounts whose 30-day notice has run out are closed while the server runs, not only when it starts: a server
+    can run for weeks between deploys. One server process (see realtime.py), so this runs in one place."""
+    while True:
+        await asyncio.sleep(every)
+        try:
+            if n := await run_in_threadpool(close_due_accounts_now):
+                log.info("Closed %d account(s) whose 30-day notice had run out.", n)
+        except Exception:
+            log.exception("Closing due accounts failed; trying again in %d hours", every // 3600)
+
+
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     create_db()  # SQLite: creates missing tables. A database server: checks its migration (alembic upgrade head)
     with Session(engine) as db:
         privacy.close_due_accounts(db)  # accounts whose 30-day notice has run out
         warn_about_sample_accounts(db)
-    yield
+    task = asyncio.create_task(keep_closing_due_accounts())
+    try:
+        yield
+    finally:
+        task.cancel()
+        with suppress(asyncio.CancelledError):
+            await task
 
 
 DOCS_INTRO = """
