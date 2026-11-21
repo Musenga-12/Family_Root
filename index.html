@@ -5,11 +5,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>FamilyRoots – Living Archive</title>
     <meta name="description" content="FamilyRoots: a private archive for your family's tree, photos, stories and records." />
-    <meta name="theme-color" content="#245b4a" />
+    <meta name="theme-color" content="#15191f" />
     <meta name="color-scheme" content="light dark" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/manifest.webmanifest" />
+    <script>
+      try {
+        const saved = JSON.parse(localStorage.getItem("fr-pref-prefs") || "{}");
+        const mode = saved.theme || "dark";
+        const dark = mode === "dark" || (mode === "system" && matchMedia("(prefers-color-scheme: dark)").matches);
+        document.documentElement.classList.toggle("dark", dark);
+        document.documentElement.dataset.accent = saved.accent || "family";
+      } catch {
+        document.documentElement.classList.add("dark");
+        document.documentElement.dataset.accent = "family";
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>

@@ -29,7 +29,7 @@ function pref(key, val) {
 
 /* Display preferences (theme, accent, language, text size…), stored together as JSON. */
 const DEFAULT_PREFS = {
-  theme: "system", accent: "family", accentV: 4, lang: "en", text: "md", motion: "full", sidebar: "full",
+  theme: "dark", accent: "family", accentV: 4, lang: "en", text: "md", motion: "full", sidebar: "full",
   notify: { birthdays: true, stories: true, digest: "weekly" }, visibility: "All Family Branches",
   sound: false, haptics: false, speechRate: 1, tourDone: false,
 };

@@ -21,8 +21,8 @@ export function Brand({ className }) {
   const t = useT();
   return (
     <Link to="/" aria-label={t("shell.home")} className={cx("flex items-center gap-2.5 rounded-xl text-ink no-underline", className)}>
-      <span className="grid size-8.5 place-items-center rounded-full bg-pine-900 text-mint"><Icon name="park" /></span>
-      <strong className="font-serif text-[1.15rem]">FamilyRoots</strong>
+      <span className="public-brand-mark grid size-8.5 place-items-center rounded-full bg-pine-900 text-mint"><Icon name="park" /></span>
+      <strong className="public-brand-name font-serif text-[1.15rem]">FamilyRoots</strong>
     </Link>
   );
 }
@@ -91,11 +91,11 @@ export default function SiteHeader({ minimal }) {
   const [open, setOpen] = useState(false);
   const lang = LANGS.find((l) => l.code === prefs.lang) || LANGS[0];
   return (
-    <header className="sticky top-0 z-30 border-b border-line bg-bg/90 backdrop-blur-md">
-      <div className="mx-auto flex max-w-300 items-center gap-3 px-4 py-3 sm:px-7">
+    <header data-public-header className="sticky top-0 z-30 border-b border-line bg-bg/90 backdrop-blur-md">
+      <div className="mx-auto flex w-full items-center gap-3 px-4 py-2.5 sm:px-7">
         <Brand />
         {!minimal && (
-          <nav aria-label={t("pub.nav.main")} className="ml-4 hidden gap-0.5 lg:flex">
+          <nav aria-label={t("pub.nav.main")} className="public-desktop-nav ml-4 hidden gap-0.5">
             {SITE_PAGES.map(([to, key]) => <NavLink key={to} to={to} end className={linkCls}>{t(key)}</NavLink>)}
           </nav>
         )}
@@ -108,7 +108,7 @@ export default function SiteHeader({ minimal }) {
               easy ? "border-transparent bg-sec text-sec-on" : "border-sec-line bg-surface text-sec-ink hover-fill")}>
             <span aria-hidden="true" className="font-serif text-[1.05rem] leading-none">Aa</span>
             {/* The words show when there's room (rem-based, so bigger Easy-to-Read text gives way sooner); the check always shows. */}
-            <span className="max-xl:sr-only">{t("top.easy")}</span>
+            <span className="public-easy-label max-xl:sr-only">{t("top.easy")}</span>
             {easy && <Icon name="check" size="xs" />}
           </button>
           {/* On a phone the language choice lives in the menu panel, so the header still fits when signed in. */}
@@ -125,13 +125,13 @@ export default function SiteHeader({ minimal }) {
             title={t("theme.switch", { mode: t(dark ? "theme.dark" : "theme.light") })} onClick={cycleTheme} />
           <Actions />
           {status === "signedIn" && <AccountMenu />}
-          {!minimal && <IconButton icon={open ? "close" : "menu"} label={t("common.menu")} aria-expanded={open} aria-controls="siteMenu" className="lg:hidden" onClick={() => setOpen(!open)} />}
+          {!minimal && <IconButton icon={open ? "close" : "menu"} label={t("common.menu")} aria-expanded={open} aria-controls="siteMenu" onClick={() => setOpen(!open)} />}
         </div>
       </div>
       {open && !minimal && (
         // Choosing a page closes the menu.
         <nav id="siteMenu" aria-label={t("pub.nav.main")} onClick={(e) => e.target.closest("a") && setOpen(false)}
-          className="grid animate-fade gap-1 border-t border-line px-4 py-3 lg:hidden">
+          className="grid animate-fade gap-1 border-t border-line px-4 py-3">
           {SITE_PAGES.map(([to, key]) => <NavLink key={to} to={to} end className={(s) => cx(linkCls(s), "py-2.5 text-[.95rem]")}>{t(key)}</NavLink>)}
           <div role="group" aria-label={t("top.language")} className="mt-2 grid grid-cols-4 gap-1.5 sm:hidden">
             {LANGS.map((l) => (

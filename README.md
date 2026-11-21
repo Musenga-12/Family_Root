@@ -10,6 +10,15 @@ A private archive for a family's tree, photos, stories, records and conversation
 | Photos, recordings, scans | private bucket | **Supabase Storage** |
 | Checks | GitHub Actions on Ubuntu | every push |
 
+## Repository branches
+
+- `main` - complete, stable, integrated application and production branch.
+- `frontend` - React, Vite, Tailwind, responsive UI, theme, API integration and frontend tests.
+- `backend` - FastAPI, SQLModel/SQLAlchemy, migrations, authentication, storage, email and backend tests.
+
+## Use it
+
+
 How they fit, what to set where, and the exact order: [DEPLOY.md](DEPLOY.md). Every endpoint:
 [docs/API.md](docs/API.md). Files: [docs/STORAGE.md](docs/STORAGE.md). Moving the old Supabase database to Neon:
 [docs/DATA_MIGRATION.md](docs/DATA_MIGRATION.md). Security review and what's still open: [AUDIT.md](AUDIT.md).
