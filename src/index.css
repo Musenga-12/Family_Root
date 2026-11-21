@@ -330,6 +330,31 @@ html.dark[data-accent="family"], html.dark[data-accent="family"] [data-sec] {
   --sec-press: color-mix(in oklab, var(--sec) 80%, #8a6f3c);
 }
 
+/* Public dark header: a deep navy band like the FamilyRoots reference, with warm-gold brand
+   and primary-action accents. Desktop public navigation stays in the menu for a compact header. */
+html.dark [data-public-header] {
+  background: #101827;
+  border-bottom-color: #263248;
+  box-shadow: 0 1px 0 rgba(198, 166, 107, 0.05);
+}
+html.dark [data-public-header] .public-brand-name {
+  color: #f4f1e8;
+}
+html.dark [data-public-header] .public-brand-mark {
+  background: #17243a;
+  color: #d9be88;
+}
+html.dark [data-public-header] .public-easy-label {
+  display: none;
+}
+html.dark [data-public-header] .public-desktop-nav {
+  display: none;
+}
+html.dark [data-public-header] button,
+html.dark [data-public-header] [role="button"] {
+  border-color: #263248;
+}
+
 /* Accent colour preference: re-tints the pine/mint scale used for buttons, highlights and focus rings.
    Family green (above) is the default; these are optional. Heritage orange is the app's earlier look. */
 html[data-accent="heritage"] {
