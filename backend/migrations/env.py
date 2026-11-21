@@ -13,8 +13,9 @@ if context.config.config_file_name is not None:
     fileConfig(context.config.config_file_name, disable_existing_loggers=False)
 
 target_metadata = SQLModel.metadata
-# A connection handed in by the caller (tests, app/db.py) wins over the configured address.
-url = context.config.attributes.get("url") or settings.database_url
+# A connection handed in by the caller (tests, app/db.py) wins over the configured address. On Neon, migrations use
+# the direct connection (DATABASE_URL_DIRECT) when it is set, not the pooled one the app uses.
+url = context.config.attributes.get("url") or settings.database_url_direct or settings.database_url
 OPTIONS = dict(target_metadata=target_metadata, compare_type=True,
                render_as_batch=url.startswith("sqlite"))  # SQLite can only change a table by copying it
 
@@ -33,7 +34,7 @@ def run_migrations_online() -> None:
         with context.begin_transaction():
             context.run_migrations()
         return
-    engine = create_engine(url, poolclass=pool.NullPool)
+    engine = create_engine(url, poolclass=pool.NullPool, **({} if url.startswith("sqlite") else {"connect_args": {"connect_timeout": 10}}))
     with engine.connect() as connection:
         context.configure(connection=connection, **OPTIONS)
         with context.begin_transaction():

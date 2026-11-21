@@ -24,6 +24,7 @@ API = f"http://127.0.0.1:{PORT}/api/v1"
 os.environ.update(
     ENVIRONMENT="development",
     DATABASE_URL=f"sqlite:///{(TMP / 'live.db').as_posix()}",
+    DATABASE_URL_DIRECT="",  # never a migration address from backend/.env
     UPLOAD_DIR=str(TMP / "uploads"),
     SECRET_KEY="live-check-only-" + "k" * 40,
     FRONTEND_ORIGIN="http://localhost:5173",

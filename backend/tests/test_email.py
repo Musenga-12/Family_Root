@@ -256,7 +256,7 @@ def test_templates_escape_names_and_have_plain_text():
 
 def test_production_refuses_unsafe_email_settings():
     base = dict(environment="production", secret_key="k" * 48, frontend_origin="https://app.example.org",
-                api_base_url="https://api.example.org", database_url="postgresql+psycopg://u:p@db.example.org/familyroots")
+                api_base_url="https://api.example.org", database_url="postgresql+psycopg://u:p@db.example.org/familyroots?sslmode=require")
     with pytest.raises(RuntimeError, match="console"):
         check_settings(Settings(_env_file=None, **base, email_provider="console"))
     with pytest.raises(RuntimeError, match="RESEND_API_KEY"):
@@ -367,14 +367,15 @@ def test_the_three_states_and_the_status_endpoint(client, monkeypatch):
 
 
 def test_production_without_email_points_to_an_admin_link_and_sends_nothing(client, auth, monkeypatch):
+    mary = auth("mary")  # signed in first: production refuses sample accounts at sign-in (test_sample_accounts.py)
     monkeypatch.setattr(settings, "environment", "production")
     r = forgot(client, "james@example.com")
     assert r.status_code == 503 and "Reset link" in r.json()["detail"]
-    inv = client.post(f"{API}/invites", headers=auth("mary"), json={"name": "Isla", "email": "isla.x@example.org"}).json()
+    inv = client.post(f"{API}/invites", headers=mary, json={"name": "Isla", "email": "isla.x@example.org"}).json()
     assert inv["emailed"] is False and inv["link"]
     # The Admin-made link is the way back in, and it is a normal single-use reset link.
-    mid = next(m["user_id"] for m in client.get(f"{API}/members", headers=auth("mary")).json() if m["person_id"] == "james")
-    link = client.post(f"{API}/members/{mid}/reset-link", headers=auth("mary")).json()["link"]
+    mid = next(m["user_id"] for m in client.get(f"{API}/members", headers=mary).json() if m["person_id"] == "james")
+    link = client.post(f"{API}/members/{mid}/reset-link", headers=mary).json()["link"]
     token = link.split("token=")[1]
     assert client.post(f"{API}/auth/reset-password", json={"token": token, "password": "a-brand-new-password"}).status_code == 200
     assert client.post(f"{API}/auth/reset-password", json={"token": token, "password": "another-password1"}).status_code == 400

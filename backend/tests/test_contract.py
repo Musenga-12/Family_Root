@@ -143,8 +143,13 @@ def test_workflows_leave_no_broken_references(client, auth):
     client.post(f"{API}/records/r1/attachments", headers=auth("sarah"), json={"upload_id": upload(client, auth("sarah"), PNG).json()["id"]})
     client.post(f"{API}/auth/register", json={"name": "New Family", "email": "nf@example.org", "password": PASSWORD})
     with engine.connect() as c:
-        assert c.exec_driver_sql("PRAGMA foreign_key_check").fetchall() == []
-        assert c.exec_driver_sql("PRAGMA integrity_check").fetchone()[0] == "ok"
+        if engine.dialect.name == "sqlite":
+            assert c.exec_driver_sql("PRAGMA foreign_key_check").fetchall() == []
+            assert c.exec_driver_sql("PRAGMA integrity_check").fetchone()[0] == "ok"
+        else:  # PostgreSQL refuses a broken reference as it is written: check the constraints exist and are in force
+            fks = c.exec_driver_sql("SELECT count(*), count(*) FILTER (WHERE NOT convalidated) FROM pg_constraint "
+                                    "WHERE contype = 'f' AND connamespace = 'public'::regnamespace").one()
+            assert fks[0] > 0 and fks[1] == 0
 
 
 def test_startup_adds_missing_indexes(client):

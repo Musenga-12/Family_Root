@@ -8,7 +8,7 @@ from alembic.runtime.migration import MigrationContext
 from sqlalchemy import create_engine, event, text
 from sqlmodel import SQLModel
 
-from app.db import ALEMBIC_INI
+from app.db import ALEMBIC_INI, engine
 
 
 @pytest.fixture
@@ -150,4 +150,34 @@ def test_migration_status_reads_the_database(client):
     from app.db import migration_status
 
     current, head = migration_status()
-    assert current is None and head == "0003"  # the test database is built from models.py, never stamped
+    assert head == "0003"
+    if engine.dialect.name == "sqlite":
+        assert current is None  # the SQLite test database is built from models.py, never stamped
+    else:
+        assert current == head  # the PostgreSQL one is built by the migrations themselves (conftest.py)
+
+
+# ---------- PostgreSQL (TEST_DATABASE_URL, see conftest.py): the database production runs on ----------
+
+postgres_only = pytest.mark.skipif(engine.dialect.name != "postgresql", reason="needs TEST_DATABASE_URL (PostgreSQL)")
+
+
+@postgres_only
+def test_postgres_schema_built_by_the_migrations_matches_the_models(client):
+    with engine.connect() as conn:
+        assert compare_metadata(MigrationContext.configure(conn), SQLModel.metadata) == []
+        assert MigrationContext.configure(conn).get_current_revision() == "0003"
+
+
+@postgres_only
+def test_postgres_migrations_go_down_and_up_again_keeping_the_data(client):
+    """0003 (Supabase-only rights; nothing to do on Neon) and 0002 (a data migration) both ways, on PostgreSQL."""
+    cfg = Config(str(ALEMBIC_INI))
+    with engine.connect() as conn:
+        people = conn.execute(text("SELECT count(*) FROM person")).scalar()
+    engine.dispose()
+    command.downgrade(cfg, "0001")
+    command.upgrade(cfg, "head")
+    with engine.connect() as conn:
+        assert MigrationContext.configure(conn).get_current_revision() == "0003"
+        assert conn.execute(text("SELECT count(*) FROM person")).scalar() == people

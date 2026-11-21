@@ -4,6 +4,7 @@ from collections.abc import Generator
 from pathlib import Path
 
 from sqlalchemy import event, inspect, text
+from sqlalchemy.engine import make_url
 from sqlmodel import Session, SQLModel, create_engine
 
 from app.config import settings
@@ -11,9 +12,24 @@ from app.config import settings
 log = logging.getLogger("familyroots")
 SQLITE = settings.database_url.startswith("sqlite")
 ALEMBIC_INI = Path(__file__).resolve().parent.parent / "alembic.ini"
-# check_same_thread is only needed for SQLite; pre_ping replaces dropped connections on a database server.
-engine = create_engine(settings.database_url, connect_args={"check_same_thread": False} if SQLITE else {},
-                       pool_pre_ping=not SQLITE)
+
+
+def engine_options(url: str) -> dict:
+    """How to connect. SQLite: from any thread. A database server (Neon in production):
+    - pool_pre_ping and pool_recycle: Neon closes idle connections when it scales to zero, so a connection is checked
+      before use and replaced after 5 minutes rather than failing a request;
+    - connect_timeout: a sleeping Neon database takes a moment to wake, but a dead one shouldn't hang a request;
+    - Neon's pooled address (host "…-pooler…", PgBouncer in transaction mode) can't keep psycopg's automatic server-side
+      prepared statements between transactions, so they are turned off there."""
+    if url.startswith("sqlite"):
+        return {"connect_args": {"check_same_thread": False}}
+    connect_args: dict = {"connect_timeout": 10}
+    if "-pooler" in (make_url(url).host or ""):
+        connect_args["prepare_threshold"] = None
+    return {"connect_args": connect_args, "pool_pre_ping": True, "pool_recycle": 300}
+
+
+engine = create_engine(settings.database_url, **engine_options(settings.database_url))
 
 if SQLITE:
     @event.listens_for(engine, "connect")

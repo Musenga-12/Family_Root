@@ -1,7 +1,9 @@
 """Settings read from backend/.env (see .env.example)."""
 import logging
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from sqlalchemy.engine import make_url
 
 API_PREFIX = "/api/v1"
 DEV_SECRET = "dev-only-secret-change-me"
@@ -17,6 +19,10 @@ class Settings(BaseSettings):
     environment: str = "development"
     secret_key: str = DEV_SECRET
     database_url: str = "sqlite:///./familyroots.db"
+    # Neon: DATABASE_URL is the *pooled* connection string (host ends in -pooler) the app uses; DATABASE_URL_DIRECT is
+    # the direct one, which Alembic migrations use when it is set (README: Database migrations). Either may be pasted
+    # as Neon shows it (postgresql://…?sslmode=require); the driver part is filled in below.
+    database_url_direct: str = ""
     frontend_origin: str = "http://localhost:5173"
     # More addresses the app may be opened from, comma-separated (e.g. "http://localhost:4173" for npm run preview).
     extra_origins: str = ""
@@ -60,9 +66,45 @@ class Settings(BaseSettings):
         """FRONTEND_ORIGIN and EXTRA_ORIGINS: the only web addresses whose pages may call this API."""
         return [o.strip().rstrip("/") for o in [self.frontend_origin, *self.extra_origins.split(",")] if o.strip()]
 
+    @field_validator("database_url", "database_url_direct")
+    @classmethod
+    def _psycopg_driver(cls, v: str) -> str:
+        return normalize_database_url(v)
+
     @property
     def production(self) -> bool:
         return self.environment.strip().lower() == "production"
+
+
+def normalize_database_url(url: str) -> str:
+    """postgres://… and postgresql://… (as Neon, Supabase and Render show them) use the psycopg 3 driver this app
+    installs; SQLAlchemy would otherwise look for psycopg2, which isn't installed."""
+    url = url.strip()
+    for prefix in ("postgres://", "postgresql://"):
+        if url.startswith(prefix):
+            return "postgresql+psycopg://" + url[len(prefix):]
+    return url
+
+
+SECURE_SSLMODES = {"require", "verify-ca", "verify-full"}
+
+
+def database_problems(name: str, url: str) -> list[str]:
+    """Production rules for a database address: PostgreSQL, and encrypted unless it is on this very computer."""
+    if not url:
+        return []
+    if url.lower().startswith("sqlite"):
+        # A file on the server's disk: most hosts (Render included) wipe it on every deploy, losing every family's data.
+        return [f"{name} is a SQLite file; production needs the PostgreSQL database (see DEPLOY.md)"]
+    try:
+        u = make_url(url)
+    except Exception:
+        return [f"{name} isn't a valid database address"]
+    if not u.drivername.startswith("postgresql"):
+        return [f"{name} must be a PostgreSQL database"]
+    if u.host not in ("localhost", "127.0.0.1", "::1") and u.query.get("sslmode") not in SECURE_SSLMODES:
+        return [f"{name} must end with ?sslmode=require (or verify-full): the connection to the database has to be encrypted"]
+    return []
 
 
 def check_settings(s: "Settings") -> None:
@@ -74,9 +116,7 @@ def check_settings(s: "Settings") -> None:
         if "localhost" in value or "127.0.0.1" in value:
             problems.append(f"{name} still points at this computer ({value})")
     if s.production:
-        if s.database_url.strip().lower().startswith("sqlite"):
-            # A file on the server's disk: most hosts (Render included) wipe it on every deploy, losing every family's data.
-            problems.append("DATABASE_URL is a SQLite file; production needs the PostgreSQL database (see DEPLOY.md)")
+        problems += database_problems("DATABASE_URL", s.database_url) + database_problems("DATABASE_URL_DIRECT", s.database_url_direct)
         for origin in s.origins():
             scheme, _, rest = origin.partition("://")
             if scheme != "https" or not rest or "*" in origin or "/" in rest:
