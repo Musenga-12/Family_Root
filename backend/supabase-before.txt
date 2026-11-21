@@ -1,0 +1,46 @@
+Database: postgresql on aws-1-eu-central-1.pooler.supabase.com (environment: development)
+
+Rows per table:
+  family           4
+  album            5
+  person           14
+  minorsetting     2
+  user             10
+  accesslog        4
+  event            1
+  invite           1
+  joinrequest      2
+  moodcheckin      0
+  notification     0
+  passwordreset    3
+  personfavorite   0
+  poll             1
+  prompt           1
+  record           7
+  suggestion       0
+  thread           4
+  upload           0
+  userprefs        2
+  userprivacy      2
+  eventrsvp        0
+  memory           6
+  message          13
+  milestone        10
+  pollvote         0
+  promptreply      2
+  recordattachment 0
+  story            5
+  threadmember     17
+  consent          5
+  memoryfavorite   0
+  messagereaction  9
+  messagestar      1
+  reflection       0
+  storylove        0
+
+Accounts: 2 real, 8 sample (@example.com, can sign in with the published demo password)
+
+Migration: database at 0003, code at 0003
+
+Problems:
+- 8 sample accounts can sign in
