@@ -39,3 +39,6 @@ backend/.env.pre-supabase-backup
 !.env.production.example
 # Test coverage data
 .coverage
+# Database backups (pg_dump): they hold everyone's data. Keep them outside the repository (docs/DATA_MIGRATION.md).
+*.dump
+*.backup
