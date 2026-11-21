@@ -79,7 +79,7 @@ def path_variants(literal: str) -> list[str]:
     tail = literal[i:]
     out = []
     for choice in product(*options):
-        s = "".join(p + c for p, c in zip(parts, choice)) + tail
+        s = "".join(p + c for p, c in zip(parts, choice, strict=True)) + tail
         out.append(s.split("?")[0])
     return out
 
