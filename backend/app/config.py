@@ -49,6 +49,10 @@ class Settings(BaseSettings):
     email_from: str = ""  # e.g. "FamilyRoots <no-reply@mail.yourdomain.org>", on a domain verified in Resend
     email_reply_to: str = ""
     email_timeout_seconds: float = 10
+    # Gmail API
+    gmail_client_id: str = ""
+    gmail_client_secret: str = ""
+    gmail_refresh_token: str = ""
     # EMAIL_PROVIDER=resend-test: where every message goes (a Resend test inbox, or the Resend account's own address).
     email_test_recipient: str = "delivered@resend.dev"
     # EMAIL_PROVIDER=smtp: Mailpit locally is SMTP_HOST=localhost, SMTP_PORT=1025, no login, no TLS.
@@ -142,14 +146,21 @@ def check_settings(s: "Settings") -> None:
         log.warning("TRUSTED_PROXY_HOPS=0: attempt limits use the connection's address. Behind a host's proxy (Render, "
                     "Railway…) every visitor then shares one limit; set it as in DEPLOY.md → Visitor addresses behind a proxy.")
     provider = s.email_provider.strip().lower()
-    if provider not in ("", "resend", "resend-test", "smtp", "console", "none"):
-        problems.append(f"EMAIL_PROVIDER must be resend, resend-test, smtp, console or none, not {provider!r}")
+    if provider not in ("", "resend", "resend-test", "smtp", "gmail-api", "console", "none"):
+        problems.append(f"EMAIL_PROVIDER must be resend, resend-test, smtp, gmail-api, console or none, not {provider!r}")
     if provider in ("resend", "resend-test") and not s.resend_api_key:
         problems.append(f"EMAIL_PROVIDER={provider} needs RESEND_API_KEY")
     if provider == "resend" and not s.email_from:
         problems.append("EMAIL_PROVIDER=resend needs EMAIL_FROM (an address on a domain verified in Resend)")
-    if provider == "smtp" and not s.smtp_host:
-        problems.append("EMAIL_PROVIDER=smtp needs SMTP_HOST")
+    if provider == "gmail-api":
+        if not s.gmail_client_id:
+            problems.append("EMAIL_PROVIDER=gmail-api needs GMAIL_CLIENT_ID")
+        if not s.gmail_client_secret:
+            problems.append("EMAIL_PROVIDER=gmail-api needs GMAIL_CLIENT_SECRET")
+        if not s.gmail_refresh_token:
+            problems.append("EMAIL_PROVIDER=gmail-api needs GMAIL_REFRESH_TOKEN")
+        if not s.email_from:
+            problems.append("EMAIL_PROVIDER=gmail-api needs EMAIL_FROM")
     if s.production and provider == "smtp" and not s.email_from:
         problems.append("EMAIL_PROVIDER=smtp needs EMAIL_FROM in production")
     if s.production and provider == "console":
