@@ -22,6 +22,7 @@ delivery_state() is one of:
 Moving to a verified domain later is a settings change only (EMAIL_PROVIDER=resend, EMAIL_FROM=…@your-domain).
 Keys and passwords are read on the server only; nothing about email is ever given to the web app.
 """
+import base64
 import logging
 import smtplib
 import ssl
@@ -36,6 +37,8 @@ from app.config import settings
 
 log = logging.getLogger("familyroots")
 RESEND_URL = "https://api.resend.com/emails"
+GMAIL_TOKEN_URL = "https://oauth2.googleapis.com/token"
+GMAIL_SEND_URL = "https://gmail.googleapis.com/gmail/v1/users/me/messages/send"
 # Resend's shared test sender and its documented test inboxes (resend.com/docs/dashboard/emails/send-test-emails).
 RESEND_TEST_FROM = "FamilyRoots <onboarding@resend.dev>"
 RESEND_TEST_RECIPIENTS = ("delivered@resend.dev", "bounced@resend.dev", "complained@resend.dev")
@@ -96,6 +99,60 @@ class ResendSender:
         return (r.json() or {}).get("id", "")
 
 
+class GmailApiSender:
+    """Send mail through Gmail's API using a refresh token."""
+    name = "gmail-api"
+    configured = True
+    real = True
+
+    def __init__(self, client_id: str, client_secret: str, refresh_token: str, sender: str,
+                 reply_to: str = "", timeout: float = 10, transport: httpx.BaseTransport | None = None):
+        self.client_id, self.client_secret, self.refresh_token = client_id, client_secret, refresh_token
+        self.sender, self.reply_to, self.timeout = sender, reply_to, timeout
+        self.client = httpx.Client(timeout=timeout, transport=transport)
+
+    def send(self, email: Email) -> str:
+        try:
+            token_response = self.client.post(
+                GMAIL_TOKEN_URL,
+                data={
+                    "client_id": self.client_id,
+                    "client_secret": self.client_secret,
+                    "refresh_token": self.refresh_token,
+                    "grant_type": "refresh_token",
+                },
+            )
+            if token_response.status_code >= 300:
+                raise EmailError(f"Gmail authentication failed (HTTP {token_response.status_code})")
+            access_token = (token_response.json() or {}).get("access_token")
+            if not access_token:
+                raise EmailError("Gmail authentication response did not contain an access token")
+
+            message = EmailMessage()
+            message["From"], message["To"], message["Subject"] = self.sender, email.to, email.subject
+            if self.reply_to:
+                message["Reply-To"] = self.reply_to
+            message.set_content(email.text)
+            message.add_alternative(email.html, subtype="html")
+            raw = base64.urlsafe_b64encode(message.as_bytes()).decode("ascii").rstrip("=")
+            response = self.client.post(
+                GMAIL_SEND_URL,
+                headers={"Authorization": f"Bearer {access_token}"},
+                json={"raw": raw},
+            )
+            if response.status_code >= 300:
+                raise EmailError(f"Gmail refused the message (HTTP {response.status_code})")
+            return (response.json() or {}).get("id", "")
+        except EmailError:
+            raise
+        except httpx.TimeoutException as e:
+            raise EmailError("the email provider did not answer in time") from e
+        except httpx.HTTPError as e:
+            raise EmailError(f"the email provider could not be reached ({e.__class__.__name__})") from e
+        except (ValueError, KeyError) as e:
+            raise EmailError("Gmail returned an invalid response") from e
+
+
 class SmtpSender:
     """Any SMTP server: Mailpit on a developer's computer, or a mail service later."""
     name = "smtp"
@@ -125,6 +182,7 @@ class SmtpSender:
         except (OSError, smtplib.SMTPException) as e:
             raise EmailError(f"the mail server refused or could not be reached ({e.__class__.__name__})") from e
         return msg.get("Message-ID", "") or "smtp"
+
 
 
 class ConsoleSender:
@@ -190,6 +248,23 @@ def _build():
     if p == "smtp" and s.smtp_host and (s.email_from or not s.production):
         return SmtpSender(s.smtp_host, s.smtp_port, s.email_from or "FamilyRoots <familyroots@localhost>", s.smtp_username,
                           s.smtp_password, s.smtp_starttls, s.smtp_ssl, s.email_reply_to, s.email_timeout_seconds)
+    if p == "gmail-api":
+        if not all((s.gmail_client_id, s.gmail_client_secret, s.gmail_refresh_token, s.email_from)):
+            return NoSender("Gmail API credentials or EMAIL_FROM are missing")
+
+        return _cached(
+            ("gmail-api", s.gmail_client_id, s.gmail_client_secret,
+             s.gmail_refresh_token, s.email_from, s.email_reply_to,
+             s.email_timeout_seconds),
+            lambda: GmailApiSender(
+                s.gmail_client_id,
+                s.gmail_client_secret,
+                s.gmail_refresh_token,
+                s.email_from,
+                s.email_reply_to,
+                s.email_timeout_seconds,
+            ),
+        )
     if p == "console" and not s.production:
         return ConsoleSender()
     return NoSender()
