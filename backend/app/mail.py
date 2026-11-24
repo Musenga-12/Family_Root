@@ -123,7 +123,20 @@ class GmailApiSender:
                 },
             )
             if token_response.status_code >= 300:
-                raise EmailError(f"Gmail authentication failed (HTTP {token_response.status_code})")
+                try:
+                    error_data = token_response.json()
+                    error_code = error_data.get("error", "unknown_error")
+                except (ValueError, AttributeError):
+                    error_code = "unknown_error"
+
+                # Log only Google's OAuth error code, never credentials or tokens.
+                if not isinstance(error_code, str):
+                    error_code = "unknown_error"
+
+                raise EmailError(
+                    f"Gmail authentication failed (HTTP {token_response.status_code}, "
+                    f"{error_code})"
+                )
             access_token = (token_response.json() or {}).get("access_token")
             if not access_token:
                 raise EmailError("Gmail authentication response did not contain an access token")
