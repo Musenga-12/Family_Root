@@ -143,6 +143,10 @@ def seed_threads(db: Session, family_id: int, users: dict[str, int], me: int) ->
         last_at = at(msgs[-1]["at"])
         db.add(Thread(id=t["id"], family_id=family_id, group=bool(t.get("group")), title=t["title"] if t.get("group") else None,
                       created_by=me, created_at=at(msgs[0]["at"]), last_message_at=last_at))
+
+        # Persist the parent thread before inserting members and messages.
+        db.flush()
+
         others = [m for m in msgs if m["by"] != "mary"]
         n = t.get("unread", 0)
         mary_read = at(others[-n]["at"]) - timedelta(seconds=1) if n and len(others) >= n else last_at

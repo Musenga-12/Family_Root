@@ -1,9 +1,13 @@
 """Email delivery and password recovery. No real email is ever sent: a fake sender records messages, and Resend's API
 is replaced by a stand-in (httpx.MockTransport)."""
+import base64
 import json
 import logging
 import re
 import time
+from email import policy
+from email.parser import BytesParser
+from urllib.parse import parse_qs
 
 import httpx
 import pytest
@@ -384,3 +388,113 @@ def test_production_without_email_points_to_an_admin_link_and_sends_nothing(clie
 def test_only_admins_can_make_reset_links(client, auth):
     mid = next(m["user_id"] for m in client.get(f"{API}/members", headers=auth("mary")).json() if m["person_id"] == "james")
     assert client.post(f"{API}/members/{mid}/reset-link", headers=auth("michael")).status_code == 403
+
+# ---------- Gmail API: OAuth and HTTPS delivery ----------
+
+def gmail_sender(handler):
+    return mail.GmailApiSender(
+        client_id="test-client-id",
+        client_secret="test-client-secret",
+        refresh_token="test-refresh-token",
+        sender="Family Roots <sender@gmail.com>",
+        reply_to="help@gmail.com",
+        timeout=5,
+        transport=httpx.MockTransport(handler),
+    )
+
+
+def test_gmail_api_sends_email_successfully():
+    seen = {}
+
+    def handler(request):
+        if str(request.url) == mail.GMAIL_TOKEN_URL:
+            seen["token_request"] = parse_qs(request.content.decode())
+            return httpx.Response(200, json={"access_token": "mock-access-token"})
+
+        if str(request.url) == mail.GMAIL_SEND_URL:
+            seen["authorization"] = request.headers.get("authorization")
+            body = json.loads(request.content)
+            raw = body["raw"]
+            decoded = base64.urlsafe_b64decode(raw + "=" * (-len(raw) % 4))
+            message = BytesParser(policy=policy.default).parsebytes(decoded)
+            seen["message"] = message
+            return httpx.Response(200, json={"id": "gmail-message-123"})
+
+        return httpx.Response(404)
+
+    sender = gmail_sender(handler)
+    email = mail.Email(
+        to="recipient@example.org",
+        subject="Family Roots test",
+        text="This is a test message.",
+        html="<p>This is a test message.</p>",
+    )
+
+    result = sender.send(email)
+
+    assert result == "gmail-message-123"
+    assert seen["token_request"]["grant_type"] == ["refresh_token"]
+    assert seen["token_request"]["client_id"] == ["test-client-id"]
+    assert seen["authorization"] == "Bearer mock-access-token"
+    assert seen["message"]["To"] == "recipient@example.org"
+    assert seen["message"]["Subject"] == "Family Roots test"
+    assert seen["message"]["From"] == "Family Roots <sender@gmail.com>"
+    assert seen["message"]["Reply-To"] == "help@gmail.com"
+    assert "This is a test message." in seen["message"].get_body(preferencelist=("plain",)).get_content()
+
+
+def test_gmail_api_authentication_failure_raises_email_error():
+    sender = gmail_sender(
+        lambda request: httpx.Response(
+            400,
+            json={"error": "invalid_grant"},
+        )
+    )
+
+    email = mail.Email(
+        to="recipient@example.org",
+        subject="Test",
+        text="Test",
+        html="<p>Test</p>",
+    )
+
+    with pytest.raises(mail.EmailError, match="Gmail authentication failed"):
+        sender.send(email)
+
+
+def test_gmail_api_delivery_failure_raises_email_error():
+    def handler(request):
+        if str(request.url) == mail.GMAIL_TOKEN_URL:
+            return httpx.Response(200, json={"access_token": "mock-access-token"})
+
+        return httpx.Response(403, json={"error": "insufficientPermissions"})
+
+    sender = gmail_sender(handler)
+
+    email = mail.Email(
+        to="recipient@example.org",
+        subject="Test",
+        text="Test",
+        html="<p>Test</p>",
+    )
+
+    with pytest.raises(mail.EmailError, match="Gmail refused the message"):
+        sender.send(email)
+
+
+def test_gmail_api_is_selected_when_configured(monkeypatch):
+    monkeypatch.setattr(settings, "email_provider", "gmail-api")
+    monkeypatch.setattr(settings, "gmail_client_id", "test-client-id")
+    monkeypatch.setattr(settings, "gmail_client_secret", "test-client-secret")
+    monkeypatch.setattr(settings, "gmail_refresh_token", "test-refresh-token")
+    monkeypatch.setattr(settings, "email_from", "Family Roots <sender@gmail.com>")
+    monkeypatch.setattr(settings, "email_reply_to", "help@gmail.com")
+
+    selected = mail.sender()
+
+    assert selected.name == "gmail-api"
+    assert selected.configured is True
+    assert selected.real is True
+    assert mail.delivery_state() == "development"
+    assert mail.can_email()
+
